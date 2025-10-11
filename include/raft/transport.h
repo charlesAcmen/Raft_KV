@@ -1,7 +1,8 @@
 #pragma once
 
 #include <chrono>
-
+#include <functional>
+#include <string>
 //forward declarations
 namespace raft::type{
     struct RequestVoteArgs;
