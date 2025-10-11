@@ -46,7 +46,7 @@ class Raft {
         //               must be provided in the .cpp implementation.
         // persister: optional persistence;
         Raft(int me,
-            const std::vector<raft::type::PeerInfo>& peers,
+            const std::vector<int>& peers,
             std::shared_ptr<IRaftTransport> transport,
             std::function<void(const type::LogEntry&)> applyCallback,
             RaftConfig config = RaftConfig(),
@@ -113,7 +113,7 @@ class Raft {
 
         // Raft identity and cluster
         const int me_;                      // this peer's id (index into peers_)
-        const std::vector<type::PeerInfo> peers_;      // peer ids (including me_)
+        const std::vector<int> peers_;      // peer ids (including me_)
 
         // Persistent state on all servers
         type::Role role_{type::Role::Follower};

@@ -1,10 +1,9 @@
 #pragma once
 
 
-#include <cstdint>
+#include <cstdint>  // for int32_t
 #include <string>
 #include <vector>
-#include <optional>
 
 namespace raft::type{
 
@@ -32,7 +31,7 @@ struct LogEntry {
 };
 
 
-// RequestVote RPC arguments (Raft paper §5.2).
+// RequestVote RPC arguments
 struct RequestVoteArgs {
     int32_t term{0}; // candidate’s term
     int32_t candidateId{0}; // candidate requesting vote
@@ -48,8 +47,7 @@ struct RequestVoteReply {
 };
 
 
-// AppendEntries RPC args. For 2A we only need the heartbeat 
-// (entries may be empty).
+// AppendEntries RPC args
 struct AppendEntriesArgs {
     int32_t term{0}; // leader’s term
     int32_t leaderId{0}; // so follower can redirect clients
@@ -61,13 +59,10 @@ struct AppendEntriesArgs {
 };
 
 
-// AppendEntries RPC reply.
+// AppendEntries RPC reply
 struct AppendEntriesReply {
     int32_t term{0}; // currentTerm, for leader to update itself
     bool success{false}; // true if follower contained entry matching prevLogIndex/prevLogTerm
-    
-    int32_t conflictIndex{0};
-    int32_t conflictTerm{0};
 };
 
 } // namespace  raft::type

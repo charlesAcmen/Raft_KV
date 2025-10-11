@@ -1,7 +1,7 @@
 #include "raft/raft.h"
 namespace raft{
 Raft::Raft(int me,
-    const std::vector<raft::type::PeerInfo>& peers,
+    const std::vector<int>& peers,
     std::shared_ptr<IRaftTransport> transport,
     std::function<void(const type::LogEntry&)> applyCallback,
     RaftConfig config,
@@ -10,25 +10,6 @@ Raft::Raft(int me,
     :me_(me), peers_(peers), transport_(transport),
     applyCallback_(applyCallback), config_(config),
     timerFactory_(timerFactory), persister_(persister) {
-    transport_->registerRequestVoteHandler(
-        [this](const std::string& req) {
-            type::RequestVoteArgs args;
-            args.ParseFromString(req);
-            type::RequestVoteReply reply;
-            this->HandleRequestVote(args, reply);
-            std::string resp;
-            reply.SerializeToString(&resp);
-            return resp;
-        });
-    transport_->registerAppendEntriesHandler(
-        [this](const std::string& req) {
-            type::AppendEntriesArgs args;
-            args.ParseFromString(req);
-            type::AppendEntriesReply reply;
-            this->HandleAppendEntries(args, reply);
-            std::string resp;
-            reply.SerializeToString(&resp);
-            return resp;
-        });
+
 }
 }

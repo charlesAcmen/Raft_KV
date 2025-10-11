@@ -32,7 +32,7 @@ namespace rpc{
         std::string framed = codec.encodeRequest(request_payload);
         
         // 3. send request
-        //send parameters:connecting fd,buff,buff size,flag
+        // send parameters:connecting fd,buff,buff size,flag
         ssize_t n = send(sock_fd, framed.c_str(), framed.size(), 0);
         if (n < 0) {
             spdlog::error("[RpcClient] call(const std::string& ,const std::string&) send() failed");

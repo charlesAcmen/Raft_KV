@@ -21,10 +21,8 @@ public:
         const std::vector<raft::type::PeerInfo>& peers);
     ~RaftTransportUnix();
 
-    bool RequestVoteRPC(int,const raft::type::RequestVoteArgs&,
-    raft::type::RequestVoteArgs&,std::chrono::milliseconds) override;
-    bool AppendEntriesRPC(int,const raft::type::AppendEntriesArgs&,
-    raft::type::AppendEntriesReply&,std::chrono::milliseconds) override;
+    bool RequestVoteRPC(int,const raft::type::RequestVoteArgs&,raft::type::RequestVoteReply&,std::chrono::milliseconds) override;
+    bool AppendEntriesRPC(int,const raft::type::AppendEntriesArgs&,raft::type::AppendEntriesReply&,std::chrono::milliseconds) override;
 
     void registerRequestVoteHandler(
         std::function<std::string(const std::string&)> handler) override;
@@ -44,10 +42,6 @@ private:
     // RPC handlers
     std::function<std::string(const std::string&)> requestVoteHandler_;
     std::function<std::string(const std::string&)> appendEntriesHandler_;
-
-
-
-    std::shared_ptr<rpc::IMessageCodec> codec_;
 };
 
 } // namespace raft

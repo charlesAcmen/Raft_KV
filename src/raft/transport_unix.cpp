@@ -2,8 +2,6 @@
 #include "rpc/client.h"
 #include "rpc/server.h"
 #include "raft/codec/raft_codec.h"
-#include "rpc/message_codec.h"
-#include "rpc/delimiter_codec.h"
 #include <spdlog/spdlog.h>
 namespace rpc{
     class DelimiterCodec;
@@ -11,14 +9,11 @@ namespace rpc{
 
 
 namespace raft{
-    
 
-
-
-raft::RaftTransportUnix::RaftTransportUnix(
-    const raft::type::PeerInfo& self, 
-    const std::vector<raft::type::PeerInfo>& peers)
-    : self_(self), peers_(peers),codec_(std::make_shared<rpc::DelimiterCodec>()) {
+RaftTransportUnix::RaftTransportUnix(
+    const type::PeerInfo& self, 
+    const std::vector<type::PeerInfo>& peers)
+    : self_(self), peers_(peers){
     // Start RPC server
     server_ = std::make_unique<rpc::RpcServer>(self_);
     
@@ -27,16 +22,15 @@ raft::RaftTransportUnix::RaftTransportUnix(
         if (peer.id == self_.id) continue; // Skip self
         clients_[peer.id] = std::make_unique<rpc::RpcClient>(self_,peer);
     }
-    //do not start the server here, because the handlers are not registered yet
-    //and node will be blocked when starting the server
+    // do not start the server here, because the handlers are not registered yet
+    // and node will be blocked when starting the server
     // server_->start();
 }
-raft::RaftTransportUnix::~RaftTransportUnix() {
+RaftTransportUnix::~RaftTransportUnix() {
     if (server_) {
         server_->stop();
     }
     clients_.clear();
-    
 }
 /**
  * @brief Send a RequestVote RPC to a specific peer.
@@ -52,9 +46,9 @@ raft::RaftTransportUnix::~RaftTransportUnix() {
  * @return true     If the RPC communication succeeded (not necessarily voted true).
  * @return false    If the RPC failed due to transport errors (e.g. socket closed).
  */
-bool raft::RaftTransportUnix::RequestVoteRPC(int targetId,
-    const raft::type::RequestVoteArgs& args,
-    raft::type::RequestVoteArgs& reply,
+bool RaftTransportUnix::RequestVoteRPC(int targetId,
+    const type::RequestVoteArgs& args,
+    type::RequestVoteReply& reply,
     std::chrono::milliseconds timeout) {
     auto it = clients_.find(targetId);
     if (it == clients_.end()) {
@@ -65,7 +59,7 @@ bool raft::RaftTransportUnix::RequestVoteRPC(int targetId,
 
     //convert args to string as request
     std::string request = codec_->encodeRequest(codec::RaftCodec::encode(args));
-    std::string response = it->second->call("RequestVote", request);
+    std::string response = client->call("RequestVote", request);
     reply = codec::RaftCodec::decodeRequestVote(
         *codec_->tryDecodeResponse(response));
     return true;
@@ -83,9 +77,9 @@ bool raft::RaftTransportUnix::RequestVoteRPC(int targetId,
  * @return true     If the RPC communication succeeded.
  * @return false    If the RPC transmission failed.
  */
-bool raft::RaftTransportUnix::AppendEntriesRPC(int targetId,
-    const raft::type::AppendEntriesArgs& args,
-    raft::type::AppendEntriesReply& reply,
+bool RaftTransportUnix::AppendEntriesRPC(int targetId,
+    const type::AppendEntriesArgs& args,
+    type::AppendEntriesReply& reply,
     std::chrono::milliseconds timeout) {
     auto it = clients_.find(targetId);
     if (it == clients_.end()) {
@@ -95,18 +89,18 @@ bool raft::RaftTransportUnix::AppendEntriesRPC(int targetId,
     rpc::RpcClient* client = it->second.get();//unique_ptr
 
     std::string request = codec_->encodeRequest(codec::RaftCodec::encode(args));
-    std::string response = it->second->call("AppendEntries", request);
+    std::string response = client>call("AppendEntries", request);
     //response might be unusual, need to check
     reply = codec::RaftCodec::decodeAppendEntries(
         *codec_->tryDecodeResponse(response));
     return true;
 }
-void raft::RaftTransportUnix::registerRequestVoteHandler(
+void RaftTransportUnix::registerRequestVoteHandler(
     std::function<std::string(const std::string&)> handler) {
     requestVoteHandler_ = handler;
     server_->register_handler("RequestVote", handler);
 }
-void raft::RaftTransportUnix::registerAppendEntriesHandler(
+void RaftTransportUnix::registerAppendEntriesHandler(
     std::function<std::string(const std::string&)> handler) {
     appendEntriesHandler_ = handler;
     server_->register_handler("AppendEntries", handler);

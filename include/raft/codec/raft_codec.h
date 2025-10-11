@@ -7,6 +7,7 @@ namespace raft::codec {
 
 class RaftCodec {
 public:
+    //RequestVoteArgs to string
     static inline std::string encode(const type::RequestVoteArgs& args) {
         std::stringstream ss;
         ss << args.term << "\n" << args.candidateId
@@ -14,7 +15,32 @@ public:
         return ss.str();
     }
 
-    static inline type::RequestVoteArgs decodeRequestVote(const std::string& payload) {
+    //AppendEntriesArgs to string
+    static inline std::string encode(const type::AppendEntriesArgs& args) {
+        std::stringstream ss;
+        ss << args.term << "\n" << args.leaderId << "\n" << args.prevLogIndex
+           << "\n" << args.prevLogTerm << "\n" << args.entries.size()
+           << "\n" << args.leaderCommit;
+        return ss.str();
+    }
+
+    //RequestVoteReply to string
+    static inline std::string encode(const type::RequestVoteReply& reply) {
+        std::stringstream ss;
+        ss << reply.term << "\n" << (reply.voteGranted ? "1" : "0");
+        return ss.str();
+    }
+
+    //AppendEntriesReply to string
+    static inline std::string encode(const type::AppendEntriesReply& reply) {
+        std::stringstream ss;
+        ss << reply.term << "\n" << (reply.success ? "1" : "0");
+        return ss.str();
+    }
+
+
+    //string to RequestVoteArgs
+    static inline type::RequestVoteArgs decodeRequestVoteArgs(const std::string& payload) {
         struct type::RequestVoteArgs args{};
         std::stringstream ss(payload);
         std::string field;
@@ -25,14 +51,9 @@ public:
         return args;
     }
 
-    static inline std::string encode(const type::AppendEntriesArgs& args) {
-        std::stringstream ss;
-        ss << args.term << "\n" << args.leaderId << "\n" << args.prevLogIndex
-           << "\n" << args.prevLogTerm << "\n" << args.entries.size()
-           << "\n" << args.leaderCommit;
-        return ss.str();
-    }
+    
 
+    //string to AppendEntriesArgs
     static inline type::AppendEntriesReply decodeAppendEntries(const std::string& payload) {
         struct type::AppendEntriesReply args{};
         // std::stringstream ss(payload);

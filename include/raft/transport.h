@@ -3,40 +3,37 @@
 #include <chrono>
 #include <functional>
 #include <string>
+
+namespace raft {
+
 //forward declarations
-namespace raft::type{
+namespace type{
     struct RequestVoteArgs;
     struct RequestVoteReply;
     struct AppendEntriesArgs;
     struct AppendEntriesReply;
 }
 
-
-namespace raft {
-
-
 // Transport abstraction used by Raft to send RPCs to peers. 
 // Keeping this abstract decouples Raft state-machine logic 
 // from the underlying RPC mechanism.
 class IRaftTransport {
     public:
+    //interface destructor
     virtual ~IRaftTransport() = default;
 
 
-    // Synchronously call RequestVote on `targetId`.
-    // Returns true if the RPC reached the remote and `reply` was populated;
-    // returns false if the RPC failed due to network (unreliable) conditions.
-    // Implementations must respect the `timeout` (best-effort).
+    // Synchronously call RequestVote on `targetId`
     virtual bool RequestVoteRPC(int targetId,
-    const raft::type::RequestVoteArgs& args,
-    raft::type::RequestVoteArgs& reply,
+    const type::RequestVoteArgs& args,
+    type::RequestVoteReply& reply,
     std::chrono::milliseconds timeout) = 0;
 
 
-    // Synchronously call AppendEntries on `targetId`.
+    // Synchronously call AppendEntries on `targetId`
     virtual bool AppendEntriesRPC(int targetId,
-    const raft::type::AppendEntriesArgs& args,
-    raft::type::AppendEntriesReply& reply,
+    const type::AppendEntriesArgs& args,
+    type::AppendEntriesReply& reply,
     std::chrono::milliseconds timeout) = 0;
 
     virtual void registerRequestVoteHandler(
