@@ -1,13 +1,24 @@
 #include "raft/transport_unix.h"
 #include "rpc/client.h"
 #include "rpc/server.h"
+#include "raft/codec/raft_codec.h"
+#include "rpc/message_codec.h"
+#include "rpc/delimiter_codec.h"
 #include <spdlog/spdlog.h>
+namespace rpc{
+    class DelimiterCodec;
+}
+
+
 namespace raft{
     
+
+
+
 raft::RaftTransportUnix::RaftTransportUnix(
     const raft::type::PeerInfo& self, 
     const std::vector<raft::type::PeerInfo>& peers)
-    : self_(self), peers_(peers) {
+    : self_(self), peers_(peers),codec_(std::make_shared<rpc::DelimiterCodec>()) {
     // Start RPC server
     server_ = std::make_unique<rpc::RpcServer>(self_);
     
@@ -16,7 +27,9 @@ raft::RaftTransportUnix::RaftTransportUnix(
         if (peer.id == self_.id) continue; // Skip self
         clients_[peer.id] = std::make_unique<rpc::RpcClient>(self_,peer);
     }
-    server_->start();
+    //do not start the server here, because the handlers are not registered yet
+    //and node will be blocked when starting the server
+    // server_->start();
 }
 raft::RaftTransportUnix::~RaftTransportUnix() {
     if (server_) {
@@ -50,12 +63,26 @@ bool raft::RaftTransportUnix::RequestVoteRPC(int targetId,
     }
     rpc::RpcClient* client = it->second.get();//unique_ptr
 
-
-    std::string request = "";
+    //convert args to string as request
+    std::string request = codec_->encodeRequest(codec::RaftCodec::encode(args));
     std::string response = it->second->call("RequestVote", request);
+    reply = codec::RaftCodec::decodeRequestVote(
+        *codec_->tryDecodeResponse(response));
     return true;
 }
-
+/**
+ * @brief Send an AppendEntries RPC to a specific peer.
+ * 
+ * This function only performs network-level transmission 
+ * using the underlying RPC client abstraction. It does not 
+ * contain any Raft consensus or log replication logic.
+ * 
+ * @param target_id The peer node ID to which the RPC is sent.
+ * @param args      The AppendEntriesArgs structure prepared by the Raft instance.
+ * @param reply     The AppendEntriesReply structure to fill with the peer's response.
+ * @return true     If the RPC communication succeeded.
+ * @return false    If the RPC transmission failed.
+ */
 bool raft::RaftTransportUnix::AppendEntriesRPC(int targetId,
     const raft::type::AppendEntriesArgs& args,
     raft::type::AppendEntriesReply& reply,
@@ -65,17 +92,22 @@ bool raft::RaftTransportUnix::AppendEntriesRPC(int targetId,
         spdlog::error("[RaftTransportUnix] AppendEntriesRPC No RPC client for peer {}", targetId);
         return false;
     }
+    rpc::RpcClient* client = it->second.get();//unique_ptr
 
-    std::string request = "";
+    std::string request = codec_->encodeRequest(codec::RaftCodec::encode(args));
     std::string response = it->second->call("AppendEntries", request);
+    reply = codec::RaftCodec::decodeAppendEntries(
+        *codec_->tryDecodeResponse(response));
     return true;
 }
 void raft::RaftTransportUnix::registerRequestVoteHandler(
     std::function<std::string(const std::string&)> handler) {
+    requestVoteHandler_ = handler;
     server_->register_handler("RequestVote", handler);
 }
 void raft::RaftTransportUnix::registerAppendEntriesHandler(
     std::function<std::string(const std::string&)> handler) {
+    appendEntriesHandler_ = handler;
     server_->register_handler("AppendEntries", handler);
 }
 

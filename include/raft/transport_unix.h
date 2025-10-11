@@ -11,6 +11,7 @@
 namespace rpc {
     class RpcClient;
     class RpcServer;
+    class IMessageCodec;
 }
 
 namespace raft {
@@ -43,8 +44,12 @@ private:
 
 
     // RPC handlers
-    std::function<void(const type::RequestVoteArgs&, type::RequestVoteReply&)> requestVoteHandler_;
-    std::function<void(const type::AppendEntriesArgs&, type::AppendEntriesReply&)> appendEntriesHandler_;
+    std::function<std::string(const std::string&)> requestVoteHandler_;
+    std::function<std::string(const std::string&)> appendEntriesHandler_;
+
+
+
+    std::shared_ptr<rpc::IMessageCodec> codec_;
 };
 
 } // namespace raft
