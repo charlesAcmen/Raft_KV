@@ -1,7 +1,6 @@
 #pragma once
 
 #include "types.h"
-#include "timer.h"
 #include <mutex>
 #include <condition_variable>
 #include <vector>
@@ -13,6 +12,8 @@
 namespace raft {
     
 class IRaftTransport;
+class ITimer;
+class ITimerFactory;
 class IPersister;
 
 
@@ -76,8 +77,8 @@ class Raft {
         // RequestVote and AppendEntries RPCs. Your RPC server should forward
         // incoming requests to these methods. They are thread-safe and may be
         // invoked concurrently.
-        void HandleRequestVote(const type::RequestVoteArgs& args, type::RequestVoteReply& reply);
-        void HandleAppendEntries(const type::AppendEntriesArgs& args, type::AppendEntriesReply& reply);
+        type::RequestVoteReply HandleRequestVote(const type::RequestVoteArgs& args);
+        type::AppendEntriesReply HandleAppendEntries(const type::AppendEntriesArgs& args);
 
         // The following getters are primarily for testing and debug visibility.
         int GetId() const { return me_; }
