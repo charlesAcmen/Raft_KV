@@ -66,7 +66,7 @@ public:
     }
 
     //string to RequestVoteReply
-    static inline type::RequestVoteReply decodeRequestVoteReply(const std:string& payload){
+    static inline type::RequestVoteReply decodeRequestVoteReply(const std::string& payload){
         struct type::RequestVoteReply reply{};
         std::stringstream ss(payload);
         std::string field;
@@ -97,7 +97,7 @@ public:
         std::string field;
         std::getline(ss, field, '\n'); reply.term = std::stoi(field);
         //"1" means true
-        std::getline(ss, field, '\n'); reply.voteGranted = (field == "1");
+        std::getline(ss, field, '\n'); reply.success = (field == "1");
         return reply;
     }
 };

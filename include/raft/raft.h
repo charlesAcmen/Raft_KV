@@ -1,9 +1,11 @@
 #pragma once
 
 #include "types.h"
+#include "timer.h"
 #include <mutex>
 #include <condition_variable>
 #include <vector>
+#include <optional>
 #include <functional>
 #include <memory>
 #include <atomic>
@@ -11,8 +13,6 @@
 namespace raft {
     
 class IRaftTransport;
-class ITimer;
-class ITimerFactory;
 class IPersister;
 
 
