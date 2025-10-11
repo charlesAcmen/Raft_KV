@@ -60,7 +60,7 @@ bool RaftTransportUnix::RequestVoteRPC(int targetId,
     //convert args to string as request
     std::string request = codec::RaftCodec::encode(args);
     std::string response = client->call("RequestVote", request);
-    reply = codec::RaftCodec::decodeRequestVote(response);
+    reply = codec::RaftCodec::decodeRequestVoteReply(response);
     return true;
 }
 /**
@@ -90,7 +90,7 @@ bool RaftTransportUnix::AppendEntriesRPC(int targetId,
     std::string request = codec::RaftCodec::encode(args);
     std::string response = client->call("AppendEntries", request);
     //response might be unusual, need to check
-    reply = codec::RaftCodec::decodeAppendEntries(response);
+    reply = codec::RaftCodec::(response);
     return true;
 }
 void RaftTransportUnix::registerRequestVoteHandler(

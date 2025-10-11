@@ -76,9 +76,9 @@ public:
         return reply;
     }
 
-    //string to AppendEntriesReply
-    static inline type::AppendEntriesReply decodeAppendEntriesReply(const std::string& payload) {
-        struct type::AppendEntriesReply args{};
+    //string to AppendEntriesArgs
+    static inline type::AppendEntriesArgs decodeAppendEntriesArgs(const std::string& payload) {
+        struct type::AppendEntriesArgs args{};
         std::stringstream ss(payload);
         std::string field;
         std::getline(ss, field, '\n'); args.term = std::stoi(field);
@@ -92,7 +92,7 @@ public:
 
     //string to AppendEntriesReply
     static inline type::AppendEntriesReply decodeAppendEntriesReply(const std::string& payload) {
-        struct type::RequestVoteReply reply{};
+        struct type::AppendEntriesReply reply{};
         std::stringstream ss(payload);
         std::string field;
         std::getline(ss, field, '\n'); reply.term = std::stoi(field);
