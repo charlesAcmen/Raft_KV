@@ -35,8 +35,8 @@ raft::RaftTransportUnix::~RaftTransportUnix() {
     if (server_) {
         server_->stop();
     }
-    // peers_.clear();
     clients_.clear();
+    
 }
 /**
  * @brief Send a RequestVote RPC to a specific peer.
@@ -96,6 +96,7 @@ bool raft::RaftTransportUnix::AppendEntriesRPC(int targetId,
 
     std::string request = codec_->encodeRequest(codec::RaftCodec::encode(args));
     std::string response = it->second->call("AppendEntries", request);
+    //response might be unusual, need to check
     reply = codec::RaftCodec::decodeAppendEntries(
         *codec_->tryDecodeResponse(response));
     return true;
