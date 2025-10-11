@@ -1,9 +1,9 @@
 #pragma once
 
 #include "types.h"
-#include "transport.h"
-#include "timer.h"
-#include "persister.h"
+// #include "transport.h"
+// #include "timer.h"
+// #include "persister.h"
 
 #include <mutex>
 #include <condition_variable>
@@ -25,6 +25,11 @@ namespace rpc {
     class RpcClient;    // RPC client abstraction
     class IMessageCodec; // message codec abstraction
 }
+class IRaftTransport;
+class ITimer;
+class ITimerFactory;
+class IPersister;
+
 
 // RaftConfig holds tunable(可调) parameters affecting election timing. Tests
 // should set these explicitly to reduce flakiness (or inject a virtual
@@ -49,15 +54,15 @@ struct RaftConfig {
 class Raft {
     public:
         // me: this peer's id (index into peers_).
-        // applyCallback: invoked for each committed log entry (not used by 2A).
+        // applyCallback: invoked for each committed log entry
         // transport: implementation that sends RequestVote/AppendEntries RPCs.
         // timerFactory: optional factory; if nullptr a default real-time factory
         //               must be provided in the .cpp implementation.
-        // persister: optional persistence; for 2A it may be nullptr.
+        // persister: optional persistence;
         Raft(int me,
             const std::vector<int>& peers,
             std::shared_ptr<IRaftTransport> transport,
-            std::function<void(const LogEntry&)> applyCallback,
+            std::function<void(const type::LogEntry&)> applyCallback,
             RaftConfig config = RaftConfig(),
             std::shared_ptr<ITimerFactory> timerFactory = nullptr,
             std::shared_ptr<IPersister> persister = nullptr);
@@ -85,12 +90,12 @@ class Raft {
         // RequestVote and AppendEntries RPCs. Your RPC server should forward
         // incoming requests to these methods. They are thread-safe and may be
         // invoked concurrently.
-        void HandleRequestVote(const RequestVoteArgs& args, RequestVoteReply& reply);
-        void HandleAppendEntries(const AppendEntriesArgs& args, AppendEntriesReply& reply);
+        void HandleRequestVote(const type::RequestVoteArgs& args, type::RequestVoteReply& reply);
+        void HandleAppendEntries(const type::AppendEntriesArgs& args, type::AppendEntriesReply& reply);
 
         // The following getters are primarily for testing and debug visibility.
         int GetId() const { return me_; }
-        Role GetRole();
+        type::Role GetRole();
         int GetCurrentTerm();
         std::optional<int> GetVotedFor();
 
@@ -124,21 +129,30 @@ class Raft {
         const int me_;                      // this peer's id (index into peers_)
         const std::vector<int> peers_;      // peer ids (including me_)
 
-        // Volatile state on all servers (Raft paper §3.1)
-        Role role_{Role::Follower};
-        int32_t currentTerm_{0};            // latest term server has seen
+        // Persistent state on all servers
+        type::Role role_{type::Role::Follower};
+        int32_t currentTerm_{0};            // latest term server has seen(initialized to 0 on first boot, 
+        //increases monotonically)
         std::optional<int32_t> votedFor_;   // candidateId that received vote in currentTerm
-
-        // Persistent log (kept for compatibility; may be empty for 2A)
-        std::vector<LogEntry> log_;
+        // or nullopt if none
+        std::vector<type::LogEntry> log_;         // log entries; each entry contains command for state machine,
+        // and term when entry was received by leader(first index is 1)
 
         // Volatile state on all servers
-        int32_t commitIndex_{0};
-        int32_t lastApplied_{0};
+        int32_t commitIndex_{0};        // index of highest log entry known to be committed
+        //(initialized to 0, increases monotonically)
+        int32_t lastApplied_{0};        // index of highest log entry applied to state machine
+        //(initialized to 0, increases monotonically)
+
+        // Volatile state on leaders (reinitialized after election)
+        // std::unordered_map<int, int> nextIndex_;
+        // std::unordered_map<int, int> matchIndex_;
+
+
 
         // Transport and integration hooks
         std::shared_ptr<IRaftTransport> transport_; // used to send RPCs to peers
-        std::function<void(const LogEntry&)> applyCallback_; // for committed entries
+        std::function<void(const type::LogEntry&)> applyCallback_; // for committed entries
 
         // Timers
         RaftConfig config_;

@@ -7,6 +7,8 @@
 #include <optional>
 
 namespace raft {
+namespace type{
+
 
 
 // Role of a Raft peer
@@ -64,5 +66,5 @@ struct AppendEntriesReply {
     int32_t conflictTerm{0};
 };
 
-
+} // namespace type
 } // namespace raft
