@@ -12,8 +12,6 @@ RPC response format is defined as:
 [response payload]\nEND\n
 */
 
-//------forward declaration------
-
 
 
 namespace rpc{
@@ -35,7 +33,7 @@ namespace rpc{
             //do not use thread pool here, because each rpc client has long connection with rpc server
             //use detached thread instead
 
-            raft::type::PeerInfo selfInfo_;            //self info
+            raft::type::PeerInfo selfInfo_;
 
             int server_fd{-1};
             //server running flag

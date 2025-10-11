@@ -37,6 +37,13 @@ class IRaftTransport {
     const raft::type::AppendEntriesArgs& args,
     raft::type::AppendEntriesReply& reply,
     std::chrono::milliseconds timeout) = 0;
+
+    virtual void registerRequestVoteHandler(
+        std::function<std::string(const std::string&)> handler) = 0;
+    virtual void registerAppendEntriesHandler(
+        std::function<std::string(const std::string&)> handler) = 0;   
+
+
 };
 
 

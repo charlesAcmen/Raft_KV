@@ -13,36 +13,38 @@ namespace rpc {
     class RpcServer;
 }
 
-// namespace raft::type{
-//     struct PeerInfo;
-//     struct RequestVoteArgs;
-//     struct RequestVoteReply;
-//     struct AppendEntriesArgs;
-//     struct AppendEntriesReply;
-// }
-
-
 namespace raft {
 
 // Unix-domain-socket-based transport for single-machine multi-process simulation.
 class RaftTransportUnix : public IRaftTransport {
 public:
-    RaftTransportUnix(const raft::type::PeerInfo& self, 
+    explicit RaftTransportUnix(const raft::type::PeerInfo& self, 
         const std::vector<raft::type::PeerInfo>& peers);
     ~RaftTransportUnix();
 
     bool RequestVoteRPC(int,const raft::type::RequestVoteArgs&,
     raft::type::RequestVoteArgs&,std::chrono::milliseconds) override;
-
     bool AppendEntriesRPC(int,const raft::type::AppendEntriesArgs&,
     raft::type::AppendEntriesReply&,std::chrono::milliseconds) override;
 
+    void registerRequestVoteHandler(
+        std::function<std::string(const std::string&)> handler) override;
+    void registerAppendEntriesHandler(
+        std::function<std::string(const std::string&)> handler) override;
+
 private:
+    // Information about self and peers
     const raft::type::PeerInfo self_;
     const std::vector<raft::type::PeerInfo> peers_;
 
+    // RPC server and clients
     std::unique_ptr<rpc::RpcServer> server_;
     std::unordered_map<int, std::unique_ptr<rpc::RpcClient>> clients_;  // key: peer id
+
+
+    // RPC handlers
+    std::function<void(const type::RequestVoteArgs&, type::RequestVoteReply&)> requestVoteHandler_;
+    std::function<void(const type::AppendEntriesArgs&, type::AppendEntriesReply&)> appendEntriesHandler_;
 };
 
 } // namespace raft
