@@ -8,7 +8,10 @@
 #include <spdlog/spdlog.h>  //logging
 #include "rpc/delimiter_codec.h"    //encode and decode
 namespace rpc{
-    RpcClient::RpcClient(){
+    RpcClient::RpcClient(const raft::type::PeerInfo& selfInfo,
+              const raft::type::PeerInfo& targetInfo){
+        selfInfo_ = selfInfo;
+        targetInfo_ = targetInfo;
         initSocket();
     }
     RpcClient::~RpcClient(){
@@ -73,8 +76,8 @@ namespace rpc{
         //client address structure:sockaddr_un,unix,used in IPC
         struct sockaddr_un addr{};
         addr.sun_family = AF_UNIX;
-        //local socket file path
-        std::string sock_path = SOCK_PATH;
+        //target path for client
+        std::string sock_path = targetInfo_.sockPath;
         //c_str():convert c++ string to c str to fit strncpy
         std::strncpy(addr.sun_path, sock_path.c_str(), sizeof(addr.sun_path) - 1);
         //ensure null-termination

@@ -11,7 +11,10 @@
 #include <thread>
 #include "rpc/delimiter_codec.h"
 namespace rpc{
-    RpcServer::RpcServer(){initSocket();}
+    RpcServer::RpcServer(const raft::type::PeerInfo& selfInfo){
+        selfInfo_ = selfInfo;
+        initSocket();
+    }
     void RpcServer::register_handler(const std::string& method,
         std::function<std::string(const std::string&)> handler
     ){
@@ -83,8 +86,8 @@ namespace rpc{
         //sockaddr_un: UNIX domain socket
         sockaddr_un addr{};
         addr.sun_family = AF_UNIX;
-        //IPC file path from RpcClient.h
-        std::string sock_path = rpc::RpcClient::SOCK_PATH;
+        //self path for server
+        std::string sock_path = selfInfo_.sockPath;
         //sock_path.c_str():convert std::string to const char*
         std::strncpy(addr.sun_path, sock_path.c_str(), sizeof(addr.sun_path) - 1);
         //ensure null-termination

@@ -32,11 +32,6 @@ struct RaftConfig {
     int rpcTimeoutMs{100};
 };
 
-struct PeerInfo {
-    int id;
-    std::string sockPath;   // /tmp/raft-node-<id>.sock
-};
-
 
 // Raft implements the core Raft peer state.
 // This header intentionally restricts the public API to
@@ -117,7 +112,7 @@ class Raft {
 
         // Raft identity and cluster
         const int me_;                      // this peer's id (index into peers_)
-        const std::vector<PeerInfo> peers_;      // peer ids (including me_)
+        const std::vector<type::PeerInfo> peers_;      // peer ids (including me_)
 
         // Persistent state on all servers
         type::Role role_{type::Role::Follower};

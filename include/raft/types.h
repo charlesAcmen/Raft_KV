@@ -17,6 +17,11 @@ enum class Role{
     Leader
 };
 
+struct PeerInfo {
+    int id;                 // unique Raft node ID
+    std::string sockPath;   // /tmp/raft-node-<id>.sock,Unix socket path for RPC
+};
+
 
 // A minimal log entry structure. For 2A (election) entries are not required,
 // but we keep a compact definition so types match later phases (2B/2C).
