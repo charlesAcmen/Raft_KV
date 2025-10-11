@@ -9,6 +9,7 @@
 #include <atomic>
 
 namespace raft {
+    
 class IRaftTransport;
 class ITimer;
 class ITimerFactory;
@@ -45,7 +46,7 @@ class Raft {
         //               must be provided in the .cpp implementation.
         // persister: optional persistence;
         Raft(int me,
-            const std::vector<int>& peers,
+            const std::vector<raft::type::PeerInfo>& peers,
             std::shared_ptr<IRaftTransport> transport,
             std::function<void(const type::LogEntry&)> applyCallback,
             RaftConfig config = RaftConfig(),
