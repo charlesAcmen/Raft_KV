@@ -1,10 +1,6 @@
 #pragma once
 
 #include "types.h"
-// #include "transport.h"
-// #include "timer.h"
-// #include "persister.h"
-
 #include <mutex>
 #include <condition_variable>
 #include <vector>
@@ -13,18 +9,6 @@
 #include <atomic>
 
 namespace raft {
-
-// Forward-declarations of RPC integration points.existing RPC
-// abstraction (client/server/IMessageCodec) can be adapted to call
-// Raft::HandleRequestVote and Raft::HandleAppendEntries when RPCs arrive.
-// Example: rpcServer.registerHandler("RequestVote", [raftPtr](...) {
-//              return raftPtr->HandleRequestVote(...);
-//          });
-namespace rpc {
-    class RpcServer;    // RPC server abstraction
-    class RpcClient;    // RPC client abstraction
-    class IMessageCodec; // message codec abstraction
-}
 class IRaftTransport;
 class ITimer;
 class ITimerFactory;
@@ -47,6 +31,12 @@ struct RaftConfig {
     // Timeout to wait for an RPC reply before considering it failed.
     int rpcTimeoutMs{100};
 };
+
+struct PeerInfo {
+    int id;
+    std::string sockPath;   // /tmp/raft-node-<id>.sock
+};
+
 
 // Raft implements the core Raft peer state.
 // This header intentionally restricts the public API to
@@ -127,7 +117,7 @@ class Raft {
 
         // Raft identity and cluster
         const int me_;                      // this peer's id (index into peers_)
-        const std::vector<int> peers_;      // peer ids (including me_)
+        const std::vector<PeerInfo> peers_;      // peer ids (including me_)
 
         // Persistent state on all servers
         type::Role role_{type::Role::Follower};

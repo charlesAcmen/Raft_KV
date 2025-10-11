@@ -8,8 +8,7 @@
 #include <spdlog/spdlog.h>  //logging
 #include "rpc/delimiter_codec.h"    //encode and decode
 namespace rpc{
-    RpcClient::RpcClient(const std::string& host, int port)
-    : host(host), port(port){
+    RpcClient::RpcClient(){
         initSocket();
     }
     RpcClient::~RpcClient(){
@@ -89,15 +88,15 @@ namespace rpc{
             // offsetof:relative offset of sun_path field to the start of struct sockaddr_un
             // +1 is for '\0' at the end
             socklen_t len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path) + 1;
-            spdlog::info("[RpcClient] initSocket() RpcClient connecting to {}:{}", host, port);
+            // spdlog::info("[RpcClient] initSocket() RpcClient connecting to {}:{}", host, port);
             if (connect(sock_fd, (struct sockaddr*)&addr, len) == 0) {
                 // success
-                spdlog::info("[RpcClient] initSocket() RpcClient connected to {}:{} at attempt {}", host, port, attempts + 1);
+                // spdlog::info("[RpcClient] initSocket() RpcClient connected to {}:{} at attempt {}", host, port, attempts + 1);
                 break;
             } 
             int e = errno;
             if (++attempts > MAX_RETRIES) {
-                spdlog::error("[RpcClient] initSocket() RpcClient failed to connect to {}:{} after {} attempts: {}", host, port, attempts, strerror(e));
+                // spdlog::error("[RpcClient] initSocket() RpcClient failed to connect to {}:{} after {} attempts: {}", host, port, attempts, strerror(e));
                 close(sock_fd);
                 throw std::runtime_error(std::string("[RpcClient] initSocket() RpcClient::connect() failed: ") + strerror(e));
             }

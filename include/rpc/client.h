@@ -11,7 +11,7 @@ namespace rpc{
         public:
             inline static const std::string SOCK_PATH = "/tmp/mr-rpc.sock";
             
-            RpcClient(const std::string& host = "127.0.0.1", int port = 12345);
+            RpcClient();
             ~RpcClient();
             //call rpc by method name and pass payload
             std::string call(const std::string& method, const std::string& payload);
@@ -24,10 +24,6 @@ namespace rpc{
             inline static const int MAX_RETRIES = 5;
             inline static const int RETRY_INTERVAL_MS = 100;
 
-            //host:server ip address
-            std::string host;
-            //port:server port
-            int port;
             //accept() will return a new socket fd called client_fd for communication
             //it is the socket that serves to send and receive data
             //sock_fd is the socket fd used to connect to the server

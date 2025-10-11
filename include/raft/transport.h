@@ -3,7 +3,7 @@
 #include <chrono>
 
 //forward declarations
-namespace rpc{
+namespace raft::type{
     struct RequestVoteArgs;
     struct RequestVoteReply;
     struct AppendEntriesArgs;
@@ -27,15 +27,15 @@ class IRaftTransport {
     // returns false if the RPC failed due to network (unreliable) conditions.
     // Implementations must respect the `timeout` (best-effort).
     virtual bool RequestVoteRPC(int targetId,
-    const rpc::RequestVoteArgs& args,
-    rpc::RequestVoteArgs& reply,
+    const raft::type::RequestVoteArgs& args,
+    raft::type::RequestVoteArgs& reply,
     std::chrono::milliseconds timeout) = 0;
 
 
     // Synchronously call AppendEntries on `targetId`.
     virtual bool AppendEntriesRPC(int targetId,
-    const rpc::AppendEntriesArgs& args,
-    rpc::AppendEntriesReply& reply,
+    const raft::type::AppendEntriesArgs& args,
+    raft::type::AppendEntriesReply& reply,
     std::chrono::milliseconds timeout) = 0;
 };
 

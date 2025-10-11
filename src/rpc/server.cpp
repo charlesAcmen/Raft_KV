@@ -11,7 +11,7 @@
 #include <thread>
 #include "rpc/delimiter_codec.h"
 namespace rpc{
-    RpcServer::RpcServer(int port) : port(port){initSocket();}
+    RpcServer::RpcServer(){initSocket();}
     void RpcServer::register_handler(const std::string& method,
         std::function<std::string(const std::string&)> handler
     ){

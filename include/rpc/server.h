@@ -12,7 +12,7 @@ RPC response format is defined as:
 namespace rpc{
     class RpcServer {
         public:
-            RpcServer(int port=12345);
+            RpcServer();
             //register rpc handler by method name
             void register_handler(const std::string& method,
                                 std::function<std::string(const std::string&)> handler);
@@ -22,8 +22,6 @@ namespace rpc{
             void initSocket();
             void handleClient(int client_fd);
 
-            //server port
-            int port;
             //return type : std::string, param type: const std::string& as payload
             std::unordered_map<std::string, std::function<std::string(const std::string&)>> handlers;
 

@@ -6,8 +6,7 @@
 #include <vector>
 #include <optional>
 
-namespace raft {
-namespace type{
+namespace raft::type{
 
 
 
@@ -66,5 +65,4 @@ struct AppendEntriesReply {
     int32_t conflictTerm{0};
 };
 
-} // namespace type
-} // namespace raft
+} // namespace  raft::type
