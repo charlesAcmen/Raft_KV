@@ -89,7 +89,6 @@ bool RaftTransportUnix::AppendEntriesRPC(int targetId,
 
     std::string request = codec::RaftCodec::encode(args);
     std::string response = client->call("AppendEntries", request);
-    //response might be unusual, need to check
     reply = codec::RaftCodec::decodeAppendEntriesReply(response);
     return true;
 }

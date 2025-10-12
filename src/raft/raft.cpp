@@ -42,11 +42,12 @@ Raft::Raft(int me,
         try {
             transport_->registerRequestVoteHandler(
                 [this](const std::string& payload) -> std::string {
+                    // decode incoming args, run local handler, encode reply
                     try {
-                        auto args = raft::codec::RaftCodec::decodeRequestVoteArgs(payload);
+                        auto args = codec::RaftCodec::decodeRequestVoteArgs(payload);
                         // HandleRequestVote is expected to be a member that returns type::RequestVoteReply
                         auto reply = this->HandleRequestVote(args);
-                        return raft::codec::RaftCodec::encode(reply);
+                        return codec::RaftCodec::encode(reply);
                     } catch (const std::exception& e) {
                         spdlog::error("[Raft] {} RequestVote handler exception: {}", this->me_, e.what());
                         return std::string();// caller should check/interpret empty as failure
@@ -57,10 +58,10 @@ Raft::Raft(int me,
                 [this](const std::string& payload) -> std::string {
                     // decode incoming args, run local handler, encode reply
                     try {
-                        auto args = raft::codec::RaftCodec::decodeAppendEntriesArgs(payload);
+                        auto args = codec::RaftCodec::decodeAppendEntriesArgs(payload);
                         // HandleAppendEntries is expected to be a member that returns type::AppendEntriesReply
                         auto reply = this->HandleAppendEntries(args);
-                        return raft::codec::RaftCodec::encode(reply);
+                        return codec::RaftCodec::encode(reply);
                     } catch (const std::exception& e) {
                         // on decode/handler error, log and return empty/error payload
                         spdlog::error("[Raft] {} AppendEntries handler exception: {}", this->me_, e.what());

@@ -58,10 +58,21 @@ public:
         struct type::RequestVoteArgs args{};
         std::stringstream ss(payload);
         std::string field;
-        std::getline(ss, field, '\n'); args.term = std::stoi(field);
-        std::getline(ss, field, '\n'); args.candidateId = std::stoi(field);
-        std::getline(ss, field, '\n'); args.lastLogIndex = std::stoi(field);
-        std::getline(ss, field, '\n'); args.lastLogTerm = std::stoi(field);
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.term = std::stoi(field);
+
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.candidateId = std::stoi(field);
+
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.lastLogIndex = std::stoi(field);
+
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.lastLogTerm = std::stoi(field);
         return args;
     }
 
@@ -70,9 +81,11 @@ public:
         struct type::RequestVoteReply reply{};
         std::stringstream ss(payload);
         std::string field;
-        std::getline(ss, field, '\n'); reply.term = std::stoi(field);
-        //"1" means true
-        std::getline(ss, field, '\n'); reply.voteGranted = (field == "1");
+        if (!std::getline(ss, field, '\n')) return {};
+        if (!field.empty()) reply.term = std::stoi(field);
+        else return {};
+        if (!std::getline(ss, field, '\n')) return {};
+        reply.voteGranted = (field == "1");
         return reply;
     }
 
@@ -81,12 +94,31 @@ public:
         struct type::AppendEntriesArgs args{};
         std::stringstream ss(payload);
         std::string field;
-        std::getline(ss, field, '\n'); args.term = std::stoi(field);
-        std::getline(ss, field, '\n'); args.leaderId = std::stoi(field);
-        std::getline(ss, field, '\n'); args.prevLogIndex = std::stoi(field);
-        std::getline(ss, field, '\n'); args.prevLogTerm = std::stoi(field);
-        std::getline(ss, field, '\n'); args.entries.resize(std::stoi(field));
-        std::getline(ss, field, '\n'); args.leaderCommit = std::stoi(field);
+        
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.term = std::stoi(field);
+
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.leaderId = std::stoi(field);
+
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.prevLogIndex = std::stoi(field);
+
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.prevLogTerm = std::stoi(field);
+
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.entries.resize(std::stoi(field));
+
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.leaderCommit = std::stoi(field);
+
         return args;
     }
 
@@ -95,9 +127,12 @@ public:
         struct type::AppendEntriesReply reply{};
         std::stringstream ss(payload);
         std::string field;
-        std::getline(ss, field, '\n'); reply.term = std::stoi(field);
-        //"1" means true
-        std::getline(ss, field, '\n'); reply.success = (field == "1");
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        reply.term = std::stoi(field);
+
+        if (!std::getline(ss, field, '\n')) return {};
+        reply.success = (field == "1");
         return reply;
     }
 };
