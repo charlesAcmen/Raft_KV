@@ -11,14 +11,9 @@ class ITimer {
     public:
         virtual ~ITimer() = default;
 
-
-        // Reset or arm the timer to fire after `duration`. If the timer was
-        // previously set, it is restarted with the new duration.
+        // Start or restart timer with new duration
         virtual void reset(std::chrono::milliseconds duration) = 0;
-
-
-        // Disable the timer. After this call, the callback must not fire unless
-        // reset(...) is called again.
+        // Start or restart timer with new duration
         virtual void stop() = 0;
 };
 
@@ -30,9 +25,8 @@ class ITimerFactory {
     public:
         virtual ~ITimerFactory() = default;
 
-
         // Create a timer that will call `cb` when it fires.
-        virtual std::unique_ptr<ITimer> createTimer(std::function<void()> cb) = 0;
+        virtual std::unique_ptr<ITimer> CreateTimer(std::function<void()> cb) = 0;
 };
 
 

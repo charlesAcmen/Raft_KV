@@ -63,8 +63,6 @@ class Raft {
         //--------- Election control ----------
         //-------------------------------------
         void startElection();                   // Begin new election (called on timeout)
-        void electionTimeoutHandler();          // Called when election timer fires
-        void resetElectionTimerLocked();        // Restart timer (under mu_)
 
         //-------------------------------------
         //---------- Role transtions ----------
@@ -103,13 +101,14 @@ class Raft {
         void sendRequestVoteRPC(int peerId);    // Send one RequestVote RPC to a peer
         void sendAppendEntriesRPC(int peerId);  // Send one AppendEntries RPC (heartbeat or log)
         void broadcastHeartbeat();              // Send empty AppendEntries to all peers
-
+        void Raft::resetElectionTimerLocked();
+        
         //-------------------------------------
         // -------- Timer callbacks -----------
         //-------------------------------------
 
-        void onElectionTimeout();               // Alias or wrapper of electionTimeoutHandler
-        void onHeartbeatTimeout();              // Called periodically when leader
+        void onElectionTimeout();           
+        void onHeartbeatTimeout();              
 
         //-------------------------------------
         //--------- Internal helpers ----------

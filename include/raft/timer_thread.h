@@ -1,0 +1,31 @@
+#pragma once
+#include "timer.h"
+#include <thread>
+#include <atomic>
+#include <condition_variable>
+
+namespace raft {
+
+class ThreadTimer : public ITimer {
+    public:
+        explicit ThreadTimer(std::function<void()>);
+        ~ThreadTimer() override;
+
+        void reset(std::chrono::milliseconds duration) override;
+
+        void stop() override;
+    private:
+        std::function<void()> callback_;
+        std::atomic<bool> running_{false};
+        std::thread thread_;
+        std::mutex mu_;
+        std::condition_variable cv_;
+};
+
+// Timer factory: creates real timers that use threads.
+class ThreadTimerFactory : public ITimerFactory {
+public:
+    std::unique_ptr<ITimer> CreateTimer(std::function<void()> cb) override;
+};
+
+} // namespace raft

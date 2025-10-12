@@ -71,11 +71,11 @@ Raft::Raft(
     // Initialize timers
     // -----------------------
 
-    electionTimer_ = timerFactory_->CreateElectionTimer([this]() {
+    electionTimer_ = timerFactory_->CreateTimer([this]() {
         this->onElectionTimeout();
     });
 
-    heartbeatTimer_ = timerFactory_->CreateHeartbeatTimer([this]() {
+    heartbeatTimer_ = timerFactory_->CreateTimer([this]() {
         this->onHeartbeatTimeout();
     });
 
@@ -110,9 +110,6 @@ void Raft::Start() {
 void startElection(){
 
 }
-void electionTimeoutHandler(){
-
-}    
 void resetElectionTimerLocked(){
 
 }
@@ -236,10 +233,6 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
 void Raft::startElection(){
 
 }
-
-void Raft::resetElectionTimerLocked(){
-
-}
 void Raft::electionTimeoutHandler(){
 
 }
@@ -324,7 +317,9 @@ void sendAppendEntriesRPC(int peerId){
 void broadcastHeartbeat(){
 
 }
+void Raft::resetElectionTimerLocked(){
 
+}
 
 // -------- Timer callbacks -----------
 void onElectionTimeout(){
