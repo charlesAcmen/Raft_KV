@@ -28,8 +28,6 @@ RaftTransportUnix::RaftTransportUnix(
 }
 RaftTransportUnix::~RaftTransportUnix() {
     Stop();
-    if (serverThread_.joinable()) serverThread_.join();
-    if (clientThread_.joinable()) clientThread_.join();
     clients_.clear();
 }
 
@@ -61,6 +59,8 @@ void RaftTransportUnix::Stop() {
     for (auto& [id, client] : clients_) {
         client->Close();
     }
+    if (serverThread_.joinable()) serverThread_.join();
+    if (clientThread_.joinable()) clientThread_.join();
 }
 
 /**

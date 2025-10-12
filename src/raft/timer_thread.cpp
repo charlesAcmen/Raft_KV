@@ -26,7 +26,6 @@ namespace raft {
             // spdlog::info("[ThreadTimer] Timer expired after {} ms", duration.count());
             // Timer fired normally
             if (running_ && callback_) {
-                spdlog::info("[ThreadTimer] Timer fired, invoking callback");
                 callback_();
             }
         });

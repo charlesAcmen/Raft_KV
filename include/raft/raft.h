@@ -8,6 +8,7 @@
 #include <functional>
 #include <memory>
 #include <atomic>
+#include <thread>
 
 namespace raft {
     
@@ -57,6 +58,8 @@ class Raft {
         // Non-copyable
         Raft(const Raft&) = delete;
         Raft& operator=(const Raft&) = delete;
+
+        void run();
 
         //-------------------------------------
         //--------- Election control ----------
@@ -113,6 +116,8 @@ class Raft {
         //-------------------------------------
         //--------- Internal helpers ----------
         //-------------------------------------
+        void sendHeartbeat(int peer);
+
 
         // Internal data protected by mu_. Any access to these fields must hold
         // mu_ to ensure correctness unless otherwise noted in comments.
@@ -151,6 +156,11 @@ class Raft {
         std::shared_ptr<ITimerFactory> timerFactory_;
         std::unique_ptr<ITimer> electionTimer_;
         std::unique_ptr<ITimer> heartbeatTimer_;
+
+
+
+        std::thread thread_;
+        std::atomic<bool> running_{false};
 };
 
 } // namespace raft
