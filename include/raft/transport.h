@@ -18,7 +18,7 @@ namespace type{
 // Keeping this abstract decouples Raft state-machine logic 
 // from the underlying RPC mechanism.
 class IRaftTransport {
-    public:
+public:
     //interface destructor
     virtual ~IRaftTransport() = default;
 

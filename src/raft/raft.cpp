@@ -310,13 +310,69 @@ void Raft::resetElectionTimerLocked(){
     electionTimer_->Reset(std::chrono::milliseconds(timeout));
     spdlog::info("[Raft] {} reset election timer to {} ms", me_, timeout);
 }
+void Raft::resetHeartbeatTimerLocked(){
+    // Reset heartbeat timer to a fixed interval (e.g., 50ms)
+    int heartbeatInterval = 50; // in milliseconds
+    heartbeatTimer_->Reset(std::chrono::milliseconds(heartbeatInterval));
+    spdlog::info("[Raft] {} reset heartbeat timer to {} ms", me_, heartbeatInterval);
+}
 
 // -------- Timer callbacks -----------
+// Called when the election timer times out.
+// This function triggers the start of a new election by incrementing the term
+// and sending RequestVote RPCs to all other peers.
 void Raft::onElectionTimeout(){
+    spdlog::info("[Raft] Election timeout occurred on node {}.", me_);
 
+    // Increment current term and convert to candidate
+    currentTerm_++;
+    role_ = type::Role::Candidate;
+    votedFor_ = me_;
+    spdlog::info("[Raft] Node {} becomes candidate for term {}.", me_, currentTerm_);
+
+    // Reset election timer
+    resetElectionTimerLocked();
+
+    // Send RequestVote RPCs to all peers (simplified example)
+    for (const auto& peer : peers_) {
+        spdlog::info("[Raft] Sending RequestVote RPC to peer {}.", peer);
+        type::RequestVoteArgs args{};
+        args.term = currentTerm_;
+        args.candidateId = me_;
+        args.lastLogIndex = getLastLogIndex();
+        args.lastLogTerm = getLastLogTerm();
+        type::RequestVoteReply reply{};
+        transport_->RequestVoteRPC(peer, args,reply,std::chrono::milliseconds(100));
+    }
 }
+// Called when the heartbeat timer times out.
+// This function triggers sending AppendEntries (heartbeat) RPCs to all followers
+// if the node is the leader.
 void Raft::onHeartbeatTimeout(){
+    if (role_ != type::Role::Leader) {
+        spdlog::warn("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
+        return;
+    }
 
+    spdlog::info("[Raft] Heartbeat timeout occurred on leader node {}.", me_);
+
+    // Send AppendEntries (heartbeat) argss to all followers
+    for (const auto& peer : peers_) {
+        type::AppendEntriesArgs args{};
+        args.term = currentTerm_;
+        args.leaderId = me_;
+        args.prevLogIndex = getLastLogIndex();
+        args.prevLogTerm = getLastLogTerm();
+        args.entries = {}; // empty for heartbeat
+        args.leaderCommit = commitIndex_;
+
+        spdlog::info("[Raft] Sending heartbeat AppendEntries to peer {}.", peer);
+        type::AppendEntriesReply reply{};
+        transport_->AppendEntriesRPC(peer, args, reply, std::chrono::milliseconds(100));
+    }
+
+    // Reset heartbeat timer
+    resetHeartbeatTimerLocked();
 }
 
 //--------- Internal helpers ----------

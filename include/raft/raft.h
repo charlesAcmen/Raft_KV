@@ -101,7 +101,8 @@ class Raft {
         void sendAppendEntriesRPC(int peerId);  // Send one AppendEntries RPC (heartbeat or log)
         void broadcastHeartbeat();              // Send empty AppendEntries to all peers
         void resetElectionTimerLocked();
-        
+        void resetHeartbeatTimerLocked();
+
         //-------------------------------------
         // -------- Timer callbacks -----------
         //-------------------------------------

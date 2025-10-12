@@ -3,7 +3,7 @@
 
 namespace raft {
     ThreadTimer::ThreadTimer(std::function<void()> cb)
-        : running_(false) {
+        : running_(false), callback_(std::move(cb)) {
         // The callback `cb` will be invoked when the timer fires.
     }
     ThreadTimer::~ThreadTimer() {
@@ -23,6 +23,7 @@ namespace raft {
                 return;
             }
 
+            // spdlog::info("[ThreadTimer] Timer expired after {} ms", duration.count());
             // Timer fired normally
             if (running_ && callback_) {
                 spdlog::info("[ThreadTimer] Timer fired, invoking callback");
