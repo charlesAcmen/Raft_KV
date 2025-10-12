@@ -16,7 +16,7 @@ namespace rpc{
     RpcClient::~RpcClient(){
         Close();
     }
-    void RpcClient::Connect(){
+    bool RpcClient::Connect(){
         //client address structure:sockaddr_un,unix,used in IPC
         struct sockaddr_un addr{};
         addr.sun_family = AF_UNIX;
@@ -39,16 +39,17 @@ namespace rpc{
             if (::connect(sock_fd, (struct sockaddr*)&addr, len) == 0) {
                 // success
                 // spdlog::info("[RpcClient] initSocket() RpcClient connected to {}:{} at attempt {}", host, port, attempts + 1);
-                break;
+                return true;
             } 
-            int e = errno;
             if (++attempts > MAX_RETRIES) {
                 // spdlog::error("[RpcClient] initSocket() RpcClient failed to connect to {}:{} after {} attempts: {}", host, port, attempts, strerror(e));
                 ::close(sock_fd);
-                throw std::runtime_error(std::string("[RpcClient] initSocket() RpcClient::connect() failed: ") + strerror(e));
+                // throw std::runtime_error(std::string("[RpcClient] initSocket() RpcClient::connect() failed: ") + strerror(e));
+                return false;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_INTERVAL_MS));
         }
+        return false;
     }
     void RpcClient::Close(){
         if (sock_fd != -1) {

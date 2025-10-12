@@ -94,7 +94,7 @@ Raft::Raft(int me,
 
 
     // log constructed state for debugging.
-    spdlog::info("[Raft] {} constructed with {} peers (others):", me_, peers_.size());
+    spdlog::info("[Raft] {} constructed with {} peers", me_, peers_.size());
 
     // NOTE: do not start timers or mutate other subsystems here if you prefer an explicit Start().
     // If you *do* want automatic start, call Start() or similar here.

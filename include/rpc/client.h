@@ -13,7 +13,7 @@ namespace rpc{
             RpcClient(const raft::type::PeerInfo& selfInfo,
                     const raft::type::PeerInfo& targetInfo);
             ~RpcClient();
-            void Connect();
+            bool Connect();
             void Close();
             //call rpc by method name and pass payload
             std::string Call(const std::string& method, const std::string& payload);

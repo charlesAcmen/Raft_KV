@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <thread>
 
 namespace rpc {
     class RpcClient;
@@ -39,8 +40,10 @@ private:
 
     // RPC server and clients
     std::unique_ptr<rpc::RpcServer> server_;
+    std::thread serverThread_;
+    
     std::unordered_map<int, std::unique_ptr<rpc::RpcClient>> clients_;  // key: peer id
-
+    std::thread clientThread_;
 
     // RPC handlers
     std::function<std::string(const std::string&)> requestVoteHandler_;

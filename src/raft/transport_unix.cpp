@@ -27,20 +27,32 @@ RaftTransportUnix::RaftTransportUnix(
     // server_->start();
 }
 RaftTransportUnix::~RaftTransportUnix() {
-    if (server_) {
-        server_->Stop();
-    }
+    Stop();
+    if (serverThread_.joinable()) serverThread_.join();
+    if (clientThread_.joinable()) clientThread_.join();
     clients_.clear();
 }
 
 // Start the transport (start RPC server and prepare clients)
 void RaftTransportUnix::Start() {
     // Start the server in background
-    server_->Start();
-    // Optionally, establish client connections if needed
-    for (auto& [id, client] : clients_) {
-        client->Connect();
-    }
+    serverThread_ = std::thread([this]() { server_->Start(); });
+
+    clientThread_ = std::thread([this]() {
+        while(true){
+            bool allConnected = true;
+            for (auto& [id, client] : clients_) {
+                if(client->Connect()){
+                    spdlog::info("[RaftTransportUnix] {} Connected to peer {}", this->self_.id, id);
+                }else{
+                    allConnected = false;
+                }
+            }
+            if(allConnected) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+        spdlog::info("[RaftTransportUnix] {}:All RPC clients connected to peers",this->self_.id);
+    });
 }
 
 // Shutdown transport gracefully

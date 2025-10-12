@@ -6,7 +6,7 @@ find_package(spdlog REQUIRED)
 
 
 file(GLOB SOURCE_FILES
-    "src/*.cpp"
+    # "src/*.cpp"
     "src/rpc/*.cpp"
     "src/raft/*.cpp"
 )
