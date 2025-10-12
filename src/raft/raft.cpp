@@ -4,20 +4,20 @@
 #include "raft/codec/raft_codec.h"
 #include <spdlog/spdlog.h>
 namespace raft{
-Raft::Raft(int me,
+Raft::Raft(
+    int me,
     const std::vector<int>& peers,
-    std::shared_ptr<IRaftTransport> transport,
-    std::function<void(const type::LogEntry&)> applyCallback,
-    RaftConfig config,
-    std::shared_ptr<ITimerFactory> timerFactory,
-    std::shared_ptr<IPersister> persister)
-    :me_(me), 
+    std::shared_ptr<IRaftTransport> transport
+    // std::function<void(const type::LogEntry&)> applyCallback,
+    // RaftConfig config,
+    // std::shared_ptr<ITimerFactory> timerFactory,
+    // std::shared_ptr<IPersister> persister
+)
+    :
+    me_(me), 
     peers_(peers), 
-    transport_(transport),
-    applyCallback_(applyCallback), 
-    config_(config),
-    timerFactory_(timerFactory),
-    persister_(persister) {
+    transport_(transport)
+{
     // -----------------------
     // Basic invariant checks
     // -----------------------
@@ -27,61 +27,51 @@ Raft::Raft(int me,
         if (p == me_) { found_me = true; break; }
     }
     if (!found_me) {
-        spdlog::warn("[Raft] constructor: my id not found in peers vector; continuing", me_);
+        spdlog::warn("[Raft] constructor: my id not found in peers vector,continuing", me_);
     }
 
     // -----------------------
     // Register RPC handlers
     // -----------------------
-    // If a transport is provided, register the two RPC handlers that accept a serialized
-    // payload and return a serialized reply. The transport is responsible for invoking
+    // register the two RPC handlers that accept a serialized payload and 
+    // return a serialized reply. The transport is responsible for invoking
     // these lambdas when a remote node calls "AppendEntries" / "RequestVote".
-    //
     // The lambdas: decode -> call local handler function -> encode reply.
-    if (transport_) {
-        try {
-            transport_->RegisterRequestVoteHandler(
-                [this](const std::string& payload) -> std::string {
-                    // decode incoming args, run local handler, encode reply
-                    try {
-                        type::RequestVoteArgs args = codec::RaftCodec::decodeRequestVoteArgs(payload);
-                        // HandleRequestVote is expected to be a member that returns type::RequestVoteReply
-                        type::RequestVoteReply reply = this->HandleRequestVote(args);
-                        return codec::RaftCodec::encode(reply);
-                    } catch (const std::exception& e) {
-                        spdlog::error("[Raft] {} RequestVote handler exception: {}", this->me_, e.what());
-                        return std::string();// caller should check/interpret empty as failure
-                    }
-                }
-            );
-            transport_->RegisterAppendEntriesHandler(
-                [this](const std::string& payload) -> std::string {
-                    // decode incoming args, run local handler, encode reply
-                    try {
-                        type::AppendEntriesArgs args = codec::RaftCodec::decodeAppendEntriesArgs(payload);
-                        // HandleAppendEntries is expected to be a member that returns type::AppendEntriesReply
-                        type::AppendEntriesReply reply = this->HandleAppendEntries(args);
-                        return codec::RaftCodec::encode(reply);
-                    } catch (const std::exception& e) {
-                        // on decode/handler error, log and return empty/error payload
-                        spdlog::error("[Raft] {} AppendEntries handler exception: {}", this->me_, e.what());
-                        return std::string(); // caller should check/interpret empty as failure
-                    }
-                }
-            );
-
-            
-
-            // optional — let the transport know which logical raft id this instance is.
-            // If IRaftTransport provides a method to register the instance itself, call it here.
-            // e.g. transport_->bindRaftInstance(me_, shared_from_this());
-            // (Uncomment/adapt if your transport supports it.)
-        } catch (const std::exception& e) {
-            spdlog::error("[Raft] {} failed to register RPC handlers on transport: {}", me_, e.what());
+    transport_->RegisterRequestVoteHandler(
+        [this](const std::string& payload) -> std::string {
+            // decode incoming args, run local handler, encode reply
+            try {
+                type::RequestVoteArgs args = codec::RaftCodec::decodeRequestVoteArgs(payload);
+                type::RequestVoteReply reply = this->HandleRequestVote(args);
+                return codec::RaftCodec::encode(reply);
+            } catch (const std::exception& e) {
+                spdlog::error("[Raft] {} RequestVote handler exception: {}", this->me_, e.what());
+                return std::string();// caller should check/interpret empty as failure
+            }
         }
-    } else {
-        spdlog::warn("[Raft] {} constructed without transport (transport_ == nullptr).", me_);
-    }
+    );
+    transport_->RegisterAppendEntriesHandler(
+        [this](const std::string& payload) -> std::string {
+            // decode incoming args, run local handler, encode reply
+            try {
+                type::AppendEntriesArgs args = codec::RaftCodec::decodeAppendEntriesArgs(payload);
+                // HandleAppendEntries is expected to be a member that returns type::AppendEntriesReply
+                type::AppendEntriesReply reply = this->HandleAppendEntries(args);
+                return codec::RaftCodec::encode(reply);
+            } catch (const std::exception& e) {
+                // on decode/handler error, log and return empty/error payload
+                spdlog::error("[Raft] {} AppendEntries handler exception: {}", this->me_, e.what());
+                return std::string(); // caller should check/interpret empty as failure
+            }
+        }
+    );
+
+    
+
+    // optional — let the transport know which logical raft id this instance is.
+    // If IRaftTransport provides a method to register the instance itself, call it here.
+    // e.g. transport_->bindRaftInstance(me_, shared_from_this());
+    // (Uncomment/adapt if your transport supports it.)
 
     // -----------------------
     // Other lightweight init (keeps Raft class invariants)
@@ -241,37 +231,18 @@ void Raft::electionTimeoutHandler(){
 
 
 int Raft::getLastLogIndex() const{
-    if (log_.empty()) return 0;
-    return log_.back().index;
+    return 1;
 }
 int Raft::getLastLogTerm() const{
-    if (log_.empty()) return 0;
-    return log_.back().term;
+    return 1;
 }
 int Raft::getLogTerm(int index) const{
-    if (index == 0) return 0;
-    if (index < 1 || index > getLastLogIndex()) {
-        throw std::out_of_range("getLogTerm: index out of range");
-    }
-    return log_[index - 1].term; // log_ is 0-based, index is 1-based
+    return 1;
 }
 void Raft::applyLogs(){
-    while (lastApplied_ < commitIndex_) {
-        lastApplied_++;
-        if (lastApplied_ <= 0 || lastApplied_ > getLastLogIndex()) {
-            throw std::out_of_range("applyLogs: lastApplied_ out of range");
-        }
-        const type::LogEntry& entry = log_[lastApplied_ - 1]; // 1-based to 0-based
-        // Apply the log entry to the state machine via callback
-        if (applyCallback_) {
-            applyCallback_(entry);
-        }
-    }
+    
 }
 void Raft::deleteLogFromIndex(int index){
-    if (index < 1 || index > getLastLogIndex() + 1) {
-        throw std::out_of_range("deleteLogFromIndex: index out of range");
-    }
-    log_.erase(log_.begin() + (index - 1), log_.end());
+
 }
 }// namespace raft

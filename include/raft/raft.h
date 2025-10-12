@@ -12,27 +12,22 @@
 namespace raft {
     
 class IRaftTransport;
-class ITimer;
-class ITimerFactory;
-class IPersister;
-
-
 // RaftConfig holds tunable(可调) parameters affecting election timing. Tests
 // should set these explicitly to reduce flakiness (or inject a virtual
 // timer implementation via ITimerFactory).
-struct RaftConfig {
-    // Election timeout range in milliseconds: each follower chooses a random
-    // timeout uniformly in [electionTimeoutMinMs, electionTimeoutMaxMs].
-    int electionTimeoutMinMs{150};
-    int electionTimeoutMaxMs{300};
+// struct RaftConfig {
+//     // Election timeout range in milliseconds: each follower chooses a random
+//     // timeout uniformly in [electionTimeoutMinMs, electionTimeoutMaxMs].
+//     int electionTimeoutMinMs{150};
+//     int electionTimeoutMaxMs{300};
 
-    // How long a leader waits between heartbeats (AppendEntries with empty
-    // entries). This is usually much shorter than election timeout.
-    int heartbeatIntervalMs{50};
+//     // How long a leader waits between heartbeats (AppendEntries with empty
+//     // entries). This is usually much shorter than election timeout.
+//     int heartbeatIntervalMs{50};
 
-    // Timeout to wait for an RPC reply before considering it failed.
-    int rpcTimeoutMs{100};
-};
+//     // Timeout to wait for an RPC reply before considering it failed.
+//     int rpcTimeoutMs{100};
+// };
 
 
 // Raft implements the core Raft peer state.
@@ -41,18 +36,16 @@ struct RaftConfig {
 class Raft {
     public:
         // me: this peer's id (index into peers_).
-        // applyCallback: invoked for each committed log entry
         // transport: implementation that sends RequestVote/AppendEntries RPCs.
-        // timerFactory: optional factory; if nullptr a default real-time factory
-        //               must be provided in the .cpp implementation.
-        // persister: optional persistence;
-        Raft(int me,
+        Raft(
+            int me,
             const std::vector<int>& peers,
-            std::shared_ptr<IRaftTransport> transport,
-            std::function<void(const type::LogEntry&)> applyCallback,
-            RaftConfig config = RaftConfig(),
-            std::shared_ptr<ITimerFactory> timerFactory = nullptr,
-            std::shared_ptr<IPersister> persister = nullptr);
+            std::shared_ptr<IRaftTransport> transport
+            // std::function<void(const type::LogEntry&)> applyCallback,
+            // RaftConfig config = RaftConfig(),
+            // std::shared_ptr<ITimerFactory> timerFactory = nullptr,
+            // std::shared_ptr<IPersister> persister = nullptr
+        );
 
         ~Raft();
 
@@ -158,18 +151,9 @@ class Raft {
 
         // Transport and integration hooks
         std::shared_ptr<IRaftTransport> transport_; // used to send RPCs to peers
-        std::function<void(const type::LogEntry&)> applyCallback_; // for committed entries
-
-        // Timers
-        RaftConfig config_;
-        std::shared_ptr<ITimerFactory> timerFactory_;
-        std::unique_ptr<ITimer> electionTimer_; // guards election timeout
 
         // Background control
         std::atomic<bool> running_{true};
-
-        // Persistence
-        std::shared_ptr<IPersister> persister_;
 
         // Condition variable used to coordinate election results (e.g. waiting
         // for majority votes). Implementations may use finer-grained sync.

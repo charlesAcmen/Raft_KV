@@ -18,21 +18,16 @@ int main(){
 
     // 2. raft nodes
     std::vector<std::shared_ptr<raft::Raft>> nodes;
-    auto applyCallback = [](const raft::type::LogEntry& entry) {
-    std::cout << "Applied log: index=" << entry.index 
-              << ", term=" << entry.term 
-              << ", command=" << entry.command << std::endl;
-    };
 
     for (const auto& self : peers) {
         // transport for every node
         std::shared_ptr<raft::IRaftTransport> transport = std::make_shared<raft::RaftTransportUnix>(self, peers);
 
         // inject transport into Raft node and create node
-        std::shared_ptr<raft::Raft> raftNode = std::make_shared<raft::Raft>(self.id, peerIds,transport, applyCallback);
+        std::shared_ptr<raft::Raft> raftNode = std::make_shared<raft::Raft>(self.id, peerIds,transport);
         nodes.push_back(raftNode);
     }
     spdlog::info("Raft cluster with {} nodes initialized.", nodes.size());
-    std::this_thread::sleep_for(std::chrono::seconds(20));
+    std::this_thread::sleep_for(std::chrono::seconds(3));
     return 0;
 }

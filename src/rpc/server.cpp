@@ -43,7 +43,7 @@ namespace rpc{
                 //continue to stay alive
                 continue;
             }
-            spdlog::info("[RpcServer] start() Accepted new connection: fd={}", client_fd);
+            // spdlog::info("[RpcServer] start() Accepted new connection: fd={}", client_fd);
             //do not enqueue task here,because rpc client has long connection with rpc server
             //use detached thread instead
             //Function&&(void(RpcServer::*func_ptr)(int)), this , Args&&... args
