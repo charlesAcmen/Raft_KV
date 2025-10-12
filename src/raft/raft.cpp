@@ -1,16 +1,17 @@
 #include "raft/raft.h"
-#include "raft/timer.h"
+#include "raft/timer_thread.h"
 #include "raft/transport.h"
 #include "raft/codec/raft_codec.h"
 #include <spdlog/spdlog.h>
+#include <random> 
 namespace raft{
 Raft::Raft(
     int me,
     const std::vector<int>& peers,
-    std::shared_ptr<IRaftTransport> transport
+    std::shared_ptr<IRaftTransport> transport,
     // std::function<void(const type::LogEntry&)> applyCallback,
     // RaftConfig config,
-    std::shared_ptr<ITimerFactory> timerFactory,
+    std::shared_ptr<ITimerFactory> timerFactory
     // std::shared_ptr<IPersister> persister
 )
     :
@@ -94,23 +95,14 @@ Raft::~Raft() {
 void Raft::Start() {
     // Start background components and threads.
     transport_->Start();
-    // electionTimer_ = timerFactory_->CreateElectionTimer([this]() {
-    //     this->onElectionTimeout();
-    // });
-    // heartbeatTimer_ = timerFactory_->CreateHeartbeatTimer([this]() {
-    //     this->onHeartbeatTimeout();
-    // });
     // start election timer
-    // resetElectionTimerLocked();
+    resetElectionTimerLocked();
     spdlog::info("[Raft] {} started", me_);
 }  
 
 //-------------------private methods-------------------
 //--------- Election control ----------
-void startElection(){
-
-}
-void resetElectionTimerLocked(){
+void Raft::startElection(){
 
 }
 
@@ -230,13 +222,6 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     reply.success = true;
     return reply;
 }
-void Raft::startElection(){
-
-}
-void Raft::electionTimeoutHandler(){
-
-}
-
 
 //---------- Log management -----------
 
@@ -305,32 +290,34 @@ void Raft::deleteLogFromIndex(int index){
 }
 
 //--------- Helper functions ----------
-void persistStateLocked(){
+void Raft::persistStateLocked(){
 
 }          
-void sendRequestVoteRPC(int peerId){
+void Raft::sendRequestVoteRPC(int peerId){
 
 } 
-void sendAppendEntriesRPC(int peerId){
+void Raft::sendAppendEntriesRPC(int peerId){
     
 }
-void broadcastHeartbeat(){
+void Raft::broadcastHeartbeat(){
 
 }
 void Raft::resetElectionTimerLocked(){
-
+    // Reset election timer with a new randomized timeout
+    static thread_local std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<int> dist(150, 300); // in milliseconds
+    int timeout = dist(rng);
+    electionTimer_->Reset(std::chrono::milliseconds(timeout));
+    spdlog::info("[Raft] {} reset election timer to {} ms", me_, timeout);
 }
 
 // -------- Timer callbacks -----------
-void onElectionTimeout(){
+void Raft::onElectionTimeout(){
 
-}           
-void onHeartbeatTimeout(){
+}
+void Raft::onHeartbeatTimeout(){
 
 }
 
 //--------- Internal helpers ----------
-bool isLogUpToDate(int candidateLastLogIndex, int candidateLastLogTerm) const{
-
-}
 }// namespace raft

@@ -12,9 +12,9 @@ class ITimer {
         virtual ~ITimer() = default;
 
         // Start or restart timer with new duration
-        virtual void reset(std::chrono::milliseconds duration) = 0;
+        virtual void Reset(std::chrono::milliseconds duration) = 0;
         // Start or restart timer with new duration
-        virtual void stop() = 0;
+        virtual void Stop() = 0;
 };
 
 

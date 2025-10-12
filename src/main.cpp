@@ -2,7 +2,9 @@
 #include <iostream>
 #include "raft/raft.h"
 #include "raft/transport_unix.h"
-#include   <thread>
+#include  "raft/timer_thread.h"
+#include  <thread>
+
 int main(){
     // 1. peers info
     std::vector<raft::type::PeerInfo> peers = {
@@ -22,9 +24,9 @@ int main(){
     for (const auto& self : peers) {
         // transport for every node
         std::shared_ptr<raft::IRaftTransport> transport = std::make_shared<raft::RaftTransportUnix>(self, peers);
-
+        std::shared_ptr<raft::ITimerFactory> timerFactory = std::make_shared<raft::ThreadTimerFactory>(); 
         // inject transport into Raft node and create node
-        std::shared_ptr<raft::Raft> raftNode = std::make_shared<raft::Raft>(self.id, peerIds,transport);
+        std::shared_ptr<raft::Raft> raftNode = std::make_shared<raft::Raft>(self.id, peerIds,transport,timerFactory);
         nodes.push_back(raftNode);
     }
     spdlog::info("Raft cluster with {} nodes initialized.", nodes.size());

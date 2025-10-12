@@ -14,7 +14,6 @@ namespace raft {
 class IRaftTransport;
 class ITimer;
 class ITimerFactory;
-
 // RaftConfig holds tunable(可调) parameters affecting election timing. Tests
 // should set these explicitly to reduce flakiness (or inject a virtual
 // timer implementation via ITimerFactory).
@@ -43,10 +42,10 @@ class Raft {
         Raft(
             int me,
             const std::vector<int>& peers,
-            std::shared_ptr<IRaftTransport> transport
+            std::shared_ptr<IRaftTransport> transport,
             // std::function<void(const type::LogEntry&)> applyCallback,
             // RaftConfig config = RaftConfig(),
-            std::shared_ptr<ITimerFactory> timerFactory = nullptr,
+            std::shared_ptr<ITimerFactory> timerFactory = nullptr
             // std::shared_ptr<IPersister> persister = nullptr
         );
 
@@ -101,7 +100,7 @@ class Raft {
         void sendRequestVoteRPC(int peerId);    // Send one RequestVote RPC to a peer
         void sendAppendEntriesRPC(int peerId);  // Send one AppendEntries RPC (heartbeat or log)
         void broadcastHeartbeat();              // Send empty AppendEntries to all peers
-        void Raft::resetElectionTimerLocked();
+        void resetElectionTimerLocked();
         
         //-------------------------------------
         // -------- Timer callbacks -----------
@@ -113,7 +112,6 @@ class Raft {
         //-------------------------------------
         //--------- Internal helpers ----------
         //-------------------------------------
-        bool isLogUpToDate(int candidateLastLogIndex, int candidateLastLogTerm) const;
 
         // Internal data protected by mu_. Any access to these fields must hold
         // mu_ to ensure correctness unless otherwise noted in comments.

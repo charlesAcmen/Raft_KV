@@ -11,9 +11,9 @@ class ThreadTimer : public ITimer {
         explicit ThreadTimer(std::function<void()>);
         ~ThreadTimer() override;
 
-        void reset(std::chrono::milliseconds duration) override;
+        void Reset(std::chrono::milliseconds duration) override;
 
-        void stop() override;
+        void Stop() override;
     private:
         std::function<void()> callback_;
         std::atomic<bool> running_{false};
@@ -25,6 +25,7 @@ class ThreadTimer : public ITimer {
 // Timer factory: creates real timers that use threads.
 class ThreadTimerFactory : public ITimerFactory {
 public:
+    explicit ThreadTimerFactory() = default;
     std::unique_ptr<ITimer> CreateTimer(std::function<void()> cb) override;
 };
 

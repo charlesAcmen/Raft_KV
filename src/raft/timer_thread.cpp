@@ -7,11 +7,11 @@ namespace raft {
         // The callback `cb` will be invoked when the timer fires.
     }
     ThreadTimer::~ThreadTimer() {
-        stop();
+        Stop();
     }
 
-    void ThreadTimer::reset(std::chrono::milliseconds duration) {
-        stop(); // cancel any running timer
+    void ThreadTimer::Reset(std::chrono::milliseconds duration) {
+        Stop(); // cancel any running timer
 
         running_ = true;
         thread_ = std::thread([this, duration]() {
@@ -30,7 +30,7 @@ namespace raft {
             }
         });
     }
-    void ThreadTimer::stop(){
+    void ThreadTimer::Stop(){
         {
             std::lock_guard<std::mutex> lock(mu_);
             running_ = false;
@@ -41,7 +41,7 @@ namespace raft {
 
 
     //-----------Factory implementation ----------
-    std::unique_ptr<ITimer> ThreadTimerFactory::CreateTimer(std::function<void()> cb) {
+    std::unique_ptr<ITimer> ThreadTimerFactory::CreateTimer(std::function<void()> cb){
         return std::make_unique<ThreadTimer>(cb);
     }
 }// namespace raft
