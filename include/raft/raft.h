@@ -108,6 +108,25 @@ class Raft {
         // Callback invoked when the election timer fires.
         void electionTimeoutHandler();
 
+
+        // Returns the index of the last log entry (0 if no entries)
+        // Requires: mu_ held or called via thread-safe wrapper
+        int getLastLogIndex() const;
+        // Returns the term of the last log entry (0 if no entries)
+        // Requires: mu_ held or called via thread-safe wrapper
+        int getLastLogTerm() const;
+
+        // Returns the term of log at given index (1-based)
+        // Returns 0 if index == 0
+        // Requires: mu_ held
+        int getLogTerm(int index) const;
+
+        // Applies committed log entries to the state machine
+        // Must be called under lock mu_ to ensure correct lastApplied_ update
+        void applyLogs();
+        void deleteLogFromIndex(int index);
+
+
         // Internal data protected by mu_. Any access to these fields must hold
         // mu_ to ensure correctness unless otherwise noted in comments.
         std::mutex mu_;

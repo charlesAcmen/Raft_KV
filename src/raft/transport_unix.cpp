@@ -32,6 +32,25 @@ RaftTransportUnix::~RaftTransportUnix() {
     }
     clients_.clear();
 }
+
+// Start the transport (start RPC server and prepare clients)
+void RaftTransportUnix::Start() {
+    // Start the server in background
+    server_->start();
+    // Optionally, establish client connections if needed
+    for (auto& [id, client] : clients_) {
+        client->connect();
+    }
+}
+
+// Shutdown transport gracefully
+void RaftTransportUnix::Stop() {
+    if (server_) server_->stop();
+    for (auto& [id, client] : clients_) {
+        client->close();
+    }
+}
+
 /**
  * @brief Send a RequestVote RPC to a specific peer.
  * 
@@ -92,12 +111,12 @@ bool RaftTransportUnix::AppendEntriesRPC(int targetId,
     reply = codec::RaftCodec::decodeAppendEntriesReply(response);
     return true;
 }
-void RaftTransportUnix::registerRequestVoteHandler(
+void RaftTransportUnix::RegisterRequestVoteHandler(
     std::function<std::string(const std::string&)> handler) {
     requestVoteHandler_ = handler;
     server_->register_handler("RequestVote", handler);
 }
-void RaftTransportUnix::registerAppendEntriesHandler(
+void RaftTransportUnix::RegisterAppendEntriesHandler(
     std::function<std::string(const std::string&)> handler) {
     appendEntriesHandler_ = handler;
     server_->register_handler("AppendEntries", handler);

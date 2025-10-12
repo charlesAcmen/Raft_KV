@@ -18,6 +18,7 @@ namespace rpc{
 class RpcServer {
     public:
         RpcServer(const raft::type::PeerInfo& selfInfo);
+        ~RpcServer();
         //register rpc handler by method name
         void register_handler(const std::string& method,std::function<std::string(const std::string&)> handler);
         void start();

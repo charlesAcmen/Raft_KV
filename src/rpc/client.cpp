@@ -9,14 +9,52 @@
 #include "rpc/delimiter_codec.h"    //encode and decode
 namespace rpc{
     RpcClient::RpcClient(const raft::type::PeerInfo& selfInfo,
-              const raft::type::PeerInfo& targetInfo){
-        selfInfo_ = selfInfo;
-        targetInfo_ = targetInfo;
+              const raft::type::PeerInfo& targetInfo):
+              selfInfo_(selfInfo),targetInfo_(targetInfo){
         initSocket();
     }
     RpcClient::~RpcClient(){
-        if(sock_fd >= 0)
-            close(sock_fd);
+        close();
+    }
+    void RpcClient::connect(){
+        //client address structure:sockaddr_un,unix,used in IPC
+        struct sockaddr_un addr{};
+        addr.sun_family = AF_UNIX;
+        //target path for client
+        std::string sock_path = targetInfo_.sockPath;
+        //c_str():convert c++ string to c str to fit strncpy
+        std::strncpy(addr.sun_path, sock_path.c_str(), sizeof(addr.sun_path) - 1);
+        //ensure null-termination
+        addr.sun_path[sizeof(addr.sun_path)-1] = '\0';
+        //do not unlink the socket file here
+        //because the server may not be running yet
+
+
+        int attempts = 0;        
+        while (true) {
+            // offsetof:relative offset of sun_path field to the start of struct sockaddr_un
+            // +1 is for '\0' at the end
+            socklen_t len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path) + 1;
+            // spdlog::info("[RpcClient] initSocket() RpcClient connecting to {}:{}", host, port);
+            if (::connect(sock_fd, (struct sockaddr*)&addr, len) == 0) {
+                // success
+                // spdlog::info("[RpcClient] initSocket() RpcClient connected to {}:{} at attempt {}", host, port, attempts + 1);
+                break;
+            } 
+            int e = errno;
+            if (++attempts > MAX_RETRIES) {
+                // spdlog::error("[RpcClient] initSocket() RpcClient failed to connect to {}:{} after {} attempts: {}", host, port, attempts, strerror(e));
+                ::close(sock_fd);
+                throw std::runtime_error(std::string("[RpcClient] initSocket() RpcClient::connect() failed: ") + strerror(e));
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_INTERVAL_MS));
+        }
+    }
+    void RpcClient::close(){
+        if (sock_fd != -1) {
+            ::close(sock_fd);
+            sock_fd = -1;
+        }
     }
     std::string RpcClient::call(
         const std::string& method, 
@@ -71,39 +109,6 @@ namespace rpc{
         if (sock_fd < 0) {
             spdlog::error("[RpcClient] initSocket() failed to create socket");
             throw std::runtime_error("[RpcClient] initSocket() failed to create socket");
-        }
-
-        //client address structure:sockaddr_un,unix,used in IPC
-        struct sockaddr_un addr{};
-        addr.sun_family = AF_UNIX;
-        //target path for client
-        std::string sock_path = targetInfo_.sockPath;
-        //c_str():convert c++ string to c str to fit strncpy
-        std::strncpy(addr.sun_path, sock_path.c_str(), sizeof(addr.sun_path) - 1);
-        //ensure null-termination
-        addr.sun_path[sizeof(addr.sun_path)-1] = '\0';
-        //do not unlink the socket file here
-        //because the server may not be running yet
-
-
-        int attempts = 0;        
-        while (true) {
-            // offsetof:relative offset of sun_path field to the start of struct sockaddr_un
-            // +1 is for '\0' at the end
-            socklen_t len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path) + 1;
-            // spdlog::info("[RpcClient] initSocket() RpcClient connecting to {}:{}", host, port);
-            if (connect(sock_fd, (struct sockaddr*)&addr, len) == 0) {
-                // success
-                // spdlog::info("[RpcClient] initSocket() RpcClient connected to {}:{} at attempt {}", host, port, attempts + 1);
-                break;
-            } 
-            int e = errno;
-            if (++attempts > MAX_RETRIES) {
-                // spdlog::error("[RpcClient] initSocket() RpcClient failed to connect to {}:{} after {} attempts: {}", host, port, attempts, strerror(e));
-                close(sock_fd);
-                throw std::runtime_error(std::string("[RpcClient] initSocket() RpcClient::connect() failed: ") + strerror(e));
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_INTERVAL_MS));
         }
     }
 } // namespace rpc

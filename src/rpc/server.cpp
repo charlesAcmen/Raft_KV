@@ -15,6 +15,9 @@ namespace rpc{
         selfInfo_ = selfInfo;
         initSocket();
     }
+    RpcServer::~RpcServer(){
+        stop();
+    }
     void RpcServer::register_handler(const std::string& method,
         std::function<std::string(const std::string&)> handler
     ){

@@ -21,12 +21,15 @@ public:
         const std::vector<raft::type::PeerInfo>& peers);
     ~RaftTransportUnix();
 
+    void Start() override;
+    void Stop() override;
+
     bool RequestVoteRPC(int,const raft::type::RequestVoteArgs&,raft::type::RequestVoteReply&,std::chrono::milliseconds) override;
     bool AppendEntriesRPC(int,const raft::type::AppendEntriesArgs&,raft::type::AppendEntriesReply&,std::chrono::milliseconds) override;
 
-    void registerRequestVoteHandler(
+    void RegisterRequestVoteHandler(
         std::function<std::string(const std::string&)> handler) override;
-    void registerAppendEntriesHandler(
+    void RegisterAppendEntriesHandler(
         std::function<std::string(const std::string&)> handler) override;
 
 private:

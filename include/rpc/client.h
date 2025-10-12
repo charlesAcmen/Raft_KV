@@ -13,6 +13,8 @@ namespace rpc{
             RpcClient(const raft::type::PeerInfo& selfInfo,
                     const raft::type::PeerInfo& targetInfo);
             ~RpcClient();
+            void connect();
+            void close();
             //call rpc by method name and pass payload
             std::string call(const std::string& method, const std::string& payload);
         private:
@@ -24,8 +26,8 @@ namespace rpc{
             inline static const int MAX_RETRIES = 5;
             inline static const int RETRY_INTERVAL_MS = 100;
 
-            raft::type::PeerInfo selfInfo_;     //info of the client itself
-            raft::type::PeerInfo targetInfo_;   //info of the rpc server
+            const raft::type::PeerInfo selfInfo_;     //info of the client itself
+            const raft::type::PeerInfo targetInfo_;   //info of the rpc server
 
 
             //accept() will return a new socket fd called client_fd for communication

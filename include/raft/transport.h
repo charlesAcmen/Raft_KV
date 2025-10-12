@@ -23,6 +23,9 @@ class IRaftTransport {
     virtual ~IRaftTransport() = default;
 
 
+    virtual void Start() = 0;
+    virtual void Stop() = 0;
+
     // Synchronously call RequestVote on `targetId`
     virtual bool RequestVoteRPC(int targetId,
     const type::RequestVoteArgs& args,
@@ -36,9 +39,9 @@ class IRaftTransport {
     type::AppendEntriesReply& reply,
     std::chrono::milliseconds timeout) = 0;
 
-    virtual void registerRequestVoteHandler(
+    virtual void RegisterRequestVoteHandler(
         std::function<std::string(const std::string&)> handler) = 0;
-    virtual void registerAppendEntriesHandler(
+    virtual void RegisterAppendEntriesHandler(
         std::function<std::string(const std::string&)> handler) = 0;   
 
 
