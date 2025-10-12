@@ -12,6 +12,9 @@
 namespace raft {
     
 class IRaftTransport;
+class ITimer;
+class ITimerFactory;
+
 // RaftConfig holds tunable(可调) parameters affecting election timing. Tests
 // should set these explicitly to reduce flakiness (or inject a virtual
 // timer implementation via ITimerFactory).
@@ -43,91 +46,85 @@ class Raft {
             std::shared_ptr<IRaftTransport> transport
             // std::function<void(const type::LogEntry&)> applyCallback,
             // RaftConfig config = RaftConfig(),
-            // std::shared_ptr<ITimerFactory> timerFactory = nullptr,
+            std::shared_ptr<ITimerFactory> timerFactory = nullptr,
             // std::shared_ptr<IPersister> persister = nullptr
         );
 
         ~Raft();
-
-        // Start is the client-facing API to propose a new command. For 2A it
-        // can return (index, term, isLeader=false) since log replication is not
-        // implemented yet. Included for API compatibility with later labs.
-        // index: the log index the command would occupy (if leader).
-        // term: currentTerm when Start was called.
-        // isLeader: whether this node believes it is the leader.
-        std::tuple<int,int,bool> Start(const std::string& command);
-
-        // GetState returns the current term and whether this node believes it
-        // is the leader. Thread-safe.
-        std::pair<int,bool> GetState();
-
-        // Kill stops the Raft peer and all internal background activity. After
-        // Kill returns, the object may be destroyed. Kill should not delete
-        // persisted state (that is the test harness' responsibility).
-        void Kill();
-
-        // RPC handlers: these methods implement the server-side semantics of the
-        // RequestVote and AppendEntries RPCs. Your RPC server should forward
-        // incoming requests to these methods. They are thread-safe and may be
-        // invoked concurrently.
-        type::RequestVoteReply HandleRequestVote(const type::RequestVoteArgs& args);
-        type::AppendEntriesReply HandleAppendEntries(const type::AppendEntriesArgs& args);
-
-        // The following getters are primarily for testing and debug visibility.
-        int GetId() const { return me_; }
-        type::Role GetRole();
-        int GetCurrentTerm();
-        std::optional<int> GetVotedFor();
+       
+        void Start();
 
     private:
         // Non-copyable
         Raft(const Raft&) = delete;
         Raft& operator=(const Raft&) = delete;
 
-        // Internal helper to start a new election (become Candidate).
-        // It spawns background RPCs to peers; implementation must ensure that
-        // mu_ lock is not held while performing remote calls.
-        void startElection();
+        //-------------------------------------
+        //--------- Election control ----------
+        //-------------------------------------
+        void startElection();                   // Begin new election (called on timeout)
+        void electionTimeoutHandler();          // Called when election timer fires
+        void resetElectionTimerLocked();        // Restart timer (under mu_)
 
-        // Transition helpers (must be called under lock mu_ unless otherwise
-        // documented). They encapsulate paper semantics for state transition.
-        void becomeFollower(int32_t newTerm);
-        void becomeCandidate();
-        void becomeLeader();
+        //-------------------------------------
+        //---------- Role transtions ----------
+        //-------------------------------------
 
-        // Reset (or start) the election timer with a randomized deadline.
-        void resetElectionTimerLocked(); // expects mu_ held
+        void becomeFollower(int32_t newTerm);   // Step down to follower
+        void becomeCandidate();                 // Increment term, self-vote, send RequestVote RPCs
+        void becomeLeader();                    // Initialize nextIndex, matchIndex, send heartbeats
 
-        // Callback invoked when the election timer fires.
-        void electionTimeoutHandler();
+        //-------------------------------------
+        //----------- RPC handlers ------------
+        //-------------------------------------
 
+        type::RequestVoteReply HandleRequestVote(const type::RequestVoteArgs& args);
+        type::AppendEntriesReply HandleAppendEntries(const type::AppendEntriesArgs& args);
+
+        //-------------------------------------
+        //---------- Log management -----------
+        //-------------------------------------
 
         // Returns the index of the last log entry (0 if no entries)
-        // Requires: mu_ held or called via thread-safe wrapper
         int getLastLogIndex() const;
         // Returns the term of the last log entry (0 if no entries)
-        // Requires: mu_ held or called via thread-safe wrapper
         int getLastLogTerm() const;
-
         // Returns the term of log at given index (1-based)
-        // Returns 0 if index == 0
-        // Requires: mu_ held
         int getLogTerm(int index) const;
-
         // Applies committed log entries to the state machine
-        // Must be called under lock mu_ to ensure correct lastApplied_ update
         void applyLogs();
         void deleteLogFromIndex(int index);
 
+        //-------------------------------------
+        //--------- Helper functions ----------
+        //-------------------------------------
+
+        void persistStateLocked();              // Save currentTerm, votedFor, log[] to disk
+        void sendRequestVoteRPC(int peerId);    // Send one RequestVote RPC to a peer
+        void sendAppendEntriesRPC(int peerId);  // Send one AppendEntries RPC (heartbeat or log)
+        void broadcastHeartbeat();              // Send empty AppendEntries to all peers
+
+        //-------------------------------------
+        // -------- Timer callbacks -----------
+        //-------------------------------------
+
+        void onElectionTimeout();               // Alias or wrapper of electionTimeoutHandler
+        void onHeartbeatTimeout();              // Called periodically when leader
+
+        //-------------------------------------
+        //--------- Internal helpers ----------
+        //-------------------------------------
+        bool isLogUpToDate(int candidateLastLogIndex, int candidateLastLogTerm) const;
 
         // Internal data protected by mu_. Any access to these fields must hold
         // mu_ to ensure correctness unless otherwise noted in comments.
-        std::mutex mu_;
+        mutable std::mutex mu_;
 
         // Raft identity and cluster
         const int me_;                      // this peer's id (index into peers_)
         const std::vector<int> peers_;      // peer ids (including me_)
 
+        //------state------
         // Persistent state on all servers
         type::Role role_{type::Role::Follower};
         int32_t currentTerm_{0};            // latest term server has seen(initialized to 0 on first boot, 
@@ -149,15 +146,13 @@ class Raft {
 
 
 
-        // Transport and integration hooks
-        std::shared_ptr<IRaftTransport> transport_; // used to send RPCs to peers
+        // used to send RPCs to peers
+        std::shared_ptr<IRaftTransport> transport_; 
 
-        // Background control
-        std::atomic<bool> running_{true};
-
-        // Condition variable used to coordinate election results (e.g. waiting
-        // for majority votes). Implementations may use finer-grained sync.
-        std::condition_variable cv_; // used together with mu_
+        // timers
+        std::shared_ptr<ITimerFactory> timerFactory_;
+        std::unique_ptr<ITimer> electionTimer_;
+        std::unique_ptr<ITimer> heartbeatTimer_;
 };
 
 } // namespace raft

@@ -28,6 +28,12 @@ int main(){
         nodes.push_back(raftNode);
     }
     spdlog::info("Raft cluster with {} nodes initialized.", nodes.size());
+    
+    //3. start all nodes
+    for(auto& node : nodes){
+        node->Start();
+    }
+    
     std::this_thread::sleep_for(std::chrono::seconds(3));
     return 0;
 }
