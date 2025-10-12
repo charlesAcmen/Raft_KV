@@ -20,9 +20,9 @@ class RpcServer {
         RpcServer(const raft::type::PeerInfo& selfInfo);
         ~RpcServer();
         //register rpc handler by method name
-        void register_handler(const std::string& method,std::function<std::string(const std::string&)> handler);
-        void start();
-        void stop();
+        void Register_Handler(const std::string& method,std::function<std::string(const std::string&)> handler);
+        void Start();
+        void Stop();
     private:
         void initSocket();
         void handleClient(int client_fd);

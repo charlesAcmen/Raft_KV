@@ -13,10 +13,10 @@ namespace rpc{
             RpcClient(const raft::type::PeerInfo& selfInfo,
                     const raft::type::PeerInfo& targetInfo);
             ~RpcClient();
-            void connect();
-            void close();
+            void Connect();
+            void Close();
             //call rpc by method name and pass payload
-            std::string call(const std::string& method, const std::string& payload);
+            std::string Call(const std::string& method, const std::string& payload);
         private:
 
             //fill struct addr and try connect to the host

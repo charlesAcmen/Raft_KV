@@ -28,7 +28,7 @@ RaftTransportUnix::RaftTransportUnix(
 }
 RaftTransportUnix::~RaftTransportUnix() {
     if (server_) {
-        server_->stop();
+        server_->Stop();
     }
     clients_.clear();
 }
@@ -36,18 +36,18 @@ RaftTransportUnix::~RaftTransportUnix() {
 // Start the transport (start RPC server and prepare clients)
 void RaftTransportUnix::Start() {
     // Start the server in background
-    server_->start();
+    server_->Start();
     // Optionally, establish client connections if needed
     for (auto& [id, client] : clients_) {
-        client->connect();
+        client->Connect();
     }
 }
 
 // Shutdown transport gracefully
 void RaftTransportUnix::Stop() {
-    if (server_) server_->stop();
+    if (server_) server_->Stop();
     for (auto& [id, client] : clients_) {
-        client->close();
+        client->Close();
     }
 }
 
@@ -78,7 +78,7 @@ bool RaftTransportUnix::RequestVoteRPC(int targetId,
 
     //convert args to string as request
     std::string request = codec::RaftCodec::encode(args);
-    std::string response = client->call("RequestVote", request);
+    std::string response = client->Call("RequestVote", request);
     reply = codec::RaftCodec::decodeRequestVoteReply(response);
     return true;
 }
@@ -107,19 +107,19 @@ bool RaftTransportUnix::AppendEntriesRPC(int targetId,
     rpc::RpcClient* client = it->second.get();//unique_ptr
 
     std::string request = codec::RaftCodec::encode(args);
-    std::string response = client->call("AppendEntries", request);
+    std::string response = client->Call("AppendEntries", request);
     reply = codec::RaftCodec::decodeAppendEntriesReply(response);
     return true;
 }
 void RaftTransportUnix::RegisterRequestVoteHandler(
     std::function<std::string(const std::string&)> handler) {
     requestVoteHandler_ = handler;
-    server_->register_handler("RequestVote", handler);
+    server_->Register_Handler("RequestVote", handler);
 }
 void RaftTransportUnix::RegisterAppendEntriesHandler(
     std::function<std::string(const std::string&)> handler) {
     appendEntriesHandler_ = handler;
-    server_->register_handler("AppendEntries", handler);
+    server_->Register_Handler("AppendEntries", handler);
 }
 
 }// namespace raft

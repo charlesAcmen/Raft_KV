@@ -14,9 +14,9 @@ namespace rpc{
         initSocket();
     }
     RpcClient::~RpcClient(){
-        close();
+        Close();
     }
-    void RpcClient::connect(){
+    void RpcClient::Connect(){
         //client address structure:sockaddr_un,unix,used in IPC
         struct sockaddr_un addr{};
         addr.sun_family = AF_UNIX;
@@ -50,13 +50,13 @@ namespace rpc{
             std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_INTERVAL_MS));
         }
     }
-    void RpcClient::close(){
+    void RpcClient::Close(){
         if (sock_fd != -1) {
             ::close(sock_fd);
             sock_fd = -1;
         }
     }
-    std::string RpcClient::call(
+    std::string RpcClient::Call(
         const std::string& method, 
         const std::string& payload){
         
@@ -101,6 +101,10 @@ namespace rpc{
 
         return "[RpcClient] call(const std::string& ,const std::string&) ERROR: no response";
     }
+
+
+
+    //---------private functions---------
     void RpcClient::initSocket(){
         //create socket used to connect to server
         //AF_UNIX:UNIX domain socket

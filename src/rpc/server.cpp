@@ -16,9 +16,9 @@ namespace rpc{
         initSocket();
     }
     RpcServer::~RpcServer(){
-        stop();
+        Stop();
     }
-    void RpcServer::register_handler(const std::string& method,
+    void RpcServer::Register_Handler(const std::string& method,
         std::function<std::string(const std::string&)> handler
     ){
         handlers[method] = handler;
@@ -28,7 +28,7 @@ namespace rpc{
     2. Communicate using send() and recv().
     3. Close the socket with close().
     */
-    void RpcServer::start() {
+    void RpcServer::Start() {
         //in loop to accept and handle connections
         while (running) {
             //block until a new connection is accepted
@@ -52,7 +52,7 @@ namespace rpc{
         spdlog::info("[RpcServer] start() RpcServer stopped");
     }
 
-    void RpcServer::stop() {
+    void RpcServer::Stop() {
         spdlog::info("[RpcServer] stop() RpcServer stopping...");
         running = false;
         if (server_fd != -1) {
@@ -70,7 +70,7 @@ namespace rpc{
         }
     }
     
-
+    //---------private functions---------
 
     /*
     1. Create a socket with socket(AF_UNIX, SOCK_STREAM, 0).
