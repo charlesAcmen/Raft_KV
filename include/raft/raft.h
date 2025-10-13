@@ -52,7 +52,15 @@ class Raft {
 
         ~Raft();
        
+        // Start internal worker thread and transport/timers.
         void Start();
+
+        // Stop background work.
+        // After Stop(), the worker thread should exit soon.
+        void Stop();
+
+        // Block until internal thread exits (join). Safe to call multiple times.
+        void Join();
 
     private:
         // Non-copyable
@@ -158,8 +166,7 @@ class Raft {
         std::unique_ptr<ITimer> heartbeatTimer_;
 
 
-
-        std::thread thread_;
+        std::thread thread_;        // internal worker thread
         std::atomic<bool> running_{false};
 };
 

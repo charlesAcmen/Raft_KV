@@ -90,12 +90,22 @@ Raft::Raft(
 }
 
 Raft::~Raft() {
-   transport_->Stop();
-   running_ = false;
-   if (thread_.joinable()) thread_.join();
+    Stop();
+    Join();
+    transport_->Stop();
+    running_ = false;
+    if (thread_.joinable()) thread_.join();
 }
 
 void Raft::Start() {
+    
+
+    bool expected = false;
+    if (!running_.compare_exchange_strong(expected, true)) {
+        // already started
+        return;
+    }
+
     running_ = true;
     // Start background components and threads.
     transport_->Start();
@@ -104,6 +114,26 @@ void Raft::Start() {
     spdlog::info("[Raft] {} started", me_);
     thread_ = std::thread([this]() { this->run(); });
 }  
+
+void Raft::Stop(){
+    bool expected = true;
+    if (!running_.compare_exchange_strong(expected, false)) {
+        // already stopped or never started
+        return;
+    }
+    transport_->Stop(); 
+    electionTimer_->Stop(); 
+    heartbeatTimer_->Stop();
+    spdlog::info("[Raft] {} Stop()", me_);
+}
+
+void Raft::Join() {
+    if (thread_.joinable()) {
+        spdlog::info("[Raft] {} Join() - waiting thread to exit", me_);
+        thread_.join();
+        spdlog::info("[Raft] {} Join() - thread exited", me_);
+    }
+}
 
 //-------------------private methods-------------------
 void Raft::run() {
@@ -146,7 +176,7 @@ void Raft::becomeFollowerLocked(int32_t newTerm){
     role_ = type::Role::Follower;
     votedFor_ = -1;
     // stop heartbeat timer if running
-    heartbeatTimer_.Stop();
+    heartbeatTimer_->Stop();
     // reset election timer
     resetElectionTimerLocked();
 }
@@ -160,7 +190,7 @@ void Raft::becomeCandidateLocked(){
 }
 void Raft::becomeLeaderLocked(){
     role_ = type::Role::Leader;
-    electionTimer_.Stop();
+    electionTimer_->Stop();
     resetHeartbeatTimerLocked();
     broadcastHeartbeat();
 }
