@@ -23,8 +23,8 @@ void Cluster::CreateNodes(int n) {
     std::vector<type::PeerInfo> peers;
     std::vector<int> peerIds;
     for (int i = 0; i < n; ++i) {
-        peers.push_back({i, "/tmp/raft-node-" + std::to_string(i) + ".sock"});
-        peerIds.push_back(i);
+        peers.push_back({i+1, "/tmp/raft-node-" + std::to_string(i+1) + ".sock"});
+        peerIds.push_back(i+1);
     }
 
 

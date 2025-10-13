@@ -16,7 +16,7 @@ class ThreadTimer : public ITimer {
         void Stop() override;
     private:
         std::function<void()> callback_;
-        std::atomic<bool> running_{false};
+        bool running_{false};
         std::thread thread_;
         std::mutex mu_;
         std::condition_variable cv_;

@@ -85,19 +85,17 @@ Raft::~Raft() {
 }
 
 void Raft::Start() {
-    
-
     bool expected = false;
     if (!running_.compare_exchange_strong(expected, true)) {
+        spdlog::warn("[Raft] {} Start() called but Raft is already running", me_);
         // already started
         return;
     }
-
-    running_ = true;
     // Start background components and threads.
     transport_->Start();
     // start election timer
     resetElectionTimerLocked();
+    // do not start heartbeat timer yet cuz only leader uses it
     spdlog::info("[Raft] {} started", me_);
     thread_ = std::thread([this]() { this->run(); });
 }  
@@ -140,8 +138,7 @@ void Raft::run() {
 
 
 //--------- Election control ----------
-void Raft::startElection(){
-    std::lock_guard<std::mutex> lock(mu_);
+void Raft::startElectionLocked(){
     spdlog::info("[Raft] Node {} starting election for term {}", me_, currentTerm_);
 
     // Send RequestVote RPCs to all peers
@@ -172,8 +169,10 @@ void Raft::becomeCandidateLocked(){
     currentTerm_++;
     role_ = type::Role::Candidate;
     votedFor_ = me_;
+    spdlog::info("[Raft] {} became candidate for term {}", me_, currentTerm_);
     resetElectionTimerLocked();
-    startElection();
+    spdlog::info("[Raft] reset election timer after becoming candidate");
+    startElectionLocked();
 }
 void Raft::becomeLeaderLocked(){
     role_ = type::Role::Leader;
@@ -378,6 +377,7 @@ void Raft::resetElectionTimerLocked(){
     static thread_local std::mt19937 rng(std::random_device{}());
     std::uniform_int_distribution<int> dist(150, 1000); // in milliseconds
     int timeout = dist(rng);
+    spdlog::info("[Raft] {} resetting election timer to {} ms", me_, timeout);
     electionTimer_->Reset(std::chrono::milliseconds(timeout));
     spdlog::info("[Raft] {} reset election timer to {} ms", me_, timeout);
 }

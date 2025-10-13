@@ -13,26 +13,29 @@ namespace raft {
     void ThreadTimer::Reset(std::chrono::milliseconds duration) {
         Stop(); // cancel any running timer
 
-        running_ = true;
+        {
+            std::lock_guard<std::mutex> lock(mu_);
+            running_ = true;
+        }
         thread_ = std::thread([this, duration]() {
             std::unique_lock<std::mutex> lock(mu_);
-            // parameter:lock, duration, predicate
-            // notified by stop(),running is false, return true,wait_for returns true
-            if (cv_.wait_for(lock, duration, [this]() { return !running_; })) {
-                // stopped early
-                return;
-            }
+            // wait_for returns true if Stop() sets running_ = false and notifies
+            bool stoppedEarly = cv_.wait_for(lock, duration, [this]() { return !running_; });
 
-            // spdlog::info("[ThreadTimer] Timer expired after {} ms", duration.count());
-            // Timer fired normally
-            if (running_ && callback_) {
-                callback_();
+            // take a snapshot of callback before releasing the lock
+            auto cb = callback_;
+            bool stillRunning = running_;
+            lock.unlock();  // release timer mutex before calling callback
+
+            if (!stoppedEarly && stillRunning && cb) {
+                cb(); // safe: callback runs outside timer mutex
             }
         });
     }
     void ThreadTimer::Stop(){
         {
             std::lock_guard<std::mutex> lock(mu_);
+            if (!running_) return;
             running_ = false;
         }
         cv_.notify_all();

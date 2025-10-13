@@ -72,7 +72,7 @@ class Raft {
         //-------------------------------------
         //--------- Election control ----------
         //-------------------------------------
-        void startElection();                   // Begin new election (called on timeout)
+        void startElectionLocked();                   // Begin new election (called on timeout)
 
         //-------------------------------------
         //---------- Role transtions ----------

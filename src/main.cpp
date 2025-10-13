@@ -9,11 +9,7 @@ int main(){
 
     // Start all nodes. They will run in background threads.
     cluster.StartAll();
-
-    // (optional) run some short simulation then continue to wait for Ctrl+C
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-    spdlog::info("3 seconds passed, cluster still running. Press Ctrl+C to stop.");
-
+    
     // This will block until user presses Ctrl+C (SIGINT),
     // then Cluster will StopAll() + JoinAll() before returning.
     cluster.WaitForShutdown();
