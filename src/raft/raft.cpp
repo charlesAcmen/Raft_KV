@@ -113,13 +113,7 @@ void Raft::run() {
         
 
         // ==========================
-        // 3️ RPC responses (可选)
-        // ==========================
-        // 如果你的 RPC 是异步队列模式，可以在这里处理回复
-        // processPendingRPCs();
-
-        // ==========================
-        // 4️ Sleep briefly to reduce busy wait
+        // Sleep briefly to reduce busy wait
         // ==========================
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
@@ -335,25 +329,28 @@ void Raft::persistStateLocked(){
 
 }          
 void Raft::sendRequestVoteRPC(int peerId){
-
+    transport_->RequestVoteRPC(peerId, /*args*/{}, /*reply*/{}, std::chrono::milliseconds(100));
 } 
 void Raft::sendAppendEntriesRPC(int peerId){
-    
+    transport_->AppendEntriesRPC(peerId, /*args*/{}, /*reply*/{}, std::chrono::milliseconds(100));
 }
 void Raft::broadcastHeartbeat(){
-
+    for(const auto& peer : peers_){
+        if(peer == me_) continue; // skip self
+        sendHeartbeat(peer);
+    }
 }
 void Raft::resetElectionTimerLocked(){
     // Reset election timer with a new randomized timeout
     static thread_local std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<int> dist(150, 300); // in milliseconds
+    std::uniform_int_distribution<int> dist(150, 1000); // in milliseconds
     int timeout = dist(rng);
     electionTimer_->Reset(std::chrono::milliseconds(timeout));
     spdlog::info("[Raft] {} reset election timer to {} ms", me_, timeout);
 }
 void Raft::resetHeartbeatTimerLocked(){
     // Reset heartbeat timer to a fixed interval (e.g., 50ms)
-    int heartbeatInterval = 50; // in milliseconds
+    int heartbeatInterval = 100; // in milliseconds
     heartbeatTimer_->Reset(std::chrono::milliseconds(heartbeatInterval));
     spdlog::info("[Raft] {} reset heartbeat timer to {} ms", me_, heartbeatInterval);
 }
