@@ -30,7 +30,7 @@ public:
     void WaitForShutdown();
 
 private:
-    std::vector<std::unique_ptr<Raft>> nodes_;
+    std::vector<std::shared_ptr<Raft>> nodes_;
     std::mutex shutdown_mu_;
     std::condition_variable shutdown_cv_;
     std::atomic<bool> shutdown_requested_{false};

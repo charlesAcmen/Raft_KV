@@ -1,38 +1,60 @@
 // cluster.cpp
 #include "raft/cluster.h"
 #include "raft/raft.h"
+#include "raft/transport_unix.h"
+#include "raft/timer_thread.h"
+#include <vector>
 #include <spdlog/spdlog.h>
 #include <thread>
 
 namespace raft {
 std::atomic<Cluster*> Cluster::global_instance_for_signal_{nullptr};
 
-raft::Cluster::~Cluster() {
+Cluster::~Cluster() {
     // Destructor ensures nodes are stopped and joined.
     StopAll();
     JoinAll();
 }
 
-void raft::Cluster::CreateNodes(int n) {
+void Cluster::CreateNodes(int n) {
+    StopAll(); 
+    JoinAll();
     nodes_.clear();
+    std::vector<type::PeerInfo> peers;
+    std::vector<int> peerIds;
     for (int i = 0; i < n; ++i) {
-        nodes_.push_back(std::make_unique<Raft>(i));
+        peers.push_back({i, "/tmp/raft-node-" + std::to_string(i) + ".sock"});
+        peerIds.push_back(i);
     }
+
+
+    for (int i = 0; i < n; ++i) {
+        type::PeerInfo self = peers[i];
+        std::shared_ptr<IRaftTransport> transport = 
+            std::make_shared<RaftTransportUnix>(self, peers);
+        std::shared_ptr<ITimerFactory> timerFactory = 
+            std::make_shared<ThreadTimerFactory>(); 
+        // inject transport into Raft node and create node
+        std::shared_ptr<Raft> raftNode = 
+            std::make_shared<Raft>(self.id, peerIds,transport,timerFactory);        
+        nodes_.push_back(raftNode);
+    }
+    spdlog::info("Raft cluster with {} nodes initialized.", nodes_.size());
 }
 
-void raft::Cluster::StartAll() {
+void Cluster::StartAll() {
     for (auto &n : nodes_) n->Start();
 }
 
-void raft::Cluster::StopAll() {
+void Cluster::StopAll() {
     for (auto &n : nodes_) n->Stop();
 }
 
-void raft::Cluster::JoinAll() {
+void Cluster::JoinAll() {
     for (auto &n : nodes_) n->Join();
 }
 
-void raft::Cluster::SignalHandler(int signum) {
+void Cluster::SignalHandler(int signum) {
     spdlog::info("[Cluster] Caught signal {}.", signum);
     Cluster* inst = global_instance_for_signal_.load();
     if (inst) {
@@ -41,13 +63,14 @@ void raft::Cluster::SignalHandler(int signum) {
     }
 }
 
-void raft::Cluster::WaitForShutdown() {
+void Cluster::WaitForShutdown() {
     // Register static pointer for signal forwarding.
     global_instance_for_signal_.store(this);
 
     // Register signal handler (SIGINT for ctrl-c). POSIX signal handling.
     std::signal(SIGINT, Cluster::SignalHandler);
 #ifdef SIGTERM
+    //SIGTERM:kill
     std::signal(SIGTERM, Cluster::SignalHandler);
 #endif
 

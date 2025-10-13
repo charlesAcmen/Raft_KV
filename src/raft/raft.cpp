@@ -13,13 +13,7 @@ Raft::Raft(
     // RaftConfig config,
     std::shared_ptr<ITimerFactory> timerFactory
     // std::shared_ptr<IPersister> persister
-)
-    :
-    me_(me), 
-    peers_(peers), 
-    transport_(transport),
-    timerFactory_(timerFactory)
-{
+):me_(me), peers_(peers), transport_(transport),timerFactory_(timerFactory){
 
     // -----------------------
     // Basic invariant checks
@@ -80,11 +74,7 @@ Raft::Raft(
     heartbeatTimer_ = timerFactory_->CreateTimer([this]() {
         this->onHeartbeatTimeout();
     });
-
-    // keep constructor responsibility limited. Heavy initialization (timers,
-    // persistent state restore, election timer start) should be done by an explicit Start()
-    // or Init() method. Below we only do cheap, safe adjustments.
-
+    
     // log constructed state for debugging.
     spdlog::info("[Raft] {} constructed with {} peers", me_, peers_.size());
 }
@@ -92,9 +82,6 @@ Raft::Raft(
 Raft::~Raft() {
     Stop();
     Join();
-    transport_->Stop();
-    running_ = false;
-    if (thread_.joinable()) thread_.join();
 }
 
 void Raft::Start() {
@@ -124,7 +111,7 @@ void Raft::Stop(){
     transport_->Stop(); 
     electionTimer_->Stop(); 
     heartbeatTimer_->Stop();
-    spdlog::info("[Raft] {} Stop()", me_);
+    spdlog::info("[Raft] {} Stopped", me_);
 }
 
 void Raft::Join() {
