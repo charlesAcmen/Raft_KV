@@ -70,9 +70,9 @@ class Raft {
         //---------- Role transtions ----------
         //-------------------------------------
 
-        void becomeFollower(int32_t newTerm);   // Step down to follower
-        void becomeCandidate();                 // Increment term, self-vote, send RequestVote RPCs
-        void becomeLeader();                    // Initialize nextIndex, matchIndex, send heartbeats
+        void becomeFollowerLocked(int32_t newTerm);   // Step down to follower
+        void becomeCandidateLocked();                 // Increment term, self-vote, send RequestVote RPCs
+        void becomeLeaderLocked();                    // Initialize nextIndex, matchIndex, send heartbeats
 
         //-------------------------------------
         //----------- RPC handlers ------------
