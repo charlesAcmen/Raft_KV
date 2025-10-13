@@ -377,7 +377,6 @@ void Raft::resetElectionTimerLocked(){
     static thread_local std::mt19937 rng(std::random_device{}());
     std::uniform_int_distribution<int> dist(150, 1000); // in milliseconds
     int timeout = dist(rng);
-    spdlog::info("[Raft] {} resetting election timer to {} ms", me_, timeout);
     electionTimer_->Reset(std::chrono::milliseconds(timeout));
     spdlog::info("[Raft] {} reset election timer to {} ms", me_, timeout);
 }

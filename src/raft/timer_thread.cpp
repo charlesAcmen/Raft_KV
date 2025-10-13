@@ -8,9 +8,11 @@ namespace raft {
     }
     ThreadTimer::~ThreadTimer() {
         Stop();
+        if (thread_.joinable()) thread_.join();
     }
 
     void ThreadTimer::Reset(std::chrono::milliseconds duration) {
+        spdlog::info("[ThreadTimer] Resetting timer to {} ms", duration.count());
         Stop(); // cancel any running timer
 
         {
@@ -22,13 +24,8 @@ namespace raft {
             // wait_for returns true if Stop() sets running_ = false and notifies
             bool stoppedEarly = cv_.wait_for(lock, duration, [this]() { return !running_; });
 
-            // take a snapshot of callback before releasing the lock
-            auto cb = callback_;
-            bool stillRunning = running_;
-            lock.unlock();  // release timer mutex before calling callback
-
-            if (!stoppedEarly && stillRunning && cb) {
-                cb(); // safe: callback runs outside timer mutex
+            if (!stoppedEarly && running_ && callback_) {
+                callback_();
             }
         });
     }
@@ -39,7 +36,6 @@ namespace raft {
             running_ = false;
         }
         cv_.notify_all();
-        if (thread_.joinable()) thread_.join();
     }
 
 
