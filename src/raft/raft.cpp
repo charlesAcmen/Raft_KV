@@ -76,12 +76,14 @@ Raft::Raft(
     });
     
     // log constructed state for debugging.
-    spdlog::info("[Raft] {} constructed with {} peers", me_, peers_.size());
+    // spdlog::info("[Raft] {} constructed with {} peers", me_, peers_.size());
 }
 
 Raft::~Raft() {
     Stop();
     Join();
+    electionTimer_->~ITimer();
+    heartbeatTimer_->~ITimer();
 }
 
 void Raft::Start() {
@@ -122,16 +124,13 @@ void Raft::Join() {
 
 //-------------------private methods-------------------
 void Raft::run() {
-    spdlog::info("[Raft] Node {} run loop started", me_);
-
     while (running_) {
         // ==========================
         // Sleep briefly to reduce busy wait
         // ==========================
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-
-    spdlog::info("[Raft] Node {} run loop exited", me_);
+    // spdlog::info("[Raft] Node {} run loop exited", me_);
 }
 
 
@@ -171,14 +170,13 @@ void Raft::becomeCandidateLocked(){
     votedFor_ = me_;
     spdlog::info("[Raft] {} became candidate for term {}", me_, currentTerm_);
     resetElectionTimerLocked();
-    spdlog::info("[Raft] reset election timer after becoming candidate");
     startElectionLocked();
 }
 void Raft::becomeLeaderLocked(){
     role_ = type::Role::Leader;
     electionTimer_->Stop();
     resetHeartbeatTimerLocked();
-    broadcastHeartbeat();
+    broadcastHeartbeatLocked();
 }
 
 
@@ -365,11 +363,10 @@ void Raft::sendAppendEntriesRPC(int peerId){
     type::AppendEntriesReply reply;
     transport_->AppendEntriesRPC(peerId, /*args*/{}, /*reply*/reply, std::chrono::milliseconds(100));
 }
-void Raft::broadcastHeartbeat(){
-    std::lock_guard<std::mutex> lock(mu_);
+void Raft::broadcastHeartbeatLocked(){
     for(const auto& peer : peers_){
         if(peer == me_) continue; // skip self
-        sendHeartbeat(peer);
+        sendHeartbeatLocked(peer);
     }
 }
 void Raft::resetElectionTimerLocked(){
@@ -395,7 +392,6 @@ void Raft::onElectionTimeout(){
     std::lock_guard<std::mutex> lock(mu_);
     spdlog::info("[Raft] Election timeout occurred on node {}.", me_);
     becomeCandidateLocked();
-    spdlog::info("[Raft] Node {} becomes candidate for term {}.", me_, currentTerm_);
 }
 // Called when the heartbeat timer times out.
 // This function triggers sending AppendEntries (heartbeat) RPCs to all followers
@@ -413,8 +409,7 @@ void Raft::onHeartbeatTimeout(){
 }
 
 //--------- Internal helpers ----------
-void Raft::sendHeartbeat(int peer){
-    std::lock_guard<std::mutex> lock(mu_);
+void Raft::sendHeartbeatLocked(int peer){
     type::AppendEntriesArgs args{};
     args.term = currentTerm_;
     args.leaderId = me_;

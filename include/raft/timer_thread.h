@@ -15,9 +15,13 @@ class ThreadTimer : public ITimer {
 
         void Stop() override;
     private:
+        void workerLoop();
+
         std::function<void()> callback_;
         bool running_{false};
-        std::thread thread_;
+        bool stopped_{false};
+        std::chrono::milliseconds duration_{0};
+        std::thread worker_;
         std::mutex mu_;
         std::condition_variable cv_;
 };

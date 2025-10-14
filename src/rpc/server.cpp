@@ -113,7 +113,7 @@ namespace rpc{
             throw std::runtime_error("[RpcServer] initSocket() Failed to listen on socket");
         }
 
-        spdlog::info("[RpcServer] initSocket() RpcServer listening on {}", sock_path);
+        // spdlog::info("[RpcServer] initSocket() RpcServer listening on {}", sock_path);
     }
 
     void RpcServer::handleClient(int client_fd){

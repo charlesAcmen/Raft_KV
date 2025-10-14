@@ -41,7 +41,7 @@ void RaftTransportUnix::Start() {
             bool allConnected = true;
             for (auto& [id, client] : clients_) {
                 if(client->Connect()){
-                    spdlog::info("[RaftTransportUnix] {} Connected to peer {}", this->self_.id, id);
+                    // spdlog::info("[RaftTransportUnix] {} Connected to peer {}", this->self_.id, id);
                 }else{
                     allConnected = false;
                 }
@@ -49,7 +49,7 @@ void RaftTransportUnix::Start() {
             if(allConnected) break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        spdlog::info("[RaftTransportUnix] {}:All RPC clients connected to peers",this->self_.id);
+        // spdlog::info("[RaftTransportUnix] {}:All RPC clients connected to peers",this->self_.id);
     });
 }
 

@@ -110,7 +110,7 @@ class Raft {
         void persistStateLocked();              // Save currentTerm, votedFor, log[] to disk
         void sendRequestVoteRPC(int peerId);    // Send one RequestVote RPC to a peer
         void sendAppendEntriesRPC(int peerId);  // Send one AppendEntries RPC (heartbeat or log)
-        void broadcastHeartbeat();              // Send empty AppendEntries to all peers
+        void broadcastHeartbeatLocked();              // Send empty AppendEntries to all peers
         void resetElectionTimerLocked();
         void resetHeartbeatTimerLocked();
 
@@ -124,7 +124,7 @@ class Raft {
         //-------------------------------------
         //--------- Internal helpers ----------
         //-------------------------------------
-        void sendHeartbeat(int peer);
+        void sendHeartbeatLocked(int peer);
 
 
         // Internal data protected by mu_. Any access to these fields must hold
