@@ -9,7 +9,7 @@ namespace raft {
 class ThreadTimer : public ITimer {
     public:
         explicit ThreadTimer(std::function<void()>);
-        ~ThreadTimer() override;
+        virtual ~ThreadTimer() override;
 
         void Reset(std::chrono::milliseconds duration) override;
 

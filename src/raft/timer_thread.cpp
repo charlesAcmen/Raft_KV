@@ -27,7 +27,7 @@ namespace raft {
         // spdlog::info("[ThreadTimer] Timer reset to {} ms", duration.count());
     }
     void ThreadTimer::Stop(){
-        spdlog::info("[ThreadTimer] Stopping timer");
+        // spdlog::info("[ThreadTimer] Stopping timer");
         {
             std::lock_guard<std::mutex> lock(mu_);
             if(!running_){

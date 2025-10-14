@@ -82,8 +82,6 @@ Raft::Raft(
 Raft::~Raft() {
     Stop();
     Join();
-    electionTimer_->~ITimer();
-    heartbeatTimer_->~ITimer();
 }
 
 void Raft::Start() {

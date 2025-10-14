@@ -35,7 +35,7 @@ namespace rpc{
             int client_fd = accept(server_fd, nullptr, nullptr);
             if(client_fd < 0) {
                 if(!running){
-                    spdlog::info("[RpcServer] start() exiting accept loop");
+                    // spdlog::info("[RpcServer] start() exiting accept loop");
                     //server is stopping, exit loop
                     break;
                 }
@@ -53,12 +53,12 @@ namespace rpc{
     }
 
     void RpcServer::Stop() {
-        spdlog::info("[RpcServer] stop() RpcServer stopping...");
+        // spdlog::info("[RpcServer] stop() RpcServer stopping...");
         running = false;
         if (server_fd != -1) {
             //close the server actively,to break the accept() blocking
             //after which server will exit while loop and return 0,server process exits normally
-            spdlog::info("[RpcServer] stop() Closing server socket...");
+            // spdlog::info("[RpcServer] stop() Closing server socket...");
             //parameter:int sockfd, int how
             //how: SHUT_RD, SHUT_WR, SHUT_RDWR
             //SHUT_RDWR:disables further send and receive operations
@@ -129,7 +129,7 @@ namespace rpc{
             //rpc is once time request-response, so only recv once
             if (n == 0) {
                 // client closed normally
-                spdlog::info("[RpcServer] start() Client closed connection");
+                // spdlog::info("[RpcServer] start() Client closed connection");
                 close(client_fd);
                 return;
             } else if (n < 0) {
@@ -164,6 +164,6 @@ namespace rpc{
             data.clear();
         }
         close(client_fd);
-        spdlog::info("[RpcServer] start() RpcServer closed connection: fd={}", client_fd);
+        // spdlog::info("[RpcServer] start() RpcServer closed connection: fd={}", client_fd);
     }
 }//namespace rpc
