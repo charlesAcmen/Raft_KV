@@ -141,13 +141,7 @@ void Raft::startElectionLocked(){
     // Send RequestVote RPCs to all peers
     for (const auto& peer : peers_) {
         if (peer == me_) continue; // skip self
-        type::RequestVoteArgs args{};
-        args.term = currentTerm_;
-        args.candidateId = me_;
-        args.lastLogIndex = getLastLogIndex();
-        args.lastLogTerm = getLastLogTerm();
-        type::RequestVoteReply reply{};
-        transport_->RequestVoteRPC(peer, args,reply,std::chrono::milliseconds(100));
+        
     }
 }
 
@@ -353,11 +347,18 @@ void Raft::deleteLogFromIndex(int index){
 void Raft::persistStateLocked(){
 
 }          
-void Raft::sendRequestVoteRPC(int peerId){
-    type::RequestVoteReply reply;
-    transport_->RequestVoteRPC(peerId, /*args*/{}, /*reply*/reply, std::chrono::milliseconds(100));
+type::RequestVoteReply Raft::sendRequestVoteRPC(int peerId){
+    type::RequestVoteArgs args{};
+    args.term = currentTerm_;
+    args.candidateId = me_;
+    args.lastLogIndex = getLastLogIndex();
+    args.lastLogTerm = getLastLogTerm();
+    type::RequestVoteReply reply{};
+    if(transport_->RequestVoteRPC(peer, args,reply,std::chrono::milliseconds(100))){
+        
+    }
 } 
-void Raft::sendAppendEntriesRPC(int peerId){
+type::AppendEntriesReply Raft::sendAppendEntriesRPC(int peerId){
     type::AppendEntriesReply reply;
     transport_->AppendEntriesRPC(peerId, /*args*/{}, /*reply*/reply, std::chrono::milliseconds(100));
 }
@@ -400,14 +401,12 @@ void Raft::onHeartbeatTimeout(){
         spdlog::warn("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
         return;
     }
-
-    becomeLeaderLocked();
-
-    spdlog::info("[Raft] Heartbeat timeout occurred on leader node {}.", me_);
+    else{
+        broadcastHeartbeatLocked();
+        resetHeartbeatTimerLocked();
+    }
 }
-
-//--------- Internal helpers ----------
-void Raft::sendHeartbeatLocked(int peer){
+std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peer){
     type::AppendEntriesArgs args{};
     args.term = currentTerm_;
     args.leaderId = me_;
@@ -419,6 +418,7 @@ void Raft::sendHeartbeatLocked(int peer){
     spdlog::info("[Raft] Sending heartbeat AppendEntries to peer {}.", peer);
     type::AppendEntriesReply reply{};
     transport_->AppendEntriesRPC(peer, args, reply, std::chrono::milliseconds(100));
+    return reply;
 }
 
 }// namespace raft

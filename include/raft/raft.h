@@ -15,24 +15,6 @@ namespace raft {
 class IRaftTransport;
 class ITimer;
 class ITimerFactory;
-// RaftConfig holds tunable(可调) parameters affecting election timing. Tests
-// should set these explicitly to reduce flakiness (or inject a virtual
-// timer implementation via ITimerFactory).
-// struct RaftConfig {
-//     // Election timeout range in milliseconds: each follower chooses a random
-//     // timeout uniformly in [electionTimeoutMinMs, electionTimeoutMaxMs].
-//     int electionTimeoutMinMs{150};
-//     int electionTimeoutMaxMs{300};
-
-//     // How long a leader waits between heartbeats (AppendEntries with empty
-//     // entries). This is usually much shorter than election timeout.
-//     int heartbeatIntervalMs{50};
-
-//     // Timeout to wait for an RPC reply before considering it failed.
-//     int rpcTimeoutMs{100};
-// };
-
-
 // Raft implements the core Raft peer state.
 // This header intentionally restricts the public API to
 // the minimal set required for election behaviour and for integrating
@@ -108,9 +90,11 @@ class Raft {
         //-------------------------------------
 
         void persistStateLocked();              // Save currentTerm, votedFor, log[] to disk
-        void sendRequestVoteRPC(int peerId);    // Send one RequestVote RPC to a peer
-        void sendAppendEntriesRPC(int peerId);  // Send one AppendEntries RPC (heartbeat or log)
+        std::optional<type::RequestVoteReply> sendRequestVoteRPC(int peerId);     // Send one RequestVote RPC
+        std::optional<type::AppendEntriesReply> sendAppendEntriesRPC(int peerId);  // Send one AppendEntries RPC (heartbeat or log)
+        
         void broadcastHeartbeatLocked();              // Send empty AppendEntries to all peers
+        std::optional<type::AppendEntriesReply> sendHeartbeatLocked(int peer);
         void resetElectionTimerLocked();
         void resetHeartbeatTimerLocked();
 
@@ -120,11 +104,6 @@ class Raft {
 
         void onElectionTimeout();           
         void onHeartbeatTimeout();              
-
-        //-------------------------------------
-        //--------- Internal helpers ----------
-        //-------------------------------------
-        void sendHeartbeatLocked(int peer);
 
 
         // Internal data protected by mu_. Any access to these fields must hold
