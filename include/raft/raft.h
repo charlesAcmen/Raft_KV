@@ -81,6 +81,9 @@ class Raft {
         int getLastLogTerm() const;
         // Returns the term of log at given index (1-based)
         int getLogTerm(int index) const;
+        int getPrevLogIndexFor(int peerId) const;
+        int getPrevLogTermFor(int peerId) const;
+        std::vector<type::LogEntry> getEntriesToSend(int peerId) const;
         // Applies committed log entries to the state machine
         void applyLogs();
         void deleteLogFromIndex(int index);
@@ -131,8 +134,8 @@ class Raft {
         //(initialized to 0, increases monotonically)
 
         // Volatile state on leaders (reinitialized after election)
-        // std::unordered_map<int, int> nextIndex_;
-        // std::unordered_map<int, int> matchIndex_;
+        std::unordered_map<int, int> nextIndex_;
+        std::unordered_map<int, int> matchIndex_;
 
 
 

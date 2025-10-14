@@ -141,7 +141,17 @@ void Raft::startElectionLocked(){
     // Send RequestVote RPCs to all peers
     for (const auto& peer : peers_) {
         if (peer == me_) continue; // skip self
-        
+        auto reply = sendRequestVoteRPC(peer);
+        if(reply){
+            if(reply->voteGranted){
+                // handle vote granted
+            }
+            else{
+                // handle vote denied
+            }
+        }else{
+            spdlog::warn("[Raft] Node {} failed to get reply from peer {}", me_, peer);
+        }
     }
 }
 
@@ -298,6 +308,34 @@ int Raft::getLogTerm(int index) const{
     }
     return log_[index - 1].term;
 }
+// Returns the log index immediately before what should be sent to the given peer.
+int Raft::getPrevLogIndexFor(int peerId) const {
+    // nextIndex_[peerId] 指向要发送的下一条日志，因此前一条就是 prevLogIndex。
+    return nextIndex_.at(peerId) - 1;
+}
+
+// Returns the term of the log entry immediately before what should be sent to the given peer.
+int Raft::getPrevLogTermFor(int peerId) const {
+    int prevIndex = getPrevLogIndexFor(peerId);
+    return prevIndex > 0 ? getLogTerm(prevIndex) : 0;
+}
+
+// Returns the log entries to send to the given peer for AppendEntries RPC.
+// Usually from nextIndex[peerId] to the end of the log.
+std::vector<type::LogEntry> Raft::getEntriesToSend(int peerId) const {
+    int start = nextIndex_.at(peerId);
+    if (start > getLastLogIndex()) return {};
+    return std::vector<type::LogEntry>(log_.begin() + start, log_.end());
+}
+
+
+
+
+
+
+
+
+
 /**
  * @brief Apply committed but not yet applied log entries to the state machine.
  * 
@@ -347,20 +385,43 @@ void Raft::deleteLogFromIndex(int index){
 void Raft::persistStateLocked(){
 
 }          
-type::RequestVoteReply Raft::sendRequestVoteRPC(int peerId){
+// RVO ensures that returning the struct avoids any unnecessary copies.
+std::optional<type::RequestVoteReply> Raft::sendRequestVoteRPC(int peerId){
+    spdlog::info("[Raft] {} sending RequestVote RPC to peer {}", me_, peerId);
     type::RequestVoteArgs args{};
     args.term = currentTerm_;
     args.candidateId = me_;
     args.lastLogIndex = getLastLogIndex();
     args.lastLogTerm = getLastLogTerm();
     type::RequestVoteReply reply{};
-    if(transport_->RequestVoteRPC(peer, args,reply,std::chrono::milliseconds(100))){
-        
+    bool success = transport_->RequestVoteRPC(
+        peerId, args,reply,std::chrono::milliseconds(100));
+    if (!success) {
+        spdlog::warn("[Raft] Failed to send RequestVote RPC to peer {}", peerId);
+        return std::nullopt;
     }
+    return reply;
 } 
-type::AppendEntriesReply Raft::sendAppendEntriesRPC(int peerId){
-    type::AppendEntriesReply reply;
-    transport_->AppendEntriesRPC(peerId, /*args*/{}, /*reply*/reply, std::chrono::milliseconds(100));
+std::optional<type::AppendEntriesReply> Raft::sendAppendEntriesRPC(int peerId){
+    type::AppendEntriesArgs args{};
+    args.term = currentTerm_;
+    args.leaderId = me_;
+    // args.prevLogIndex = ;
+    // args.prevLogTerm = ;
+    args.entries = {};
+    args.leaderCommit = commitIndex_;
+
+    type::AppendEntriesReply reply{};
+    bool success = transport_->AppendEntriesRPC(
+        peerId, args, reply, std::chrono::milliseconds(100)
+    );
+
+    if (!success) {
+        spdlog::warn("[Raft] Failed to send AppendEntries RPC to peer {}", peerId);
+        return std::nullopt;
+    }
+
+    return reply;
 }
 void Raft::broadcastHeartbeatLocked(){
     for(const auto& peer : peers_){

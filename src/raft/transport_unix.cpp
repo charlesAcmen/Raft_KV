@@ -77,7 +77,8 @@ void RaftTransportUnix::Stop() {
  * @return true     If the RPC communication succeeded (not necessarily voted true).
  * @return false    If the RPC failed due to transport errors (e.g. socket closed).
  */
-bool RaftTransportUnix::RequestVoteRPC(int targetId,
+bool RaftTransportUnix::RequestVoteRPC(
+    int targetId,
     const type::RequestVoteArgs& args,
     type::RequestVoteReply& reply,
     std::chrono::milliseconds timeout) {
