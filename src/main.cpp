@@ -5,7 +5,7 @@
 int main(){
     // spdlog::info("Starting cluster example");
     raft::Cluster cluster;
-    cluster.CreateNodes(3);
+    cluster.CreateNodes(5);
 
     // Start all nodes. They will run in background threads.
     cluster.StartAll();

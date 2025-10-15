@@ -31,10 +31,10 @@ namespace raft {
         // spdlog::info("[ThreadTimer] Stopping timer");
         {
             std::lock_guard<std::mutex> lock(mu_);
-            if(!running_){
-                // spdlog::info("[ThreadTimer] Timer already stopped");
-                return;
-            }
+            // if(!running_){
+            //     // spdlog::info("[ThreadTimer] Timer already stopped");
+            //     return;
+            // }
             running_ = false;
         }
         cv_.notify_all();
@@ -64,6 +64,10 @@ namespace raft {
             bool stoppedEarly = cv_.wait_for(lock, duration, [this]() { return !running_ || stopped_; });
 
             if (!stoppedEarly && running_ && !stopped_ && callback_) {
+                if(duration != duration_){
+                    spdlog::info("[ThreadTimer] Duration changed during wait, skipping callback");
+                    continue; // duration changed during wait, skip callback
+                }
                 // Timer expired normally && 
                 // still running && 
                 // not stopped(did not deconstruct) && 

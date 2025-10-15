@@ -105,6 +105,9 @@ class Raft {
 
         void onElectionTimeout();           
         void onHeartbeatTimeout();              
+        // int calledCount_{0};
+
+
 
 
         // Internal data protected by mu_. Any access to these fields must hold

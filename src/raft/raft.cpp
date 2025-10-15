@@ -484,6 +484,8 @@ void Raft::onElectionTimeout(){
 // if the node is the leader.
 void Raft::onHeartbeatTimeout(){
     std::lock_guard<std::mutex> lock(mu_);
+    // calledCount_++;
+    // spdlog::info("[Raft] Heartbeat timeout occurred on node {} (count={}).", me_, calledCount_);
     if (role_ != type::Role::Leader) {
         spdlog::error("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
         return;
