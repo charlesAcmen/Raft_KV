@@ -91,8 +91,6 @@ class Raft {
         //-------------------------------------
         //--------- Helper functions ----------
         //-------------------------------------
-
-        void persistStateLocked();              // Save currentTerm, votedFor, log[] to disk
         std::optional<type::RequestVoteReply> sendRequestVoteRPC(int peerId);     // Send one RequestVote RPC
         std::optional<type::AppendEntriesReply> sendAppendEntriesRPC(int peerId);  // Send one AppendEntries RPC (heartbeat or log)
         

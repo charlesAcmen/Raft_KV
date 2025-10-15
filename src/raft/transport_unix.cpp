@@ -113,7 +113,7 @@ bool RaftTransportUnix::AppendEntriesRPC(int targetId,
     const type::AppendEntriesArgs& args,
     type::AppendEntriesReply& reply,
     std::chrono::milliseconds timeout) {
-    spdlog::info("[RaftTransportUnix] {} Sending AppendEntriesRPC to peer {}", self_.id, targetId);
+    // spdlog::info("[RaftTransportUnix] {} Sending AppendEntriesRPC to peer {}", self_.id, targetId);
     auto it = clients_.find(targetId);
     if (it == clients_.end()) {
         spdlog::error("[RaftTransportUnix] AppendEntriesRPC No RPC client for peer {}", targetId);
