@@ -4,6 +4,8 @@
 #include <cstdint>  // for int32_t
 #include <string>
 #include <vector>
+#include <spdlog/spdlog.h>
+
 
 namespace raft::type{
 
@@ -64,5 +66,16 @@ struct AppendEntriesReply {
     int32_t term{0}; // currentTerm, for leader to update itself
     bool success{false}; // true if follower contained entry matching prevLogIndex/prevLogTerm
 };
+
+inline void PrintRequestVoteArgs(const RequestVoteArgs& args) {
+    spdlog::info("[RequestVoteArgs] term={}, candidateId={}, lastLogIndex={}, lastLogTerm={}",
+                 args.term, args.candidateId, args.lastLogIndex, args.lastLogTerm);
+}
+
+inline void PrintRequestVoteReply(const RequestVoteReply& reply) {
+    spdlog::info("[RequestVoteReply] term={}, voteGranted={}",
+                 reply.term, reply.voteGranted ? "true" : "false");
+}
+
 
 } // namespace  raft::type

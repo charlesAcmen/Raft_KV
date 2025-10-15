@@ -49,7 +49,7 @@ void RaftTransportUnix::Start() {
             if(allConnected) break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        // spdlog::info("[RaftTransportUnix] {}:All RPC clients connected to peers",this->self_.id);
+        spdlog::info("[RaftTransportUnix] {}:All RPC clients connected to peers",self_.id);
     });
 }
 

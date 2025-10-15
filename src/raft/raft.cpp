@@ -141,8 +141,9 @@ void Raft::startElectionLocked(){
     // Send RequestVote RPCs to all peers
     for (const auto& peer : peers_) {
         if (peer == me_) continue; // skip self
-        auto reply = sendRequestVoteRPC(peer);
+        std::optional<type::RequestVoteReply> reply = sendRequestVoteRPC(peer);
         if(reply){
+            type::PrintRequestVoteReply(*reply);
             if(reply->voteGranted){
                 // handle vote granted
             }
