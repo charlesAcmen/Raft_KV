@@ -58,22 +58,23 @@ namespace raft {
             }
 
              // capture generation and duration under lock (snapshot)
-            uint64_t gen = generation_.load(std::memory_order_acquire);
+            uint64_t gen = generation_.load();
             auto duration = duration_;
 
             // compute deadline using steady_clock
             auto deadline = std::chrono::steady_clock::now() + duration;
 
             // Wait until timeout or early stop
+            // wait until is better than wait_for to avoid issues with spurious wakeups虚假唤醒
             bool stoppedEarly = cv_.wait_until(lock, deadline, [this,gen]() { 
                 // wake if stopped OR generation changed OR running turned false
-                return stopped_ || generation_.load(std::memory_order_acquire) != gen || !running_;
+                return stopped_ || generation_.load() != gen || !running_;
             });
 
             // If predicate returned true -> either stopped or generation changed or running_ false
             if (stopped_) break;
             // If generation changed or running_ false, skip this round
-            if (generation_.load(std::memory_order_acquire) != gen || !running_) {
+            if (generation_.load() != gen || !running_) {
                 continue;
             }
             // If wait_until returned false, it means timeout reached with generation unchanged

@@ -449,7 +449,7 @@ void Raft::broadcastHeartbeatLocked(){
                 break;
             }
             else {
-                spdlog::info("[Raft] Node {} heartbeat acknowledged by {}", me_, peer);
+                // spdlog::info("[Raft] Node {} heartbeat acknowledged by {}", me_, peer);
             }
         } else {
             spdlog::warn("[Raft] Node {} heartbeat to {} failed", me_, peer);
@@ -459,7 +459,7 @@ void Raft::broadcastHeartbeatLocked(){
 void Raft::resetElectionTimerLocked(){
     // Reset election timer with a new randomized timeout
     static thread_local std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<int> dist(5000, 6000); // in milliseconds
+    std::uniform_int_distribution<int> dist(1500, 3000); // in milliseconds
     int timeout = dist(rng);
     electionTimer_->Reset(std::chrono::milliseconds(timeout));
     // spdlog::info("[Raft] {} reset election timer to {} ms", me_, timeout);
