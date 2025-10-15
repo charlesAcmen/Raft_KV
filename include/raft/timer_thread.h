@@ -17,13 +17,18 @@ class ThreadTimer : public ITimer {
     private:
         void workerLoop();
 
-        std::function<void()> callback_;
+        // synchronization
+        std::mutex mu_;
+        std::condition_variable cv_;
+        std::atomic<uint64_t> generation_;
+
+        // state (protected by mu_)
         bool running_{false};
         bool stopped_{false};
         std::chrono::milliseconds duration_{0};
+        
+        std::function<void()> callback_;
         std::thread worker_;
-        std::mutex mu_;
-        std::condition_variable cv_;
 };
 
 // Timer factory: creates real timers that use threads.
