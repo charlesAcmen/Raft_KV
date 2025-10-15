@@ -18,6 +18,7 @@ namespace raft {
 
     void ThreadTimer::Reset(std::chrono::milliseconds duration) {
         // spdlog::info("[ThreadTimer] Resetting to {} ms", duration.count());
+        Stop();
         {
             std::lock_guard<std::mutex> lock(mu_);
             duration_ = duration;

@@ -401,7 +401,7 @@ void Raft::deleteLogFromIndexLocked(int index){
 //--------- Helper functions ----------      
 // RVO ensures that returning the struct avoids any unnecessary copies.
 std::optional<type::RequestVoteReply> Raft::sendRequestVoteRPC(int peerId){
-    spdlog::info("[Raft] {} sending RequestVote RPC to peer {}", me_, peerId);
+    // spdlog::info("[Raft] {} sending RequestVote RPC to peer {}", me_, peerId);
     type::RequestVoteArgs args{};
     args.term = currentTerm_;
     args.candidateId = me_;
@@ -459,7 +459,7 @@ void Raft::broadcastHeartbeatLocked(){
 void Raft::resetElectionTimerLocked(){
     // Reset election timer with a new randomized timeout
     static thread_local std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<int> dist(4000, 5000); // in milliseconds
+    std::uniform_int_distribution<int> dist(5000, 6000); // in milliseconds
     int timeout = dist(rng);
     electionTimer_->Reset(std::chrono::milliseconds(timeout));
     // spdlog::info("[Raft] {} reset election timer to {} ms", me_, timeout);
@@ -494,7 +494,7 @@ void Raft::onHeartbeatTimeout(){
     }
 }
 std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peer){
-    spdlog::info("[Raft] {} Sending heartbeat AppendEntries to peer {}.", me_,peer);
+    // spdlog::info("[Raft] {} Sending heartbeat AppendEntries to peer {}.", me_,peer);
     type::AppendEntriesArgs args{};
     args.term = currentTerm_;
     args.leaderId = me_;
