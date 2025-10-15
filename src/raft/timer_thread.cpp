@@ -13,7 +13,7 @@ namespace raft {
         }
         cv_.notify_all();
         if (worker_.joinable()) worker_.join();
-        spdlog::info("[ThreadTimer] Destroyed and worker joined");
+        // spdlog::info("[ThreadTimer] Destroyed and worker joined");
     }
 
     void ThreadTimer::Reset(std::chrono::milliseconds duration) {
@@ -83,7 +83,7 @@ namespace raft {
             // After callback or stop, mark timer as idle
             running_ = false;
         }
-        spdlog::info("[ThreadTimer] Worker thread exiting");
+        // spdlog::info("[ThreadTimer] Worker thread exiting");
     }
 
     //-----------Factory implementation ----------

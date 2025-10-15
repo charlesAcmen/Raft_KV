@@ -111,9 +111,9 @@ void Raft::Stop(){
 
 void Raft::Join() {
     if (thread_.joinable()) {
-        spdlog::info("[Raft] {} Join() - waiting thread to exit", me_);
+        // spdlog::info("[Raft] {} Join() - waiting thread to exit", me_);
         thread_.join();
-        spdlog::info("[Raft] {} Join() - thread exited", me_);
+        // spdlog::info("[Raft] {} Join() - thread exited", me_);
     }
 }
 
@@ -178,12 +178,12 @@ void Raft::becomeFollowerLocked(int32_t newTerm){
     }
     currentTerm_ = newTerm;
     role_ = type::Role::Follower;
+    spdlog::info("[Raft] {} becomes Follower (term={})", me_, currentTerm_);
     votedFor_ = std::nullopt;
     // stop heartbeat timer if running
     heartbeatTimer_->Stop();
     // reset election timer
     resetElectionTimerLocked();
-    spdlog::info("[Raft] {} becomes Follower (term={})", me_, currentTerm_);
 }
 void Raft::becomeCandidateLocked(){
     if (role_ == type::Role::Candidate) {
@@ -192,20 +192,20 @@ void Raft::becomeCandidateLocked(){
     // Increment current term and convert to candidate
     currentTerm_++;
     role_ = type::Role::Candidate;
+    spdlog::info("[Raft] {} becomes candidate (term={})", me_, currentTerm_);
     votedFor_ = me_;
     resetElectionTimerLocked();
     startElectionLocked();
-    spdlog::info("[Raft] {} became candidate for term {}", me_, currentTerm_);
 }
 void Raft::becomeLeaderLocked(){
     if (role_ == type::Role::Leader) {
         return; // already leader
     }
     role_ = type::Role::Leader;
+    spdlog::info("[Raft] {} becomes Leader (term={})", me_, currentTerm_);
     electionTimer_->Stop();
     resetHeartbeatTimerLocked();
-    broadcastHeartbeatLocked();
-    spdlog::info("[Raft] {} becomes Leader (term={})", me_, currentTerm_);
+    broadcastHeartbeatLocked();   
 }
 
 
@@ -265,15 +265,13 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
 
     // Step 2: If term > currentTerm, update and convert to follower
     if (args.term > currentTerm_) {
-        currentTerm_ = args.term;
-        role_ = type::Role::Follower;
-        votedFor_ = std::nullopt; // reset votedFor
-        spdlog::info("[Raft] {} updating term to {} and becoming follower", me_, currentTerm_);
+        becomeFollowerLocked(args.term); 
+        spdlog::info("[Raft] {} updating term to {} and becomes follower", me_, currentTerm_);
+    }else{
+        // Step 3: Reset election timeout since valid leader contacted us
+        // Receiving valid AppendEntries acts as heartbeat → reset timeout
+        resetElectionTimerLocked();
     }
-
-    // Step 3: Reset election timeout since valid leader contacted us
-    // Receiving valid AppendEntries acts as heartbeat → reset timeout
-    resetElectionTimerLocked();
 
     // Step 4: Check if log doesn’t contain an entry at prevLogIndex whose term matches prevLogTerm
     // 如果日志中没有在 prevLogIndex 位置的条目，
@@ -422,8 +420,8 @@ std::optional<type::AppendEntriesReply> Raft::sendAppendEntriesRPC(int peerId){
     type::AppendEntriesArgs args{};
     args.term = currentTerm_;
     args.leaderId = me_;
-    // args.prevLogIndex = ;
-    // args.prevLogTerm = ;
+    args.prevLogIndex = getLastLogIndexLocked();
+    args.prevLogTerm = getLastLogTermLocked();
     args.entries = {};
     args.leaderCommit = commitIndex_;
 
@@ -442,7 +440,20 @@ std::optional<type::AppendEntriesReply> Raft::sendAppendEntriesRPC(int peerId){
 void Raft::broadcastHeartbeatLocked(){
     for(const auto& peer : peers_){
         if(peer == me_) continue; // skip self
-        sendHeartbeatLocked(peer);
+        std::optional<type::AppendEntriesReply> reply = 
+                    sendHeartbeatLocked(peer);
+        if (reply) {
+            if (reply->term > currentTerm_) {
+                becomeFollowerLocked(reply->term);
+                spdlog::info("[Raft] Node {} stepping down to Follower due to higher term from {}", me_, peer);
+                break;
+            }
+            else {
+                spdlog::info("[Raft] Node {} heartbeat acknowledged by {}", me_, peer);
+            }
+        } else {
+            spdlog::warn("[Raft] Node {} heartbeat to {} failed", me_, peer);
+        }
     }
 }
 void Raft::resetElectionTimerLocked(){

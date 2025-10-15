@@ -49,7 +49,7 @@ namespace rpc{
             //Function&&(void(RpcServer::*func_ptr)(int)), this , Args&&... args
             std::thread(&RpcServer::handleClient, this, client_fd).detach();
         }// end of while loop
-        spdlog::info("[RpcServer] start() RpcServer stopped");
+        // spdlog::info("[RpcServer] start() RpcServer stopped");
     }
 
     void RpcServer::Stop() {
