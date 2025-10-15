@@ -459,7 +459,7 @@ void Raft::broadcastHeartbeatLocked(){
 void Raft::resetElectionTimerLocked(){
     // Reset election timer with a new randomized timeout
     static thread_local std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<int> dist(150, 1000); // in milliseconds
+    std::uniform_int_distribution<int> dist(4000, 5000); // in milliseconds
     int timeout = dist(rng);
     electionTimer_->Reset(std::chrono::milliseconds(timeout));
     // spdlog::info("[Raft] {} reset election timer to {} ms", me_, timeout);
@@ -468,7 +468,6 @@ void Raft::resetHeartbeatTimerLocked(){
     // Reset heartbeat timer to a fixed interval (e.g., 50ms)
     int heartbeatInterval = 100; // in milliseconds
     heartbeatTimer_->Reset(std::chrono::milliseconds(heartbeatInterval));
-    // spdlog::info("[Raft] {} reset heartbeat timer to {} ms", me_, heartbeatInterval);
 }
 
 // -------- Timer callbacks -----------

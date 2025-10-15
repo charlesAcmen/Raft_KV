@@ -80,8 +80,9 @@ namespace raft {
                 lock.lock();
             }
 
-            // After callback or stop, mark timer as idle
-            running_ = false;
+            // ATTENTION: DO NOT SET running_ = false HERE
+            // because Reset() might be called within callback_
+            // running_ = false;
         }
         // spdlog::info("[ThreadTimer] Worker thread exiting");
     }
