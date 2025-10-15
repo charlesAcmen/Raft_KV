@@ -76,17 +76,17 @@ class Raft {
         //-------------------------------------
 
         // Returns the index of the last log entry (0 if no entries)
-        int getLastLogIndex() const;
+        int getLastLogIndexLocked() const;
         // Returns the term of the last log entry (0 if no entries)
-        int getLastLogTerm() const;
+        int getLastLogTermLocked() const;
         // Returns the term of log at given index (1-based)
-        int getLogTerm(int index) const;
-        int getPrevLogIndexFor(int peerId) const;
-        int getPrevLogTermFor(int peerId) const;
-        std::vector<type::LogEntry> getEntriesToSend(int peerId) const;
+        int getLogTermLocked(int index) const;
+        int getPrevLogIndexForLocked(int peerId) const;
+        int getPrevLogTermForLocked(int peerId) const;
+        std::vector<type::LogEntry> getEntriesToSendLocked(int peerId) const;
         // Applies committed log entries to the state machine
-        void applyLogs();
-        void deleteLogFromIndex(int index);
+        void applyLogsLocked();
+        void deleteLogFromIndexLocked(int index);
 
         //-------------------------------------
         //--------- Helper functions ----------

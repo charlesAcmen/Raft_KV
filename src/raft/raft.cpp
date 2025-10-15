@@ -209,8 +209,8 @@ type::RequestVoteReply Raft::HandleRequestVote(const type::RequestVoteArgs& args
     }
 
     // Step 3: vote for candidate only if candidate’s log is at least as up-to-date as receiver’s log
-    bool logOk = (args.lastLogTerm > getLastLogTerm()) ||
-                 (args.lastLogTerm == getLastLogTerm() && args.lastLogIndex >= getLastLogIndex());
+    bool logOk = (args.lastLogTerm > getLastLogTermLocked()) ||
+                 (args.lastLogTerm == getLastLogTermLocked() && args.lastLogIndex >= getLastLogIndexLocked());
 
     //have not voted this term or voted for candidate, and candidate's log is at least as up-to-date
     if ((votedFor_ == std::nullopt || votedFor_ == args.candidateId) && logOk) {
@@ -255,8 +255,8 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     // 如果日志中没有在 prevLogIndex 位置的条目，
     // 或者 有该条目但其 term 与 prevLogTerm 不匹配，
     // 那么就返回 false。
-    if (args.prevLogIndex > getLastLogIndex() ||
-        getLogTerm(args.prevLogIndex) != args.prevLogTerm) {
+    if (args.prevLogIndex > getLastLogIndexLocked() ||
+        getLogTermLocked(args.prevLogIndex) != args.prevLogTerm) {
         reply.success = false;
         spdlog::info("[Raft] {} rejecting AppendEntries from {}: log inconsistency at prevLogIndex {}",
             me_, args.leaderId, args.prevLogIndex);
@@ -269,19 +269,19 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     // delete the existing entry and all that follow it
     for (size_t i = 0; i < args.entries.size(); ++i) {
         int index = args.prevLogIndex + 1 + i;
-        if (index <= getLastLogIndex() && getLogTerm(index) != args.entries[i].term) {
+        if (index <= getLastLogIndexLocked() && getLogTermLocked(index) != args.entries[i].term) {
             // Conflict, delete all entries from index onward
-            deleteLogFromIndex(index);
+            deleteLogFromIndexLocked(index);
         }
-        if (index > getLastLogIndex()) {
+        if (index > getLastLogIndexLocked()) {
             log_.push_back(args.entries[i]);
         }
     }
 
     // Step 6: Update commitIndex
     if (args.leaderCommit > commitIndex_) {
-        commitIndex_ = std::min(args.leaderCommit, getLastLogIndex());
-        applyLogs(); // apply committed logs to state machine
+        commitIndex_ = std::min(args.leaderCommit, getLastLogIndexLocked());
+        applyLogsLocked(); // apply committed logs to state machine
     }
 
     reply.success = true;
@@ -290,18 +290,15 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
 
 //---------- Log management -----------
 
-int Raft::getLastLogIndex() const{
-    std::lock_guard<std::mutex> lock(mu_);
+int Raft::getLastLogIndexLocked() const{
     // If log is empty, return 0 , first log index as 1
     return static_cast<int>(log_.size());
 }
-int Raft::getLastLogTerm() const{
-    std::lock_guard<std::mutex> lock(mu_);
+int Raft::getLastLogTermLocked() const{
     // If log is empty, return 0 as initial term
     return log_.empty() ? 0 : log_.back().term;
 }
-int Raft::getLogTerm(int index) const{
-    std::lock_guard<std::mutex> lock(mu_);
+int Raft::getLogTermLocked(int index) const{
     // Log index starts at 1 in Raft, so adjust for 0-based vector
     if (index <= 0 || index > static_cast<int>(log_.size())) {
         // Out of range; return 0 as default term
@@ -310,22 +307,22 @@ int Raft::getLogTerm(int index) const{
     return log_[index - 1].term;
 }
 // Returns the log index immediately before what should be sent to the given peer.
-int Raft::getPrevLogIndexFor(int peerId) const {
+int Raft::getPrevLogIndexForLocked(int peerId) const {
     // nextIndex_[peerId] 指向要发送的下一条日志，因此前一条就是 prevLogIndex。
     return nextIndex_.at(peerId) - 1;
 }
 
 // Returns the term of the log entry immediately before what should be sent to the given peer.
-int Raft::getPrevLogTermFor(int peerId) const {
-    int prevIndex = getPrevLogIndexFor(peerId);
-    return prevIndex > 0 ? getLogTerm(prevIndex) : 0;
+int Raft::getPrevLogTermForLocked(int peerId) const {
+    int prevIndex = getPrevLogIndexForLocked(peerId);
+    return prevIndex > 0 ? getLogTermLocked(prevIndex) : 0;
 }
 
 // Returns the log entries to send to the given peer for AppendEntries RPC.
 // Usually from nextIndex[peerId] to the end of the log.
-std::vector<type::LogEntry> Raft::getEntriesToSend(int peerId) const {
+std::vector<type::LogEntry> Raft::getEntriesToSendLocked(int peerId) const {
     int start = nextIndex_.at(peerId);
-    if (start > getLastLogIndex()) return {};
+    if (start > getLastLogIndexLocked()) return {};
     return std::vector<type::LogEntry>(log_.begin() + start, log_.end());
 }
 
@@ -346,9 +343,7 @@ std::vector<type::LogEntry> Raft::getEntriesToSend(int peerId) const {
  * 
  * After applying each log entry, `lastApplied_` is updated.
  */
-void Raft::applyLogs(){
-    std::lock_guard<std::mutex> lock(mu_);
-
+void Raft::applyLogsLocked(){
     // Apply all committed entries not yet applied
     while (lastApplied_ < commitIndex_) {
         lastApplied_++;
@@ -368,8 +363,7 @@ void Raft::applyLogs(){
  *
  * @param index The starting index from which logs should be deleted (inclusive).
  */
-void Raft::deleteLogFromIndex(int index){
-    std::lock_guard<std::mutex> lock(mu_);
+void Raft::deleteLogFromIndexLocked(int index){
     
     if (index <= 0 || index > static_cast<int>(log_.size())) {
         spdlog::warn("[deleteLogFromIndex] Invalid index {}, log size={}", index, log_.size());
@@ -392,8 +386,8 @@ std::optional<type::RequestVoteReply> Raft::sendRequestVoteRPC(int peerId){
     type::RequestVoteArgs args{};
     args.term = currentTerm_;
     args.candidateId = me_;
-    args.lastLogIndex = getLastLogIndex();
-    args.lastLogTerm = getLastLogTerm();
+    args.lastLogIndex = getLastLogIndexLocked();
+    args.lastLogTerm = getLastLogTermLocked();
     type::RequestVoteReply reply{};
     bool success = transport_->RequestVoteRPC(
         peerId, args,reply,std::chrono::milliseconds(100));
@@ -472,8 +466,8 @@ std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peer){
     type::AppendEntriesArgs args{};
     args.term = currentTerm_;
     args.leaderId = me_;
-    args.prevLogIndex = getLastLogIndex();
-    args.prevLogTerm = getLastLogTerm();
+    args.prevLogIndex = getLastLogIndexLocked();
+    args.prevLogTerm = getLastLogTermLocked();
     args.entries = {}; // empty for heartbeat
     args.leaderCommit = commitIndex_;
 
