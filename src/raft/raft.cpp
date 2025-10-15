@@ -74,9 +74,6 @@ Raft::Raft(
     heartbeatTimer_ = timerFactory_->CreateTimer([this]() {
         this->onHeartbeatTimeout();
     });
-    
-    // log constructed state for debugging.
-    // spdlog::info("[Raft] {} constructed with {} peers", me_, peers_.size());
 }
 
 Raft::~Raft() {
@@ -157,29 +154,42 @@ void Raft::startElectionLocked(){
 }
 
 //---------- Role transtions ----------
+// keep idempotent
 void Raft::becomeFollowerLocked(int32_t newTerm){
+    if (role_ == type::Role::Follower && currentTerm_ == newTerm) {
+        // already follower in this term
+        return;
+    }
     currentTerm_ = newTerm;
     role_ = type::Role::Follower;
-    votedFor_ = -1;
+    votedFor_ = std::nullopt;
     // stop heartbeat timer if running
     heartbeatTimer_->Stop();
     // reset election timer
     resetElectionTimerLocked();
+    spdlog::info("[Raft] {} becomes Follower (term={})", me_, currentTerm_);
 }
 void Raft::becomeCandidateLocked(){
+    if (role_ == type::Role::Candidate) {
+        return; // already candidate
+    }
     // Increment current term and convert to candidate
     currentTerm_++;
     role_ = type::Role::Candidate;
     votedFor_ = me_;
-    spdlog::info("[Raft] {} became candidate for term {}", me_, currentTerm_);
     resetElectionTimerLocked();
     startElectionLocked();
+    spdlog::info("[Raft] {} became candidate for term {}", me_, currentTerm_);
 }
 void Raft::becomeLeaderLocked(){
+    if (role_ == type::Role::Leader) {
+        return; // already leader
+    }
     role_ = type::Role::Leader;
     electionTimer_->Stop();
     resetHeartbeatTimerLocked();
     broadcastHeartbeatLocked();
+    spdlog::info("[Raft] {} becomes Leader (term={})", me_, currentTerm_);
 }
 
 
@@ -202,10 +212,8 @@ type::RequestVoteReply Raft::HandleRequestVote(const type::RequestVoteArgs& args
 
     // Step 2: If the term in the request is greater than our term, update term and convert to follower
     if (args.term > currentTerm_) {
-        currentTerm_ = args.term;
-        votedFor_ = std::nullopt; // reset votedFor
-        role_ = type::Role::Follower;
-        spdlog::info("[Raft] {} updating term to {} and becoming follower", me_, currentTerm_);
+        becomeFollowerLocked(args.term);
+        spdlog::info("[Raft] {} updating term to {}", me_, currentTerm_);
     }
 
     // Step 3: vote for candidate only if candidate’s log is at least as up-to-date as receiver’s log

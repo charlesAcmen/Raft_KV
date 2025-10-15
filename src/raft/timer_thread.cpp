@@ -31,13 +31,13 @@ namespace raft {
         {
             std::lock_guard<std::mutex> lock(mu_);
             if(!running_){
-                spdlog::info("[ThreadTimer] Timer already stopped");
+                // spdlog::info("[ThreadTimer] Timer already stopped");
                 return;
             }
             running_ = false;
         }
         cv_.notify_all();
-        spdlog::info("[ThreadTimer] Timer stopped");
+        // spdlog::info("[ThreadTimer] Timer stopped");
     }
 
      /**
