@@ -13,7 +13,7 @@ namespace raft{
 RaftTransportUnix::RaftTransportUnix(
     const type::PeerInfo& self, 
     const std::vector<type::PeerInfo>& peers)
-    : self_(self), peers_(peers){
+    : IRaftTransport(self, peers) {
     // Start RPC server
     server_ = std::make_unique<rpc::RpcServer>(self_);
     
@@ -28,7 +28,6 @@ RaftTransportUnix::RaftTransportUnix(
 }
 RaftTransportUnix::~RaftTransportUnix() {
     Stop();
-    clients_.clear();
 }
 
 // Start the transport (start RPC server and prepare clients)

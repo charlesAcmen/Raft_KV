@@ -1,55 +1,29 @@
 #pragma once
-#include "transport.h"
-#include "types.h" 
-#include <unordered_map>
-#include <memory>
+#include "transport.h" 
 #include <vector>
+#include <string>
 #include <functional>
-#include <thread>
-
-namespace rpc {
-    class RpcClient;
-    class RpcServer;
-    class IMessageCodec;
-}
-
 namespace raft {
 
 // Unix-domain-socket-based transport for single-machine multi-process simulation.
 class RaftTransportUnix : public IRaftTransport {
 public:
-    explicit RaftTransportUnix(const raft::type::PeerInfo& self, 
-        const std::vector<raft::type::PeerInfo>& peers);
-    ~RaftTransportUnix();
+    explicit RaftTransportUnix(const type::PeerInfo&,const std::vector<type::PeerInfo>&);
+    ~RaftTransportUnix() override;
 
     void Start() override;
     void Stop() override;
 
-    bool RequestVoteRPC(int,const raft::type::RequestVoteArgs&,raft::type::RequestVoteReply&) override;
-    bool AppendEntriesRPC(int,const raft::type::AppendEntriesArgs&,raft::type::AppendEntriesReply&) override;
+    bool RequestVoteRPC(int,const type::RequestVoteArgs&,type::RequestVoteReply&) override;
+    bool AppendEntriesRPC(int,const type::AppendEntriesArgs&,type::AppendEntriesReply&) override;
 
     void RegisterRequestVoteHandler(
         std::function<std::string(const std::string&)> handler) override;
     void RegisterAppendEntriesHandler(
         std::function<std::string(const std::string&)> handler) override;
-
 private:
-
-
-    // Information about self and peers
-    const raft::type::PeerInfo self_;
-    const std::vector<raft::type::PeerInfo> peers_;
-
-    // RPC server and clients
-    std::unique_ptr<rpc::RpcServer> server_;
     std::thread serverThread_;
-    
-    std::unordered_map<int, std::unique_ptr<rpc::RpcClient>> clients_;  // key: peer id
     std::thread clientThread_;
-
-    // RPC handlers
-    std::function<std::string(const std::string&)> requestVoteHandler_;
-    std::function<std::string(const std::string&)> appendEntriesHandler_;
 };
 
 } // namespace raft

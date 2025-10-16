@@ -3,6 +3,7 @@
 #include "types.h"  // for type::LogEntry, type::Role, etc
 #include <mutex>    //lock for mu_
 #include <vector>
+#include <unordered_map> //for nextIndex_ and matchIndex_
 #include <optional> //optional for votedFor_ and RPC replies
 #include <memory>   // for shared_ptr and unique_ptr
 #include <atomic>   //running_ is atomic
@@ -154,9 +155,11 @@ class Raft {
 
         // Volatile state on leaders (reinitialized after election)
         // (Reinitialized after election)
-        std::unordered_map<int, int> nextIndex_;// for each server, index of the next log entry to send to that server
+        std::unordered_map<int, int> nextIndex_;
+        // for each server, index of the next log entry to send to that server
         //(initialized to leader last log index + 1)
-        std::unordered_map<int, int> matchIndex_;// for each server, index of highest log entry known to be replicated on server
+        std::unordered_map<int, int> matchIndex_;
+        // for each server, index of highest log entry known to be replicated on server
         //(initialized to 0, increases monotonically)
 
 

@@ -1,4 +1,3 @@
-// cluster.cpp
 #include "raft/cluster.h"
 #include "raft/raft.h"
 #include "raft/transport_unix.h"
@@ -14,7 +13,7 @@ Cluster::~Cluster() {
     // Destructor ensures nodes are stopped and joined.
     StopAll();
     JoinAll();
-    this->nodes_.clear();
+    nodes_.clear();
 }
 
 void Cluster::CreateNodes(int n) {

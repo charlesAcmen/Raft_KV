@@ -345,7 +345,6 @@ int Raft::getLogTermLocked(int index) const{
 }
 // Returns the log index immediately before what should be sent to the given peer.
 int Raft::getPrevLogIndexForLocked(int peerId) const {
-    // nextIndex_[peerId] 指向要发送的下一条日志，因此前一条就是 prevLogIndex。
     return nextIndex_.at(peerId) - 1;
 }
 
@@ -487,7 +486,7 @@ std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peer){
     bool success = transport_->AppendEntriesRPC(peer, args, reply);
 
     if (!success) {
-        spdlog::warn("[Raft] Failed to send heartbeat AppendEntries RPC to peer {}", peerId);
+        spdlog::warn("[Raft] Failed to send heartbeat AppendEntries RPC to peer {}", peer);
         return std::nullopt;
     }
     return reply;
