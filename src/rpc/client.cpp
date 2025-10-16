@@ -1,6 +1,6 @@
 #include "rpc/client.h"
 #include <string>
-#include <stdexcept>    //throw
+#include <stdexcept>    //throw in initSocket
 #include <unistd.h>     // write, read
 #include <sys/socket.h> // send, recv
 #include <cstring>      //c_str()
@@ -17,6 +17,7 @@ namespace rpc{
         Close();
     }
     bool RpcClient::Connect(){
+        if(connected_) return true;
         //client address structure:sockaddr_un,unix,used in IPC
         struct sockaddr_un addr{};
         addr.sun_family = AF_UNIX;
@@ -39,29 +40,38 @@ namespace rpc{
             if (::connect(sock_fd, (struct sockaddr*)&addr, len) == 0) {
                 // success
                 // spdlog::info("[RpcClient] initSocket() RpcClient connected to {}:{} at attempt {}", host, port, attempts + 1);
+                connected_ = true;
                 return true;
             } 
             if (++attempts > MAX_RETRIES) {
                 // spdlog::error("[RpcClient] initSocket() RpcClient failed to connect to {}:{} after {} attempts: {}", host, port, attempts, strerror(e));
                 ::close(sock_fd);
                 // throw std::runtime_error(std::string("[RpcClient] initSocket() RpcClient::connect() failed: ") + strerror(e));
+                connected_ = false;
                 return false;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_INTERVAL_MS));
         }
+        connected_ = false;
         return false;
     }
     void RpcClient::Close(){
+        if(!connected_) return;
         if (sock_fd != -1) {
             ::close(sock_fd);
             sock_fd = -1;
         }
+        connected_ = false;
     }
     std::string RpcClient::Call(
         const std::string& method, 
         const std::string& payload){
-        
-        //use codec in delimiter type
+        if(!connected_){
+            bool success = Connect();
+            if(!success)
+                return "[RpcClient] call(const std::string& ,const std::string&) ERROR: not connected and connect() failed";
+        }
+        //use delimitercodec
         rpc::DelimiterCodec codec;
 
         // 1. constuct request payload
@@ -75,7 +85,7 @@ namespace rpc{
         ssize_t n = send(sock_fd, framed.c_str(), framed.size(), 0);
         if (n < 0) {
             spdlog::error("[RpcClient] call(const std::string& ,const std::string&) send() failed");
-            throw std::runtime_error("[RpcClient] call(const std::string& ,const std::string&) RpcClient::call send() failed");
+            return "[RpcClient] call(const std::string& ,const std::string&) ERROR: send() failed";
         }
         
         //wait for response
@@ -86,7 +96,7 @@ namespace rpc{
             ssize_t r = recv(sock_fd, tmp, sizeof(tmp), 0);
             if (r < 0) {
                 spdlog::error("[RpcClient] call(const std::string& ,const std::string&) recv() failed");
-                throw std::runtime_error("[RpcClient] call(const std::string& ,const std::string&) recv() failed");
+                return "[RpcClient] call(const std::string& ,const std::string&) ERROR: recv() failed";
             } else if (r == 0) {
                 // server closed connection
                 break;

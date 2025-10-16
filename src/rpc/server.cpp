@@ -1,15 +1,12 @@
 #include "rpc/server.h"
 #include "rpc/client.h"
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/un.h>     //sockaddr_un
-#include <unistd.h>     //close()
-#include <fcntl.h>
-#include <iostream>
-#include <sstream>
+#include "rpc/delimiter_codec.h"    //in handleClient 
+#include <arpa/inet.h>              //accept(server_fd,...) and ::shutdown(server_fd,...) etc.
+#include <sys/un.h>                 //sockaddr_un
+#include <unistd.h>                 //close(client_fd)
 #include <spdlog/spdlog.h>
-#include <thread>
-#include "rpc/delimiter_codec.h"
+#include <thread>                   //handleClient thread
+
 namespace rpc{
     RpcServer::RpcServer(const raft::type::PeerInfo& selfInfo){
         selfInfo_ = selfInfo;
@@ -29,14 +26,15 @@ namespace rpc{
     3. Close the socket with close().
     */
     void RpcServer::Start() {
+        running.store(true);
         //in loop to accept and handle connections
-        while (running) {
+        while (running.load()) {
             //block until a new connection is accepted
             int client_fd = accept(server_fd, nullptr, nullptr);
             if(client_fd < 0) {
                 if(!running){
                     // spdlog::info("[RpcServer] start() exiting accept loop");
-                    //server is stopping, exit loop
+                    // server is stopping, exit loop
                     break;
                 }
                 spdlog::error("[RpcServer] start() Failed to accept connection");
@@ -44,18 +42,23 @@ namespace rpc{
                 continue;
             }
             // spdlog::info("[RpcServer] start() Accepted new connection: fd={}", client_fd);
-            // do not enqueue task here,because rpc client has long connection with rpc server
-            // use detached thread instead
-            //Function&&(void(RpcServer::*func_ptr)(int)), this , Args&&... args
-            std::thread(&RpcServer::handleClient, this, client_fd).detach();
+            // Function&&(void(RpcServer::*func_ptr)(int)), this , Args&&... args
+            // std::thread(&RpcServer::handleClient, this, client_fd).detach();
+
+            std::thread t(&RpcServer::handleClient, this, client_fd);
+            {
+                std::lock_guard<std::mutex> lg(threads_mtx_);
+                clientThreads_.emplace_back(std::move(t));
+            }
+
         }// end of while loop
         // spdlog::info("[RpcServer] start() RpcServer stopped");
     }
 
     void RpcServer::Stop() {
         // spdlog::info("[RpcServer] stop() RpcServer stopping...");
-        running = false;
-        if (server_fd != -1) {
+        running.store(false);
+        if (server_fd >= 0) {
             //close the server actively,to break the accept() blocking
             //after which server will exit while loop and return 0,server process exits normally
             // spdlog::info("[RpcServer] stop() Closing server socket...");
@@ -65,8 +68,19 @@ namespace rpc{
             ::shutdown(server_fd, SHUT_RDWR);
             //decrease reference count of the socket
             ::close(server_fd);
-            
             server_fd = -1;
+        }
+
+
+        // join worker threads
+        // avoid join when holding the lock
+        std::vector<std::thread> threadsCopy;
+        {
+            std::lock_guard<std::mutex> lg(threads_mtx_);
+            threadsCopy.swap(clientThreads_);
+        }
+        for (auto &t : threadsCopy) {
+            if (t.joinable()) t.join();
         }
     }
     
@@ -133,11 +147,13 @@ namespace rpc{
                 close(client_fd);
                 return;
             } else if (n < 0) {
+                //signal interrupt, try again
+                // if (errno == EINTR) continue;
                 spdlog::error("[RpcServer] start() recv failed: {}", strerror(errno));
                 close(client_fd);
                 return;
             }
-            data.append(buf, n);
+            data.append(buf, static_cast<size_t>(n));
             //now data should conform to the rpc message format defined in client.h
             //[methodName]\n[payload]\nEND\n
             //there could be multiple rpc messages in data

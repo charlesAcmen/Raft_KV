@@ -1,7 +1,7 @@
 #pragma once
 #include "raft/types.h"
 #include <string>
-
+#include <atomic>           //connected_ flag is atomic
 /*
 RPC message format is defined as:
 [methodName]\n[payload]\nEND\n
@@ -29,10 +29,7 @@ namespace rpc{
             const raft::type::PeerInfo selfInfo_;     //info of the client itself
             const raft::type::PeerInfo targetInfo_;   //info of the rpc server
 
-
-            //accept() will return a new socket fd called client_fd for communication
-            //it is the socket that serves to send and receive data
-            //sock_fd is the socket fd used to connect to the server
+            std::atomic<bool> connected_{false};
             int sock_fd{-1};
     };
 }//namespace rpc

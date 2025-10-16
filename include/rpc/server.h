@@ -6,7 +6,9 @@
 #include <functional>   //handler function
 #include <unordered_map> //handlers
 #include <atomic>   //server running flag
-
+#include <vector>  //clientThreads_
+#include <thread>  //clientThreads_
+#include <mutex>   //protect clientThreads_
 /*
 RPC response format is defined as:
 [response payload]\nEND\n
@@ -29,10 +31,9 @@ class RpcServer {
 
         //return type : std::string, param type: const std::string& as payload
         std::unordered_map<std::string, std::function<std::string(const std::string&)>> handlers;
-
-        //do not use thread pool here, because each rpc client has long connection with rpc server
-        //use detached thread instead
-
+        std::vector<std::thread> clientThreads_;
+        //mutex to protect clientThreads_ when adding new threads
+        std::mutex threads_mtx_;
         raft::type::PeerInfo selfInfo_;
 
         int server_fd{-1};
