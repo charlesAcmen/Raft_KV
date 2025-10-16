@@ -6,8 +6,6 @@
 namespace rpc{
     class DelimiterCodec;
 }
-
-
 namespace raft{
 
 RaftTransportUnix::RaftTransportUnix(
@@ -77,9 +75,7 @@ void RaftTransportUnix::Stop() {
  * @return false    If the RPC failed due to transport errors (e.g. socket closed).
  */
 bool RaftTransportUnix::RequestVoteRPC(
-    int targetId,
-    const type::RequestVoteArgs& args,
-    type::RequestVoteReply& reply) {
+    int targetId,const type::RequestVoteArgs& args,type::RequestVoteReply& reply) {
     // spdlog::info("[RaftTransportUnix] {} Sending RequestVoteRPC to peer {}", self_.id, targetId);
     auto it = clients_.find(targetId);
     if (it == clients_.end()) {
@@ -107,9 +103,8 @@ bool RaftTransportUnix::RequestVoteRPC(
  * @return true     If the RPC communication succeeded.
  * @return false    If the RPC transmission failed.
  */
-bool RaftTransportUnix::AppendEntriesRPC(int targetId,
-    const type::AppendEntriesArgs& args,
-    type::AppendEntriesReply& reply) {
+bool RaftTransportUnix::AppendEntriesRPC(
+    int targetId,const type::AppendEntriesArgs& args,type::AppendEntriesReply& reply) {
     // spdlog::info("[RaftTransportUnix] {} Sending AppendEntriesRPC to peer {}", self_.id, targetId);
     auto it = clients_.find(targetId);
     if (it == clients_.end()) {
@@ -123,15 +118,4 @@ bool RaftTransportUnix::AppendEntriesRPC(int targetId,
     reply = codec::RaftCodec::decodeAppendEntriesReply(response);
     return true;
 }
-void RaftTransportUnix::RegisterRequestVoteHandler(
-    std::function<std::string(const std::string&)> handler) {
-    requestVoteHandler_ = handler;
-    server_->Register_Handler("RequestVote", handler);
-}
-void RaftTransportUnix::RegisterAppendEntriesHandler(
-    std::function<std::string(const std::string&)> handler) {
-    appendEntriesHandler_ = handler;
-    server_->Register_Handler("AppendEntries", handler);
-}
-
 }// namespace raft

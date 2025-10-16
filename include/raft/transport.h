@@ -1,24 +1,24 @@
 #pragma once
 
 #include "types.h"
-#include "rpc/client.h"
-#include "rpc/server.h"
 #include <chrono>       //for RPC timeout constexpr
-#include <functional>
+#include <functional>   //for rpc handlers
 #include <string>
+#include <vector>       //for list of peers
 #include <unordered_map>//for map of clients
 #include <memory>       //for unique_ptr
-#include <thread>       //for server thread and client thread
+namespace rpc {
+    class RpcClient;
+    class RpcServer;
+}
+
 namespace raft {
 // Transport abstraction used by Raft to send RPCs to peers. 
 // Keeping this abstract decouples Raft state-machine logic 
 // from the underlying RPC mechanism.
 class IRaftTransport {
 public:
-    IRaftTransport(const type::PeerInfo& self,
-                   const std::vector<type::PeerInfo>& peers)
-        : self_(self), peers_(peers) {};
-    //interface destructor
+    IRaftTransport(const type::PeerInfo&,const std::vector<type::PeerInfo>&);
     virtual ~IRaftTransport() = default;
 
 
@@ -37,9 +37,9 @@ public:
     type::AppendEntriesReply& reply) = 0;
 
     virtual void RegisterRequestVoteHandler(
-        std::function<std::string(const std::string&)> handler) = 0;
+        std::function<std::string(const std::string&)> handler);
     virtual void RegisterAppendEntriesHandler(
-        std::function<std::string(const std::string&)> handler) = 0;   
+        std::function<std::string(const std::string&)> handler);   
 protected:
     static constexpr std::chrono::milliseconds RPC_TIMEOUT{500};
 

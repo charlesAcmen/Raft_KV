@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <functional>
+#include <thread>       //for server thread and client thread
 namespace raft {
 
 // Unix-domain-socket-based transport for single-machine multi-process simulation.
@@ -16,11 +17,6 @@ public:
 
     bool RequestVoteRPC(int,const type::RequestVoteArgs&,type::RequestVoteReply&) override;
     bool AppendEntriesRPC(int,const type::AppendEntriesArgs&,type::AppendEntriesReply&) override;
-
-    void RegisterRequestVoteHandler(
-        std::function<std::string(const std::string&)> handler) override;
-    void RegisterAppendEntriesHandler(
-        std::function<std::string(const std::string&)> handler) override;
 private:
     std::thread serverThread_;
     std::thread clientThread_;
