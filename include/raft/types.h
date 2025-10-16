@@ -1,15 +1,11 @@
 #pragma once
-
-
 #include <cstdint>  // for int32_t
-#include <string>
+#include <string>   
 #include <vector>
-#include <spdlog/spdlog.h>
 
-
+// Basic types and structures for Raft consensus algorithm
+// all following codes are inline with Raft paper notations
 namespace raft::type{
-
-
 
 // Role of a Raft peer
 enum class Role{
@@ -18,14 +14,15 @@ enum class Role{
     Leader
 };
 
+// for now only support Unix domain socket transport
+// In real world, we may want to support TCP/IP as well
 struct PeerInfo {
     int id;                 // unique Raft node ID
     std::string sockPath;   // /tmp/raft-node-<id>.sock,Unix socket path for RPC
 };
 
 
-// A minimal log entry structure. For 2A (election) entries are not required,
-// but we keep a compact definition so types match later phases (2B/2C).
+// A minimal log entry structure.
 struct LogEntry {
     int32_t index{0}; // 1-based index
     int32_t term{0};  // term when entry was received by leader
@@ -64,18 +61,6 @@ struct AppendEntriesArgs {
 // AppendEntries RPC reply
 struct AppendEntriesReply {
     int32_t term{0}; // currentTerm, for leader to update itself
-    bool success{false}; // true if follower contained entry matching prevLogIndex/prevLogTerm
+    bool success{false}; // true if follower contained entry matching prevLogIndex and prevLogTerm
 };
-
-inline void PrintRequestVoteArgs(const RequestVoteArgs& args) {
-    spdlog::info("[RequestVoteArgs] term={}, candidateId={}, lastLogIndex={}, lastLogTerm={}",
-                 args.term, args.candidateId, args.lastLogIndex, args.lastLogTerm);
-}
-
-inline void PrintRequestVoteReply(const RequestVoteReply& reply) {
-    spdlog::info("[RequestVoteReply] term={}, voteGranted={}",
-                 reply.term, reply.voteGranted ? "true" : "false");
-}
-
-
 } // namespace  raft::type

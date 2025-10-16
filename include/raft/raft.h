@@ -1,51 +1,45 @@
 #pragma once
 
-#include "types.h"
-#include <mutex>
-#include <condition_variable>
+#include "types.h"  // for type::LogEntry, type::Role, etc
+#include <mutex>    //lock for mu_
 #include <vector>
-#include <optional>
-#include <functional>
-#include <memory>
-#include <atomic>
-#include <thread>
+#include <optional> //optional for votedFor_ and RPC replies
+#include <memory>   // for shared_ptr and unique_ptr
+#include <atomic>   //running_ is atomic
+#include <thread>   //for run() thread
 
 namespace raft {
-    
+//---------- Forward declarations ----------
 class IRaftTransport;
 class ITimer;
 class ITimerFactory;
-// Raft implements the core Raft peer state.
-// This header intentionally restricts the public API to
-// the minimal set required for election behaviour and for integrating
+// class IPersister;
 class Raft {
     public:
-        // me: this peer's id (index into peers_).
-        // transport: implementation that sends RequestVote/AppendEntries RPCs.
         Raft(
             int me,
             const std::vector<int>& peers,
             std::shared_ptr<IRaftTransport> transport,
-            // std::function<void(const type::LogEntry&)> applyCallback,
-            // RaftConfig config = RaftConfig(),
             std::shared_ptr<ITimerFactory> timerFactory = nullptr
             // std::shared_ptr<IPersister> persister = nullptr
         );
 
         ~Raft();
        
-        // Start internal worker thread and transport/timers.
+        // Start internal worker thread,transport,and timers.
         void Start();
 
-        // Stop background work.
-        // After Stop(), the worker thread should exit soon.
+        // Stop transport and timers.
         void Stop();
 
-        // Block until internal thread exits (join). Safe to call multiple times.
+        // Block until internal thread exits (join).
         void Join();
 
     private:
+        //----constants----
+        // Heartbeat interval for leaders to send AppendEntries RPCs in milliseconds
         static constexpr std::chrono::milliseconds HEARTBEAT_INTERVAL{100};
+        // Election timeout range in milliseconds (randomized per election)
         static constexpr std::chrono::milliseconds ELECTION_TIMEOUT_MIN{1000};
         static constexpr std::chrono::milliseconds ELECTION_TIMEOUT_MAX{2000};
 
@@ -54,20 +48,17 @@ class Raft {
         Raft(const Raft&) = delete;
         Raft& operator=(const Raft&) = delete;
 
+        // Internal thread main loop
         void run();
+
+        // naming convention: Locked means caller must hold mu_ lock before calling
+
 
         //-------------------------------------
         //--------- Election control ----------
         //-------------------------------------
         void startElectionLocked();                   // Begin new election (called on timeout)
 
-        //-------------------------------------
-        //---------- Role transtions ----------
-        //-------------------------------------
-
-        void becomeFollowerLocked(int32_t newTerm);   // Step down to follower
-        void becomeCandidateLocked();                 // Increment term, self-vote, send RequestVote RPCs
-        void becomeLeaderLocked();                    // Initialize nextIndex, matchIndex, send heartbeats
 
         //-------------------------------------
         //----------- RPC handlers ------------
@@ -75,6 +66,31 @@ class Raft {
 
         type::RequestVoteReply HandleRequestVote(const type::RequestVoteArgs& args);
         type::AppendEntriesReply HandleAppendEntries(const type::AppendEntriesArgs& args);
+
+
+        //-------------------------------------
+        //--------- Helper functions ----------
+        //-------------------------------------
+        // Send one RequestVote RPC
+        std::optional<type::RequestVoteReply> sendRequestVoteRPC(int peerId);     
+        // Send one AppendEntries RPC (heartbeat or log)
+        std::optional<type::AppendEntriesReply> sendAppendEntriesRPC(int peerId);  
+        // Send empty AppendEntries to all peers
+        void broadcastHeartbeatLocked();            
+        // Send heartbeat to one peer 
+        std::optional<type::AppendEntriesReply> sendHeartbeatLocked(int peer);
+
+        //-------------------------------------
+        //---------- Role transtions ----------
+        //-------------------------------------
+
+        // Update term, clear vote, stop heartbeat timer,start election timer
+        void becomeFollowerLocked(int32_t newTerm);  
+        // Increment term, self-vote, reset election timer, start election 
+        void becomeCandidateLocked();                 
+        // stop election timer,start heartbeat timer,broadcast heartbeats
+        void becomeLeaderLocked();                    
+
 
         //-------------------------------------
         //---------- Log management -----------
@@ -92,38 +108,35 @@ class Raft {
         // Applies committed log entries to the state machine
         void applyLogsLocked();
         void deleteLogFromIndexLocked(int index);
-
-        //-------------------------------------
-        //--------- Helper functions ----------
-        //-------------------------------------
-        std::optional<type::RequestVoteReply> sendRequestVoteRPC(int peerId);     // Send one RequestVote RPC
-        std::optional<type::AppendEntriesReply> sendAppendEntriesRPC(int peerId);  // Send one AppendEntries RPC (heartbeat or log)
         
-        void broadcastHeartbeatLocked();              // Send empty AppendEntries to all peers
-        std::optional<type::AppendEntriesReply> sendHeartbeatLocked(int peer);
+        //-------------------------------------
+        // -------- Timer functions -----------
+        //-------------------------------------
+
+        //called when election timer fires
+        //request lock and call becomeCandidateLocked()
+        void onElectionTimeout();         
+        //called when heartbeat timer fires  
+        //request lock and broadcastHeartbeat and start heartbeat timer 
+        //if is leader
+        void onHeartbeatTimeout();          
+
+        // Reset election timer with a new randomized timeout
         void resetElectionTimerLocked();
+        // start heartbeat timer
         void resetHeartbeatTimerLocked();
 
-        //-------------------------------------
-        // -------- Timer callbacks -----------
-        //-------------------------------------
 
-        void onElectionTimeout();           
-        void onHeartbeatTimeout();              
-        // int calledCount_{0};
-
-
-
-
-        // Internal data protected by mu_. Any access to these fields must hold
-        // mu_ to ensure correctness unless otherwise noted in comments.
-        mutable std::mutex mu_;
+        // internal data protected by mu_
+        std::mutex mu_;
 
         // Raft identity and cluster
         const int me_;                      // this peer's id (index into peers_)
         const std::vector<int> peers_;      // peer ids (including me_)
 
         //------state------
+        // all following codes are inline with Raft paper notations
+
         // Persistent state on all servers
         type::Role role_{type::Role::Follower};
         int32_t currentTerm_{0};            // latest term server has seen(initialized to 0 on first boot, 
@@ -140,21 +153,27 @@ class Raft {
         //(initialized to 0, increases monotonically)
 
         // Volatile state on leaders (reinitialized after election)
-        std::unordered_map<int, int> nextIndex_;
-        std::unordered_map<int, int> matchIndex_;
+        // (Reinitialized after election)
+        std::unordered_map<int, int> nextIndex_;// for each server, index of the next log entry to send to that server
+        //(initialized to leader last log index + 1)
+        std::unordered_map<int, int> matchIndex_;// for each server, index of highest log entry known to be replicated on server
+        //(initialized to 0, increases monotonically)
 
 
 
         // used to send RPCs to peers
         std::shared_ptr<IRaftTransport> transport_; 
 
-        // timers
+        // timers,interface oriented,Runtime polymorphism
+        //passed by constructor
         std::shared_ptr<ITimerFactory> timerFactory_;
+        //created by timerFactory_
         std::unique_ptr<ITimer> electionTimer_;
         std::unique_ptr<ITimer> heartbeatTimer_;
 
-
-        std::thread thread_;        // internal worker thread
+        // background thread for running Raft
+        std::thread thread_;        
+        // flag to control thread loop
         std::atomic<bool> running_{false};
 };
 

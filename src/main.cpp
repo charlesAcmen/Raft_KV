@@ -1,9 +1,6 @@
 #include "raft/cluster.h"
-#include <thread>
-#include <chrono>
 #include <spdlog/spdlog.h>
 int main(){
-    // spdlog::info("Starting cluster example");
     raft::Cluster cluster;
     cluster.CreateNodes(5);
 
