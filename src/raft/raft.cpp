@@ -462,7 +462,6 @@ void Raft::resetElectionTimerLocked(){
     std::uniform_int_distribution<int> dist(1500, 3000); // in milliseconds
     int timeout = dist(rng);
     electionTimer_->Reset(std::chrono::milliseconds(timeout));
-    // spdlog::info("[Raft] {} reset election timer to {} ms", me_, timeout);
 }
 void Raft::resetHeartbeatTimerLocked(){
     // Reset heartbeat timer to a fixed interval (e.g., 50ms)

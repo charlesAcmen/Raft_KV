@@ -20,7 +20,8 @@ class ThreadTimer : public ITimer {
         // synchronization
         std::mutex mu_;
         std::condition_variable cv_;
-        std::atomic<uint64_t> generation_;
+        std::chrono::steady_clock::time_point expiry_;
+        // std::atomic<uint64_t> generation_;
 
         // state (protected by mu_)
         bool running_{false};
