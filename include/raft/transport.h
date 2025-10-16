@@ -29,21 +29,20 @@ public:
     // Synchronously call RequestVote on `targetId`
     virtual bool RequestVoteRPC(int targetId,
     const type::RequestVoteArgs& args,
-    type::RequestVoteReply& reply,
-    std::chrono::milliseconds timeout) = 0;
+    type::RequestVoteReply& reply) = 0;
 
 
     // Synchronously call AppendEntries on `targetId`
     virtual bool AppendEntriesRPC(int targetId,
     const type::AppendEntriesArgs& args,
-    type::AppendEntriesReply& reply,
-    std::chrono::milliseconds timeout) = 0;
+    type::AppendEntriesReply& reply) = 0;
 
     virtual void RegisterRequestVoteHandler(
         std::function<std::string(const std::string&)> handler) = 0;
     virtual void RegisterAppendEntriesHandler(
         std::function<std::string(const std::string&)> handler) = 0;   
-
+private:
+    static constexpr std::chrono::milliseconds RPC_TIMEOUT{500};
 
 };
 

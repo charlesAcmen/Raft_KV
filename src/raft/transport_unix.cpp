@@ -80,8 +80,7 @@ void RaftTransportUnix::Stop() {
 bool RaftTransportUnix::RequestVoteRPC(
     int targetId,
     const type::RequestVoteArgs& args,
-    type::RequestVoteReply& reply,
-    std::chrono::milliseconds timeout) {
+    type::RequestVoteReply& reply) {
     // spdlog::info("[RaftTransportUnix] {} Sending RequestVoteRPC to peer {}", self_.id, targetId);
     auto it = clients_.find(targetId);
     if (it == clients_.end()) {
@@ -111,8 +110,7 @@ bool RaftTransportUnix::RequestVoteRPC(
  */
 bool RaftTransportUnix::AppendEntriesRPC(int targetId,
     const type::AppendEntriesArgs& args,
-    type::AppendEntriesReply& reply,
-    std::chrono::milliseconds timeout) {
+    type::AppendEntriesReply& reply) {
     // spdlog::info("[RaftTransportUnix] {} Sending AppendEntriesRPC to peer {}", self_.id, targetId);
     auto it = clients_.find(targetId);
     if (it == clients_.end()) {

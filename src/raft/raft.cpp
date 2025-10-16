@@ -408,8 +408,7 @@ std::optional<type::RequestVoteReply> Raft::sendRequestVoteRPC(int peerId){
     args.lastLogIndex = getLastLogIndexLocked();
     args.lastLogTerm = getLastLogTermLocked();
     type::RequestVoteReply reply{};
-    bool success = transport_->RequestVoteRPC(
-        peerId, args,reply,std::chrono::milliseconds(100));
+    bool success = transport_->RequestVoteRPC(peerId, args,reply);
     if (!success) {
         spdlog::warn("[Raft] Failed to send RequestVote RPC to peer {}", peerId);
         return std::nullopt;
@@ -426,9 +425,7 @@ std::optional<type::AppendEntriesReply> Raft::sendAppendEntriesRPC(int peerId){
     args.leaderCommit = commitIndex_;
 
     type::AppendEntriesReply reply{};
-    bool success = transport_->AppendEntriesRPC(
-        peerId, args, reply, std::chrono::milliseconds(100)
-    );
+    bool success = transport_->AppendEntriesRPC(peerId, args, reply);
 
     if (!success) {
         spdlog::warn("[Raft] Failed to send AppendEntries RPC to peer {}", peerId);
@@ -458,15 +455,17 @@ void Raft::broadcastHeartbeatLocked(){
 }
 void Raft::resetElectionTimerLocked(){
     // Reset election timer with a new randomized timeout
-    static thread_local std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<int> dist(1500, 3000); // in milliseconds
+    static thread_local std::mt19937_64 rng(std::random_device{}());
+    using Rep = std::chrono::milliseconds::rep;
+    Rep low = Raft::ELECTION_TIMEOUT_MIN.count();
+    Rep high = Raft::ELECTION_TIMEOUT_MAX.count();
+    std::uniform_int_distribution<int> dist(low,high); // in milliseconds
     int timeout = dist(rng);
     electionTimer_->Reset(std::chrono::milliseconds(timeout));
 }
 void Raft::resetHeartbeatTimerLocked(){
-    // Reset heartbeat timer to a fixed interval (e.g., 50ms)
-    int heartbeatInterval = 100; // in milliseconds
-    heartbeatTimer_->Reset(std::chrono::milliseconds(heartbeatInterval));
+    // Reset heartbeat timer to a fixed interval
+    heartbeatTimer_->Reset(Raft::HEARTBEAT_INTERVAL);
 }
 
 // -------- Timer callbacks -----------
@@ -506,7 +505,7 @@ std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peer){
 
     
     type::AppendEntriesReply reply{};
-    transport_->AppendEntriesRPC(peer, args, reply, std::chrono::milliseconds(100));
+    transport_->AppendEntriesRPC(peer, args, reply);
     return reply;
 }
 

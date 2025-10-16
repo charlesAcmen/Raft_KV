@@ -45,6 +45,11 @@ class Raft {
         void Join();
 
     private:
+        static constexpr std::chrono::milliseconds HEARTBEAT_INTERVAL{100};
+        static constexpr std::chrono::milliseconds ELECTION_TIMEOUT_MIN{1000};
+        static constexpr std::chrono::milliseconds ELECTION_TIMEOUT_MAX{2000};
+
+
         // Non-copyable
         Raft(const Raft&) = delete;
         Raft& operator=(const Raft&) = delete;

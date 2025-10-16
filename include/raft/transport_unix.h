@@ -25,8 +25,8 @@ public:
     void Start() override;
     void Stop() override;
 
-    bool RequestVoteRPC(int,const raft::type::RequestVoteArgs&,raft::type::RequestVoteReply&,std::chrono::milliseconds) override;
-    bool AppendEntriesRPC(int,const raft::type::AppendEntriesArgs&,raft::type::AppendEntriesReply&,std::chrono::milliseconds) override;
+    bool RequestVoteRPC(int,const raft::type::RequestVoteArgs&,raft::type::RequestVoteReply&) override;
+    bool AppendEntriesRPC(int,const raft::type::AppendEntriesArgs&,raft::type::AppendEntriesReply&) override;
 
     void RegisterRequestVoteHandler(
         std::function<std::string(const std::string&)> handler) override;
@@ -34,6 +34,8 @@ public:
         std::function<std::string(const std::string&)> handler) override;
 
 private:
+
+
     // Information about self and peers
     const raft::type::PeerInfo self_;
     const std::vector<raft::type::PeerInfo> peers_;
