@@ -17,7 +17,7 @@ namespace rpc{
         Close();
     }
     bool RpcClient::Connect(){
-        if(connected_) return true;
+        if(connected_.load(std::memory_order_acquire)) return true;
         //client address structure:sockaddr_un,unix,used in IPC
         struct sockaddr_un addr{};
         addr.sun_family = AF_UNIX;
@@ -40,36 +40,40 @@ namespace rpc{
             if (::connect(sock_fd, (struct sockaddr*)&addr, len) == 0) {
                 // success
                 // spdlog::info("[RpcClient] initSocket() RpcClient connected to {}:{} at attempt {}", host, port, attempts + 1);
-                connected_ = true;
+                connected_.store(true,std::memory_order_release);
                 return true;
             } 
             if (++attempts > MAX_RETRIES) {
                 // spdlog::error("[RpcClient] initSocket() RpcClient failed to connect to {}:{} after {} attempts: {}", host, port, attempts, strerror(e));
                 ::close(sock_fd);
                 // throw std::runtime_error(std::string("[RpcClient] initSocket() RpcClient::connect() failed: ") + strerror(e));
-                connected_ = false;
+                connected_.store(false,std::memory_order_release);
                 return false;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_INTERVAL_MS));
         }
-        connected_ = false;
+        connected_.store(false,std::memory_order_release);
         return false;
     }
     void RpcClient::Close(){
-        if(!connected_) return;
-        if (sock_fd != -1) {
+        // if(!connected_.load(std::memory_order_acquire)) return;
+        if (sock_fd >= 0) {
             ::close(sock_fd);
             sock_fd = -1;
         }
-        connected_ = false;
+        connected_.store(false, std::memory_order_release);
     }
     std::string RpcClient::Call(
         const std::string& method, 
         const std::string& payload){
-        if(!connected_){
-            bool success = Connect();
-            if(!success)
-                return "[RpcClient] call(const std::string& ,const std::string&) ERROR: not connected and connect() failed";
+        // double checking locking pattern,to avoid multiple threads connecting simultaneously
+        if(!connected_.load(std::memory_order_acquire)){
+            std::lock_guard<std::mutex> lg(conn_mtx_);
+            if(!connected_.load(std::memory_order_acquire)){
+                bool success = Connect();
+                if(!success)
+                    return "[RpcClient] call(const std::string& ,const std::string&) ERROR: not connected and connect() failed";
+            }
         }
         //use delimitercodec
         rpc::DelimiterCodec codec;
@@ -85,6 +89,7 @@ namespace rpc{
         ssize_t n = send(sock_fd, framed.c_str(), framed.size(), 0);
         if (n < 0) {
             spdlog::error("[RpcClient] call(const std::string& ,const std::string&) send() failed");
+            connected_.store(false, std::memory_order_release);
             return "[RpcClient] call(const std::string& ,const std::string&) ERROR: send() failed";
         }
         
@@ -96,12 +101,15 @@ namespace rpc{
             ssize_t r = recv(sock_fd, tmp, sizeof(tmp), 0);
             if (r < 0) {
                 spdlog::error("[RpcClient] call(const std::string& ,const std::string&) recv() failed");
+                connected_.store(false, std::memory_order_release);
                 return "[RpcClient] call(const std::string& ,const std::string&) ERROR: recv() failed";
             } else if (r == 0) {
                 // server closed connection
+                connected_.store(false);
+                ::close(sock_fd);
                 break;
             }
-            buffer.append(tmp, r);
+            buffer.append(tmp, static_cast<size_t>(r));
 
             // try decode
             auto resp = codec.tryDecodeResponse(buffer);

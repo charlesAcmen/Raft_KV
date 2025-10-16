@@ -2,6 +2,7 @@
 #include "raft/types.h"
 #include <string>
 #include <atomic>           //connected_ flag is atomic
+#include <mutex>            //mutex for thread safety
 /*
 RPC message format is defined as:
 [methodName]\n[payload]\nEND\n
@@ -30,6 +31,7 @@ namespace rpc{
             const raft::type::PeerInfo targetInfo_;   //info of the rpc server
 
             std::atomic<bool> connected_{false};
+            std::mutex conn_mtx_;                            
             int sock_fd{-1};
     };
 }//namespace rpc
