@@ -84,20 +84,25 @@ void Raft::Start() {
     transport_->Start();
     // start election timer
     // do not start heartbeat timer yet cuz only leader uses it
-    resetElectionTimerLocked();
+    {
+        std::lock_guard<std::mutex> lock(mu_);
+        resetElectionTimerLocked();
+    }
     spdlog::info("[Raft] {} started", me_);
     thread_ = std::thread([this]() { this->run(); });
 }  
 
 void Raft::Stop(){
+    spdlog::info("[Raft] {} Stopping...", me_);
     bool expected = true;
     if (!running_.compare_exchange_strong(expected, false)) {
+        spdlog::warn("[Raft] {} Stop() called but Raft is not running", me_);
         // already stopped or never started
         return;
     }
-    transport_->Stop(); 
     electionTimer_->Stop(); 
     heartbeatTimer_->Stop();
+    transport_->Stop(); 
     spdlog::info("[Raft] {} Stopped", me_);
 }
 

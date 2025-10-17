@@ -12,14 +12,9 @@ namespace rpc{
         selfInfo_ = selfInfo;
         initSocket();
     }
-    RpcServer::~RpcServer(){
-        Stop();
-    }
-    void RpcServer::Register_Handler(const std::string& method,
-        std::function<std::string(const std::string&)> handler
-    ){
-        handlers[method] = handler;
-    }
+    RpcServer::~RpcServer(){Stop();}
+    void RpcServer::Register_Handler(
+        const std::string& method,std::function<std::string(const std::string&)> handler){handlers[method] = handler;}
     /*
     1. Accept connections with accept().
     2. Communicate using send() and recv().
@@ -44,13 +39,11 @@ namespace rpc{
             // spdlog::info("[RpcServer] start() Accepted new connection: fd={}", client_fd);
             // Function&&(void(RpcServer::*func_ptr)(int)), this , Args&&... args
             // std::thread(&RpcServer::handleClient, this, client_fd).detach();
-
             std::thread t(&RpcServer::handleClient, this, client_fd);
             {
                 std::lock_guard<std::mutex> lg(threads_mtx_);
                 clientThreads_.emplace_back(std::move(t));
             }
-
         }// end of while loop
         // spdlog::info("[RpcServer] start() RpcServer stopped");
     }
