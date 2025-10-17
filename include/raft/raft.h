@@ -8,7 +8,7 @@
 #include <memory>   // for shared_ptr and unique_ptr
 #include <atomic>   //running_ is atomic
 #include <thread>   //for run() thread
-
+#include <condition_variable> // for apply_cv_
 namespace raft {
 //---------- Forward declarations ----------
 class IRaftTransport;
@@ -18,12 +18,7 @@ class ITimerFactory;
 class Raft {
     public:
         Raft(
-            int me,
-            const std::vector<int>& peers,
-            std::shared_ptr<IRaftTransport> transport,
-            std::shared_ptr<ITimerFactory> timerFactory = nullptr
-            // std::shared_ptr<IPersister> persister = nullptr
-        );
+            int,const std::vector<int>&,std::shared_ptr<IRaftTransport>,std::shared_ptr<ITimerFactory> = nullptr);
 
         ~Raft();
        
@@ -96,6 +91,8 @@ class Raft {
         //-------------------------------------
         //---------- Log management -----------
         //-------------------------------------
+        void ApplyLoop(); // background thread to apply committed logs to state machine
+
 
         // Returns the index of the last log entry (0 if no entries)
         int getLastLogIndexLocked() const;
@@ -103,8 +100,8 @@ class Raft {
         int getLastLogTermLocked() const;
         // Returns the term of log at given index (1-based)
         int getLogTermLocked(int index) const;
-        int getPrevLogIndexForLocked(int peerId) const;
-        int getPrevLogTermForLocked(int peerId) const;
+        int getPrevLogIndexLocked(int peerId) const;
+        int getPrevLogTermLocked(int peerId) const;
         std::vector<type::LogEntry> getEntriesToSendLocked(int peerId) const;
         // Applies committed log entries to the state machine
         void applyLogsLocked();
@@ -152,6 +149,10 @@ class Raft {
         //(initialized to 0, increases monotonically)
         int32_t lastApplied_{0};        // index of highest log entry applied to state machine
         //(initialized to 0, increases monotonically)
+        
+        std::condition_variable apply_cv_; // to signal application of logs to state machine
+        std::thread apply_thread_; // background thread for applying logs
+        // std::mutex apply_mu_; // separate mutex for apply_cv_ to avoid deadlock
 
         // Volatile state on leaders (reinitialized after election)
         // (Reinitialized after election)

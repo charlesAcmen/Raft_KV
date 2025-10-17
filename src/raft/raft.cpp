@@ -6,12 +6,19 @@
 #include <random>                   // for random election timeout 
 namespace raft{
 //-------------------public methods-------------------
-Raft::Raft(
-    int me,const std::vector<int>& peers,
-    std::shared_ptr<IRaftTransport> transport,
-    std::shared_ptr<ITimerFactory> timerFactory
-    // std::shared_ptr<IPersister> persister
-):me_(me), peers_(peers), transport_(transport),timerFactory_(timerFactory){
+Raft::Raft(int me,const std::vector<int>& peers,
+    std::shared_ptr<IRaftTransport> transport,std::shared_ptr<ITimerFactory> timerFactory)
+    :me_(me), peers_(peers), transport_(transport),timerFactory_(timerFactory){
+    // -----------------------
+    // Basic field initialization
+    // -----------------------
+    for (int peerId : peers_) {
+        if (peerId == me_) continue;
+        nextIndex_[peerId] = getLastLogIndexLocked() + 1; // next log entry to send
+        matchIndex_[peerId] = 0; // last known replicated index
+    }   
+
+
 
     // -----------------------
     // Basic invariant checks
@@ -75,6 +82,10 @@ Raft::~Raft() {
 
 void Raft::Start() {
     bool expected = false;
+    // parameter: first is the expected value of running_
+    // second is the desired value to set
+    // returns true if equals to expected and sets to desired 
+    // returns false if not equal to expected and does not set
     if (!running_.compare_exchange_strong(expected, true)) {
         spdlog::warn("[Raft] {} Start() called but Raft is already running", me_);
         // already started
@@ -90,15 +101,20 @@ void Raft::Start() {
     }
     spdlog::info("[Raft] {} started", me_);
     thread_ = std::thread([this]() { this->run(); });
+    apply_thread_ = std::thread([this] { ApplyLoop();});
 }  
 
 void Raft::Stop(){
     spdlog::info("[Raft] {} Stopping...", me_);
-    bool expected = true;
-    if (!running_.compare_exchange_strong(expected, false)) {
-        spdlog::warn("[Raft] {} Stop() called but Raft is not running", me_);
-        // already stopped or never started
-        return;
+    {
+        std::lock_guard<std::mutex> lock(mu_);
+        bool expected = true;
+        if (!running_.compare_exchange_strong(expected, false)) {
+            spdlog::warn("[Raft] {} Stop() called but Raft is not running", me_);
+            // already stopped or never started
+            return;
+        };
+        apply_cv_.notify_all();
     }
     electionTimer_->Stop(); 
     heartbeatTimer_->Stop();
@@ -108,15 +124,20 @@ void Raft::Stop(){
 
 void Raft::Join() {
     if (thread_.joinable()) {
-        // spdlog::info("[Raft] {} Join() - waiting thread to exit", me_);
+        // spdlog::info("[Raft] {} Join() - waiting run thread to exit", me_);
         thread_.join();
-        // spdlog::info("[Raft] {} Join() - thread exited", me_);
+        // spdlog::info("[Raft] {} Join() - run thread exited", me_);
+    }
+    if( apply_thread_.joinable()) {
+        // spdlog::info("[Raft] {} Join() - waiting apply thread to exit", me_);
+        apply_thread_.join();
+        // spdlog::info("[Raft] {} Join() - apply thread exited", me_);
     }
 }
 
 //-------------------private methods-------------------
 void Raft::run() {
-    while (running_) {
+    while (running_.load(std::memory_order_acquire)) {
         // ==========================
         // Sleep briefly to reduce busy wait
         // ==========================
@@ -253,9 +274,11 @@ type::RequestVoteReply Raft::HandleRequestVote(const type::RequestVoteArgs& args
         becomeFollowerLocked(args.term);
     }
 
+    int lastTerm = getLastLogTermLocked();
+    int lastIdx = getLastLogIndexLocked();
     // Step 3: vote for candidate only if candidate’s log is at least as up-to-date as receiver’s log
-    bool logOk = (args.lastLogTerm > getLastLogTermLocked()) ||
-                 (args.lastLogTerm == getLastLogTermLocked() && args.lastLogIndex >= getLastLogIndexLocked());
+    bool logOk = (args.lastLogTerm > lastTerm) ||
+                 (args.lastLogTerm == lastTerm && args.lastLogIndex >= lastIdx);
 
     //have not voted this term or voted for candidate, and candidate's log is at least as up-to-date
     if ((votedFor_ == std::nullopt || votedFor_ == args.candidateId) && logOk) {
@@ -279,7 +302,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     // Step 1: Reply false if term < currentTerm
     if (args.term < currentTerm_) {
         reply.success = false;
-        spdlog::info("[Raft] {} rejecting vote for {}: stale term ({} < {})",
+        spdlog::info("[Raft] {} rejecting AppendeEntries fom {}: stale term ({} < {})",
             me_, args.leaderId, args.term, currentTerm_);
         return reply;
     }
@@ -288,11 +311,10 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     if (args.term > currentTerm_) {
         becomeFollowerLocked(args.term); 
         spdlog::info("[Raft] {} updating term to {} and becomes follower", me_, currentTerm_);
-    }else{
-        // Step 3: Reset election timeout since valid leader contacted us
-        // Receiving valid AppendEntries acts as heartbeat → reset timeout
-        resetElectionTimerLocked();
     }
+    // Step 3: Reset election timeout since valid leader contacted us
+    // Receiving valid AppendEntries acts as heartbeat → reset timeout
+    resetElectionTimerLocked();
 
     // Step 4: Check if log doesn’t contain an entry at prevLogIndex whose term matches prevLogTerm
     // 如果日志中没有在 prevLogIndex 位置的条目，
@@ -312,9 +334,11 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     // delete the existing entry and all that follow it
     for (size_t i = 0; i < args.entries.size(); ++i) {
         int index = args.prevLogIndex + 1 + i;
-        if (index <= getLastLogIndexLocked() && getLogTermLocked(index) != args.entries[i].term) {
-            // Conflict, delete all entries from index onward
-            deleteLogFromIndexLocked(index);
+        if (index <= getLastLogIndexLocked()) {
+            if(getLogTermLocked(index) != args.entries[i].term){
+                // Conflict, delete all entries from index onward
+                deleteLogFromIndexLocked(index);
+            }
         }
         if (index > getLastLogIndexLocked()) {
             log_.push_back(args.entries[i]);
@@ -324,7 +348,8 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     // Step 6: Update commitIndex
     if (args.leaderCommit > commitIndex_) {
         commitIndex_ = std::min(args.leaderCommit, getLastLogIndexLocked());
-        applyLogsLocked(); // apply committed logs to state machine
+        // applyLogsLocked(); // apply committed logs to state machine
+        apply_cv_.notify_one(); // notify apply thread
     }
 
     reply.success = true;
@@ -332,15 +357,29 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
 }
 
 //---------- Log management -----------
-int Raft::getLastLogIndexLocked() const{
+void Raft::ApplyLoop() {
+    while (running_.load(std::memory_order_acquire)) {
+        std::unique_lock<std::mutex> lock(mu_);
+        apply_cv_.wait(lock, [&] {
+            // Wake up if there are committed logs to apply or if stopping
+            return lastApplied_ < commitIndex_ || !running_.load(std::memory_order_acquire);
+        });
+        if (!running_.load(std::memory_order_acquire)) break;
+        //TODO: apply committed logs to state machine asynchronously
+        applyLogsLocked();
+    }
+}
+
+
+inline int Raft::getLastLogIndexLocked() const{
     // If log is empty, return 0 , first log index as 1
     return static_cast<int>(log_.size());
 }
-int Raft::getLastLogTermLocked() const{
+inline int Raft::getLastLogTermLocked() const{
     // If log is empty, return 0 as initial term
     return log_.empty() ? 0 : log_.back().term;
 }
-int Raft::getLogTermLocked(int index) const{
+inline int Raft::getLogTermLocked(int index) const{
     // Log index starts at 1 in Raft, so adjust for 0-based vector
     if (index <= 0 || index > static_cast<int>(log_.size())) {
         // Out of range; return 0 as default term
@@ -349,13 +388,13 @@ int Raft::getLogTermLocked(int index) const{
     return log_[index - 1].term;
 }
 // Returns the log index immediately before what should be sent to the given peer.
-int Raft::getPrevLogIndexForLocked(int peerId) const {
+inline int Raft::getPrevLogIndexLocked(int peerId) const {
     return nextIndex_.at(peerId) - 1;
 }
 
 // Returns the term of the log entry immediately before what should be sent to the given peer.
-int Raft::getPrevLogTermForLocked(int peerId) const {
-    int prevIndex = getPrevLogIndexForLocked(peerId);
+inline int Raft::getPrevLogTermLocked(int peerId) const {
+    int prevIndex = getPrevLogIndexLocked(peerId);
     return prevIndex > 0 ? getLogTermLocked(prevIndex) : 0;
 }
 // Returns the log entries to send to the given peer for AppendEntries RPC.
@@ -364,24 +403,25 @@ std::vector<type::LogEntry> Raft::getEntriesToSendLocked(int peerId) const {
     if (start > getLastLogIndexLocked()) return {};
     return std::vector<type::LogEntry>(log_.begin() + start, log_.end());
 }
+
 void Raft::applyLogsLocked(){
     // Apply all committed entries not yet applied
     while (lastApplied_ < commitIndex_) {
         lastApplied_++;
-        const auto &entry = log_.at(lastApplied_); // assuming log_ is 1-based index or adjusted
+        const type::LogEntry& entry = log_.at(lastApplied_);
         // Here you should actually apply 'entry.command' to your state machine.
         // e.g. stateMachine.apply(entry.command);
-        spdlog::info("[applyLogs] Applying log at index {} (term={})", lastApplied_, entry.term);
+        spdlog::info("[Raft] applyLogs Applying log at index {} (term={})", lastApplied_, entry.term);
     }
 }
 void Raft::deleteLogFromIndexLocked(int index){
     if (index <= 0 || index > static_cast<int>(log_.size())) {
-        spdlog::warn("[deleteLogFromIndex] Invalid index {}, log size={}", index, log_.size());
+        spdlog::warn("[Raft] deleteLogFromIndex Invalid index {}, log size={}", index, log_.size());
         return;
     }
     // Erase all entries from `index` to end
     log_.erase(log_.begin() + index, log_.end());
-    spdlog::info("[deleteLogFromIndex] Deleted logs from index {} to end, remaining size={}", 
+    spdlog::info("[Raft] deleteLogFromIndex Deleted logs from index {} to end, remaining size={}", 
                  index, log_.size());
 }
 
@@ -411,7 +451,7 @@ std::optional<type::AppendEntriesReply> Raft::sendAppendEntriesRPC(int peerId){
     args.leaderId = me_;
     args.prevLogIndex = getLastLogIndexLocked();
     args.prevLogTerm = getLastLogTermLocked();
-    args.entries = {}; // empty for now, can be filled with actual log entries later
+    args.entries = getEntriesToSendLocked(peerId);
     args.leaderCommit = commitIndex_;
 
     type::AppendEntriesReply reply{};

@@ -2,10 +2,9 @@
 #pragma once
 #include "raft/raft.h"
 #include <vector>
-#include <memory>
-#include <csignal>
+#include <memory>               //shared_ptr
 #include <condition_variable>
-#include <atomic>
+#include <atomic>               //shutdown_requested_ and global_instance_for_signal_
 
 namespace raft {
 class Raft; // forward declaration
@@ -16,7 +15,7 @@ public:
 
     // create N nodes (IDs 0..N-1) and keep them in nodes_
     void CreateNodes(int n);
-
+    
     // Start all nodes
     void StartAll();
 
@@ -37,6 +36,7 @@ private:
 
     // static signal handler helper
     static void SignalHandler(int signum);
-    static std::atomic<Cluster*> global_instance_for_signal_; // for signal forwarding
+    // for signal forwarding
+    static std::atomic<Cluster*> global_instance_for_signal_; 
 };
 }// namespace raft

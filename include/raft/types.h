@@ -1,8 +1,8 @@
 #pragma once
-#include <cstdint>  // for int32_t
+#include <cstdint>  // for int32_t,c standard types
 #include <string>   
 #include <vector>
-
+#include <chrono>   // for time_point
 // Basic types and structures for Raft consensus algorithm
 // all following codes are inline with Raft paper notations
 namespace raft::type{
@@ -21,10 +21,8 @@ struct PeerInfo {
     std::string sockPath;   // /tmp/raft-node-<id>.sock,Unix socket path for RPC
 };
 
-
-// A minimal log entry structure.
 struct LogEntry {
-    int32_t index{0}; // 1-based index
+    int32_t index{0}; // 1-based index in the raft log
     int32_t term{0};  // term when entry was received by leader
     std::string command; // opaque command (may be empty for heartbeats)
 };

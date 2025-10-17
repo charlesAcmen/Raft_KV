@@ -5,7 +5,7 @@
 #include <vector>
 #include <spdlog/spdlog.h>
 #include <thread>
-
+#include <csignal>
 namespace raft {
 std::atomic<Cluster*> Cluster::global_instance_for_signal_{nullptr};
 
@@ -41,7 +41,6 @@ void Cluster::CreateNodes(int n) {
     }
     spdlog::info("Raft cluster with {} nodes initialized.", nodes_.size());
 }
-
 void Cluster::StartAll() {
     for (auto &n : nodes_) n->Start();
 }
