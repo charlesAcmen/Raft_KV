@@ -2,7 +2,7 @@
 #include <spdlog/spdlog.h>
 int main(){
     raft::Cluster cluster;
-    cluster.CreateNodes(5);
+    cluster.CreateNodes(3);
 
     // Start all nodes. They will run in background threads.
     cluster.StartAll();

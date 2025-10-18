@@ -74,9 +74,9 @@ class Raft {
         //--------- Helper functions ----------
         //-------------------------------------
         // Send one RequestVote RPC
-        std::optional<type::RequestVoteReply> sendRequestVoteRPC(int peerId);     
+        std::optional<type::RequestVoteReply> sendRequestVoteRPCLocked(int peerId);     
         // Send one AppendEntries RPC (heartbeat or log)
-        std::optional<type::AppendEntriesReply> sendAppendEntriesRPC(int peerId);  
+        std::optional<type::AppendEntriesReply> sendAppendEntriesRPCLocked(int peerId);  
         // Send empty AppendEntries to all peers
         void broadcastHeartbeatLocked(); 
         // Send AppendEntries (with log entries) to all peers   
