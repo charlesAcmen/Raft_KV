@@ -22,6 +22,12 @@ class Raft {
 
         ~Raft();
        
+        // Submit a command to this Raft node
+        // Returns false if this node is not the leader
+        bool SubmitCommand(const std::string& command);
+
+        bool isLeader() const;
+
         // Start internal worker thread,transport,and timers.
         void Start();
 
@@ -72,10 +78,11 @@ class Raft {
         // Send one AppendEntries RPC (heartbeat or log)
         std::optional<type::AppendEntriesReply> sendAppendEntriesRPC(int peerId);  
         // Send empty AppendEntries to all peers
-        void broadcastHeartbeatLocked();            
+        void broadcastHeartbeatLocked(); 
+        // Send AppendEntries (with log entries) to all peers   
+        void broadcastAppendEntriesLocked();       
         // Send heartbeat to one peer 
         std::optional<type::AppendEntriesReply> sendHeartbeatLocked(int peer);
-
         //-------------------------------------
         //---------- Role transtions ----------
         //-------------------------------------
@@ -91,8 +98,9 @@ class Raft {
         //-------------------------------------
         //---------- Log management -----------
         //-------------------------------------
+        void AppendLogEntryLocked(const std::string& command); // append new command to log
         void ApplyLoop(); // background thread to apply committed logs to state machine
-
+        void updateCommitIndexLocked();// update commitIndex_ on leader
 
         // Returns the index of the last log entry (0 if no entries)
         int getLastLogIndexLocked() const;
@@ -136,7 +144,7 @@ class Raft {
         // all following codes are inline with Raft paper notations
 
         // Persistent state on all servers
-        type::Role role_{type::Role::Follower};
+        std::atomic<type::Role> role_{type::Role::Follower}; // current role of this node
         int32_t currentTerm_{0};            // latest term server has seen(initialized to 0 on first boot, 
         //increases monotonically)
         std::optional<int32_t> votedFor_;   // candidateId that received vote in currentTerm

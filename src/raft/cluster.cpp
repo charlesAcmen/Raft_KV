@@ -15,6 +15,16 @@ Cluster::~Cluster() {
     JoinAll();
     nodes_.clear();
 }
+bool Cluster::SubmitCommand(const std::string& command) {
+    std::shared_ptr<Raft> leader = GetLeader();
+    if (leader == nullptr) {
+        spdlog::warn("[Cluster] No leader found, cannot submit command");
+        return false;
+    }
+    spdlog::info("[Cluster] Submitting command '{}'", command);
+    return leader->SubmitCommand(command);
+}
+
 
 void Cluster::CreateNodes(int n) {
     StopAll(); 
@@ -41,6 +51,18 @@ void Cluster::CreateNodes(int n) {
     }
     spdlog::info("Raft cluster with {} nodes initialized.", nodes_.size());
 }
+void Cluster::WaitForLeader(int maxAttempts) {
+    for (int i = 0; i < maxAttempts; ++i) {
+        std::shared_ptr<Raft> leader = GetLeader();
+        if (leader) {
+            spdlog::info("[Main] Leader elected");
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    spdlog::warn("[Main] Timeout waiting for leader election!");
+}
+
 void Cluster::StartAll() {
     for (auto &n : nodes_) n->Start();
 }
@@ -82,6 +104,17 @@ void Cluster::WaitForShutdown() {
     spdlog::info("[Cluster] Shutdown requested, stopping cluster...");
     StopAll();
     JoinAll();
+}
+
+
+//---------private methods ----------
+std::shared_ptr<Raft> Cluster::GetLeader() const {
+    for (const auto& node : nodes_) {
+        if (node->isLeader()) {
+            return node;
+        }
+    }
+    return nullptr;
 }
 
 }// namespace raft

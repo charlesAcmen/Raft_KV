@@ -79,6 +79,22 @@ Raft::~Raft() {
     Stop();
     Join();
 }
+bool Raft::SubmitCommand(const std::string& command){
+    std::lock_guard<std::mutex> lock(mu_);
+    if (role_ != type::Role::Leader) {
+        spdlog::warn("[Raft] {} rejected client command '{}': not leader", me_, command);
+        return false;
+    }
+
+    AppendLogEntryLocked(command);
+    spdlog::info("[Raft] {} appended new log entry for command '{}'", me_, command);
+
+    // After appending a new log entry, try to replicate it to followers
+    broadcastAppendEntriesLocked();
+    return true;
+}
+
+
 
 void Raft::Start() {
     bool expected = false;
@@ -350,6 +366,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
         commitIndex_ = std::min(args.leaderCommit, getLastLogIndexLocked());
         // applyLogsLocked(); // apply committed logs to state machine
         apply_cv_.notify_one(); // notify apply thread
+        spdlog::info("[Raft] {} apply_cv_ notified",me_);
     }
 
     reply.success = true;
@@ -357,6 +374,17 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
 }
 
 //---------- Log management -----------
+void Raft::AppendLogEntryLocked(const std::string& command) {
+    type::LogEntry entry;
+    entry.term = currentTerm_;
+    entry.command = command;
+    entry.index = getLastLogIndexLocked() + 1;
+
+    log_.push_back(entry);
+}
+
+
+
 void Raft::ApplyLoop() {
     while (running_.load(std::memory_order_acquire)) {
         std::unique_lock<std::mutex> lock(mu_);
@@ -369,7 +397,35 @@ void Raft::ApplyLoop() {
         applyLogsLocked();
     }
 }
+/*
+If there exists an N such that N > commitIndex, 
+a majority of matchIndex[i] ≥ N, 
+and log[N].term == currentTerm, set commitIndex = N.
+*/
+void Raft::updateCommitIndexLocked(){
+    // Only leader updates commitIndex_
+    if (role_ != type::Role::Leader) return;
 
+    for (int N = getLastLogIndexLocked(); N > commitIndex_; --N) {
+        // Raft §5.4.2: Only commit logs from the current term
+        if (getLogTermLocked(N) != currentTerm_) continue;
+
+        int replicatedCount = 1; // count self
+        for (const auto& peer : peers_) {
+            if (peer == me_) continue;
+            if (matchIndex_.at(peer) >= N) {
+                replicatedCount++;
+            }
+        }
+        int majority = (peers_.size() / 2) + 1;
+        if (replicatedCount >= majority) {
+            commitIndex_ = N;
+            spdlog::info("[Raft] {} updated commitIndex to {}", me_, commitIndex_);
+            apply_cv_.notify_one(); // notify apply thread
+            break;
+        }
+    }
+}
 
 inline int Raft::getLastLogIndexLocked() const{
     // If log is empty, return 0 , first log index as 1
@@ -482,6 +538,36 @@ void Raft::broadcastHeartbeatLocked(){
         }
     }
 }
+void Raft::broadcastAppendEntriesLocked(){
+    for(const auto& peer : peers_){
+        if(peer == me_) continue; // skip self
+        std::optional<type::AppendEntriesReply> reply = sendAppendEntriesRPC(peer);
+        if (reply) {
+            if (reply->term > currentTerm_) {
+                becomeFollowerLocked(reply->term);
+                spdlog::info("[Raft] Node {} stepping down to Follower due to higher term from {}", me_, peer);
+                break;
+            }
+            else {
+                if(reply->success){
+                    nextIndex_[peer] = getLastLogIndexLocked() + 1;
+                    matchIndex_[peer] = nextIndex_[peer] - 1;
+                    spdlog::info("[Raft] Node {} AppendEntries success from {}, matchIndex={} nextIndex={}", 
+                    me_, peer, matchIndex_[peer], nextIndex_[peer]);
+                    updateCommitIndexLocked();
+                } else {
+                    // Decrement nextIndex_ on failure
+                    nextIndex_[peer] = std::max(1, nextIndex_[peer] - 1);
+                    spdlog::info("[Raft] Node {} AppendEntries failed from {}, decrementing nextIndex to {}", 
+                    me_, peer, nextIndex_[peer]);
+                }
+            }
+        } else {
+            spdlog::warn("[Raft] Node {} AppendEntries to {} failed", me_, peer);
+            //TODO: handle no reply (network failure, timeout)
+        }
+    }
+}
 void Raft::resetElectionTimerLocked(){
     // Reset election timer with a new randomized timeout
     static thread_local std::mt19937_64 rng(std::random_device{}());
@@ -535,6 +621,10 @@ std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peer){
         return std::nullopt;
     }
     return reply;
+}
+
+bool Raft::isLeader() const {
+    return role_.load(std::memory_order_acquire) == type::Role::Leader;
 }
 
 }// namespace raft
