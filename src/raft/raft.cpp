@@ -87,8 +87,6 @@ bool Raft::SubmitCommand(const std::string& command){
     }
 
     AppendLogEntryLocked(command);
-    spdlog::info("[Raft] {} appended new log entry for command '{}'", me_, command);
-
     // After appending a new log entry, try to replicate it to followers
     broadcastAppendEntriesLocked();
     return true;
@@ -345,7 +343,6 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     }
 
     // Step 5: Append any new entries not already in the log
-    // (Here we assume entries contain only sizes or actual entries in a real implementation)
     // If existing entries conflict with new ones (same index but different term), 
     // delete the existing entry and all that follow it
     for (size_t i = 0; i < args.entries.size(); ++i) {
@@ -358,6 +355,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
         }
         if (index > getLastLogIndexLocked()) {
             log_.push_back(args.entries[i]);
+            spdlog::info("[Raft] {} appended new log entry at index {} from leader {}", me_, index, args.leaderId);
         }
     }
 
@@ -381,6 +379,7 @@ void Raft::AppendLogEntryLocked(const std::string& command) {
     entry.index = getLastLogIndexLocked() + 1;
 
     log_.push_back(entry);
+    spdlog::info("[Raft] {} appended new log entry for command '{}'", me_, command);
 }
 
 
@@ -464,10 +463,12 @@ void Raft::applyLogsLocked(){
     // Apply all committed entries not yet applied
     while (lastApplied_ < commitIndex_) {
         lastApplied_++;
-        const type::LogEntry& entry = log_.at(lastApplied_);
+        //0 based index for log_ vector
+        const type::LogEntry& entry = log_.at(lastApplied_-1);
         // Here you should actually apply 'entry.command' to your state machine.
         // e.g. stateMachine.apply(entry.command);
-        spdlog::info("[Raft] applyLogs Applying log at index {} (term={})", lastApplied_, entry.term);
+        spdlog::info("[Raft] {} applied log entry at index {} with command '{}' (term={})", 
+                     me_, entry.index, entry.command,entry.term);
     }
 }
 void Raft::deleteLogFromIndexLocked(int index){
@@ -505,8 +506,8 @@ std::optional<type::AppendEntriesReply> Raft::sendAppendEntriesRPC(int peerId){
     type::AppendEntriesArgs args{};
     args.term = currentTerm_;
     args.leaderId = me_;
-    args.prevLogIndex = getLastLogIndexLocked();
-    args.prevLogTerm = getLastLogTermLocked();
+    args.prevLogIndex = getPrevLogIndexLocked(peerId);
+    args.prevLogTerm = getPrevLogTermLocked(peerId);
     args.entries = getEntriesToSendLocked(peerId);
     args.leaderCommit = commitIndex_;
 
@@ -543,6 +544,7 @@ void Raft::broadcastAppendEntriesLocked(){
         if(peer == me_) continue; // skip self
         std::optional<type::AppendEntriesReply> reply = sendAppendEntriesRPC(peer);
         if (reply) {
+            //rpc reply received
             if (reply->term > currentTerm_) {
                 becomeFollowerLocked(reply->term);
                 spdlog::info("[Raft] Node {} stepping down to Follower due to higher term from {}", me_, peer);
@@ -608,8 +610,9 @@ std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peer){
     type::AppendEntriesArgs args{};
     args.term = currentTerm_;
     args.leaderId = me_;
-    args.prevLogIndex = getLastLogIndexLocked();
-    args.prevLogTerm = getLastLogTermLocked();
+    //plz make sure correct function called god damn it lol
+    args.prevLogIndex = getPrevLogIndexLocked(peer);
+    args.prevLogTerm = getPrevLogTermLocked(peer);
     args.entries = {}; // empty for heartbeat
     args.leaderCommit = commitIndex_;
 
