@@ -23,9 +23,17 @@ public:
         only pass entries size here for now for simplicity
         when dealing with log replication, we need to serialize each entry
         */
-        ss << args.term << "\n" << args.leaderId << "\n" << args.prevLogIndex
-           << "\n" << args.prevLogTerm << "\n" << args.entries.size()
-           << "\n" << args.leaderCommit;
+        ss << args.term << "\n" 
+           << args.leaderId << "\n" 
+           << args.prevLogIndex << "\n" 
+           << args.prevLogTerm << "\n" 
+           << args.entries.size() << "\n" 
+           << args.leaderCommit << "\n";
+        
+        // Serialize each log entry: index term command
+        for (const auto& entry : args.entries) {
+            ss << entry.index << " " << entry.term << " " << entry.command << "\n";
+        }
         return ss.str();
     }
 
@@ -113,11 +121,32 @@ public:
 
         if (!std::getline(ss, field, '\n')) return {};
         if (field.empty()) return {};
-        args.entries.resize(std::stoi(field));
+        int entryCount = std::stoi(field);
+        args.entries.resize(entryCount);
 
         if (!std::getline(ss, field, '\n')) return {};
         if (field.empty()) return {};
         args.leaderCommit = std::stoi(field);
+
+        // 7. parse each log entry: "index term command"
+        for (int i = 0; i < entryCount; ++i) {
+            if (!std::getline(ss, field)) return {}; // not enough lines
+            std::stringstream entrySS(field);
+            type::LogEntry entry;
+            std::string commandPart;
+
+            // index and term
+            if (!(entrySS >> entry.index >> entry.term)) return {}; 
+
+            // rest of line is command
+            std::getline(entrySS, commandPart);
+            if (!commandPart.empty() && commandPart[0] == ' ') commandPart.erase(0, 1);
+            entry.command = commandPart;
+
+            args.entries[i] = entry;
+        }
+
+
 
         return args;
     }

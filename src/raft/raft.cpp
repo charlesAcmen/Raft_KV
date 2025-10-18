@@ -356,6 +356,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     // delete the existing entry and all that follow it
     // spdlog::info("[Raft] {} appending {} entries from leader {}", me_, args.entries.size(), args.leaderId);
     for (size_t i = 0; i < args.entries.size(); ++i) {
+        const auto& entry = args.entries[i];
         int index = args.prevLogIndex + 1 + i;
         if (index <= getLastLogIndexLocked()) {
             if(getLogTermLocked(index) != args.entries[i].term){
@@ -363,9 +364,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
                 deleteLogFromIndexLocked(index);
             }
         }else{
-            log_.push_back(args.entries[i]);
-            spdlog::info("[Raft] args.entries[i].term: {}, index:{}, command:{}",
-                args.entries[i].term, args.entries[i].index, args.entries[i].command);
+            log_.push_back(entry);
             spdlog::info("[Raft] {} appended new log entry at index {} from leader {}", me_, index, args.leaderId);
         }
     }
@@ -375,7 +374,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
         commitIndex_ = std::min(args.leaderCommit, getLastLogIndexLocked());
         // applyLogsLocked(); // apply committed logs to state machine
         apply_cv_.notify_one(); // notify apply thread
-        spdlog::info("[Raft] {} apply_cv_ notified",me_);
+        // spdlog::info("[Raft] {} apply_cv_ notified",me_);
     }
 
     reply.success = true;
@@ -522,12 +521,6 @@ std::optional<type::AppendEntriesReply> Raft::sendAppendEntriesRPCLocked(int pee
     args.prevLogIndex = getPrevLogIndexLocked(peerId);
     args.prevLogTerm = getPrevLogTermLocked(peerId);
     args.entries = getEntriesToSendLocked(peerId);
-    spdlog::info("[Raft] AppendEntries args to peer {}: term={}, leaderId={}, prevLogIndex={}, prevLogTerm={}, entriesCount={}, leaderCommit={}",
-        peerId, args.term, args.leaderId, args.prevLogIndex, args.prevLogTerm, args.entries.size(), args.leaderCommit);
-    for(const auto& entry : args.entries){
-        spdlog::info("[Raft] Sending log entry to peer {}: index={}, term={}, command='{}'", 
-                     peerId, entry.index, entry.term, entry.command);
-    }
     args.leaderCommit = commitIndex_;
     type::AppendEntriesReply reply{};
     bool success = transport_->AppendEntriesRPC(peerId, args, reply);
@@ -634,8 +627,8 @@ std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peerId){
     args.entries = {}; // empty for heartbeat
     args.leaderCommit = commitIndex_;
 
-    spdlog::info("[Raft] Heartbeat AppendEntries args: term={}, leaderId={}, prevLogIndex={}, prevLogTerm={}, leaderCommit={}",
-        args.term, args.leaderId, args.prevLogIndex, args.prevLogTerm, args.leaderCommit);
+    // spdlog::info("[Raft] Heartbeat AppendEntries args: term={}, leaderId={}, prevLogIndex={}, prevLogTerm={}, leaderCommit={}",
+    //     args.term, args.leaderId, args.prevLogIndex, args.prevLogTerm, args.leaderCommit);
 
     type::AppendEntriesReply reply{};
     bool success = transport_->AppendEntriesRPC(peerId, args, reply);
