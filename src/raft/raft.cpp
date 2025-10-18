@@ -345,6 +345,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     // Step 5: Append any new entries not already in the log
     // If existing entries conflict with new ones (same index but different term), 
     // delete the existing entry and all that follow it
+    // spdlog::info("[Raft] {} appending {} entries from leader {}", me_, args.entries.size(), args.leaderId);
     for (size_t i = 0; i < args.entries.size(); ++i) {
         int index = args.prevLogIndex + 1 + i;
         if (index <= getLastLogIndexLocked()) {
@@ -456,7 +457,8 @@ inline int Raft::getPrevLogTermLocked(int peerId) const {
 std::vector<type::LogEntry> Raft::getEntriesToSendLocked(int peerId) const {
     int start = nextIndex_.at(peerId);
     if (start > getLastLogIndexLocked()) return {};
-    return std::vector<type::LogEntry>(log_.begin() + start, log_.end());
+    int startOffset = start - 1; // adjust for 0-based index
+    return std::vector<type::LogEntry>(log_.begin() + startOffset, log_.end());
 }
 
 void Raft::applyLogsLocked(){
@@ -468,7 +470,7 @@ void Raft::applyLogsLocked(){
         // Here you should actually apply 'entry.command' to your state machine.
         // e.g. stateMachine.apply(entry.command);
         spdlog::info("[Raft] {} applied log entry at index {} with command '{}' (term={})", 
-                     me_, entry.index, entry.command,entry.term);
+                     me_, lastApplied_, entry.command,entry.term);
     }
 }
 void Raft::deleteLogFromIndexLocked(int index){
@@ -477,7 +479,7 @@ void Raft::deleteLogFromIndexLocked(int index){
         return;
     }
     // Erase all entries from `index` to end
-    log_.erase(log_.begin() + index, log_.end());
+    log_.erase(log_.begin() + (index - 1), log_.end());
     spdlog::info("[Raft] deleteLogFromIndex Deleted logs from index {} to end, remaining size={}", 
                  index, log_.size());
 }
@@ -531,7 +533,7 @@ void Raft::broadcastHeartbeatLocked(){
                 break;
             }
             else {
-                spdlog::info("[Raft] Node {} heartbeat acknowledged by {}", me_, peer);
+                // spdlog::info("[Raft] Node {} heartbeat acknowledged by {}", me_, peer);
             }
         } else {
             spdlog::warn("[Raft] Node {} heartbeat to {} failed", me_, peer);
@@ -561,7 +563,7 @@ void Raft::broadcastAppendEntriesLocked(){
                     // Decrement nextIndex_ on failure
                     nextIndex_[peer] = std::max(1, nextIndex_[peer] - 1);
                     spdlog::info("[Raft] Node {} AppendEntries failed from {}, decrementing nextIndex to {}", 
-                    me_, peer, nextIndex_[peer]);
+                        me_, peer, nextIndex_[peer]);
                 }
             }
         } else {
