@@ -30,6 +30,5 @@ target_link_libraries(craft-kv PRIVATE raft_lib spdlog::spdlog)
 
 # enable_testing()
 # add_executable(raft_test test/raft_conflict_test.cpp)
-
-# target_link_libraries(raft_test PRIVATE raft_lib gtest gtest_main pthread)
-# add_test(NAME RaftConflictTest COMMAND craft-kv)
+# target_link_libraries(raft_test PRIVATE raft_lib gtest gtest_main pthread spdlog::spdlog)
+# add_test(NAME RaftConflictTest COMMAND raft_test)

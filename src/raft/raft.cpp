@@ -53,11 +53,7 @@ Raft::Raft(int me,const std::vector<int>& peers,
     transport_->RegisterAppendEntriesHandler(
         [this](const std::string& payload) -> std::string {
             try {
-                // spdlog::info("[Raft] Raw AppendEntries payload received by node {}: \n{}",
-                //     this->me_, payload);
                 type::AppendEntriesArgs args = codec::RaftCodec::decodeAppendEntriesArgs(payload);
-                // spdlog::info("[Raft] Decoded AppendEntriesArgs at node {}: term={}, leaderId={}, prevLogIndex={}, prevLogTerm={}, entriesCount={}, leaderCommit={}",
-                //     this->me_, args.term, args.leaderId, args.prevLogIndex, args.prevLogTerm, args.entries.size(), args.leaderCommit);
                 type::AppendEntriesReply reply = this->HandleAppendEntries(args);
                 return codec::RaftCodec::encode(reply);
             } catch (const std::exception& e) {
@@ -245,7 +241,6 @@ void Raft::becomeCandidateLocked(){
     spdlog::info("[Raft] Node {} becomes candidate (term={})", me_, currentTerm_);
     votedFor_ = me_;
     resetElectionTimerLocked();
-    startElectionLocked();
 }
 // Leader rules:
 // 1.Upon election: send initial empty AppendEntries RPCs (heartbeats) to each server;
@@ -605,6 +600,7 @@ void Raft::onElectionTimeout(){
     std::lock_guard<std::mutex> lock(mu_);
     spdlog::info("[Raft] Election timeout occurred on node {}.", me_);
     becomeCandidateLocked();
+    startElectionLocked();
 }
 // Called when the heartbeat timer times out.
 void Raft::onHeartbeatTimeout(){

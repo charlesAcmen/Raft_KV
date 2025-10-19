@@ -1,15 +1,15 @@
 #include <gtest/gtest.h>
-#include "raft/raft.h"
-#include "raft/types.h"
+#include <spdlog/spdlog.h>
+// #include "raft/raft.h"
+// #include "raft/types.h"
 
 TEST(RaftFollower, ConflictDeletion) {
+    spdlog::info("Test Raft Follower Conflict Deletion");
     raft::Raft follower(1, {1,2,3}, nullptr, nullptr);
-
     // 构造 follower 原有日志
     follower.testAppendLog({{"cmd1", 1, 1}});
     follower.testAppendLog({{"cmd2", 2, 1}});
     follower.testAppendLog({{"cmd3", 3, 1}});
-
     // 构造 leader AppendEntries，有冲突
     raft::type::AppendEntriesArgs args;
     args.term = 2;
@@ -21,12 +21,9 @@ TEST(RaftFollower, ConflictDeletion) {
         {"cmd3_new", 3, 2}
     };
     args.leaderCommit = 3;
-
     // follower 执行 AppendEntries
     follower.handleAppendEntries(args);
-
     auto& log = follower.testGetLog();
-
     EXPECT_EQ(log.size(), 3);             // 冲突之后旧日志被删除
     EXPECT_EQ(log[0].command, "cmd1");    // 保持不变
     EXPECT_EQ(log[1].command, "cmd2_new");
