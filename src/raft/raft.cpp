@@ -9,7 +9,7 @@ namespace raft{
 Raft::Raft(int me,const std::vector<int>& peers,
     std::shared_ptr<IRaftTransport> transport,std::shared_ptr<ITimerFactory> timerFactory)
     :me_(me), peers_(peers), transport_(transport),timerFactory_(timerFactory){
-    // -----------------------
+        // -----------------------
     // Basic field initialization
     // -----------------------
     for (int peerId : peers_) {
