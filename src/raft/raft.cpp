@@ -9,7 +9,8 @@ namespace raft{
 Raft::Raft(int me,const std::vector<int>& peers,
     std::shared_ptr<IRaftTransport> transport,std::shared_ptr<ITimerFactory> timerFactory)
     :me_(me), peers_(peers), transport_(transport),timerFactory_(timerFactory){
-        // -----------------------
+    spdlog::set_pattern("[%l] %v");
+    // -----------------------
     // Basic field initialization
     // -----------------------
     for (int peerId : peers_) {
@@ -371,6 +372,8 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
 
     // Step 6: Update commitIndex
     if (args.leaderCommit > commitIndex_) {
+        // Only advance commitIndex up to the highest log index we have; 
+        // ensures we only commit entries that have been received locally.
         commitIndex_ = std::min(args.leaderCommit, getLastLogIndexLocked());
         // applyLogsLocked(); // apply committed logs to state machine
         apply_cv_.notify_one(); // notify apply thread
