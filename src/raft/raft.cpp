@@ -182,7 +182,7 @@ void Raft::startElectionLocked(){
             if(reply->voteGranted){
                 // handle vote granted
                 votesGranted++;
-                spdlog::info("[Raft] Node {} received vote from peer {} (total votes={})", me_, peer, votesGranted);
+                spdlog::info("[Raft] Node {} received vote from node {} (total votes={})", me_, peer, votesGranted);
                 // check if won majority
                 if (votesGranted >= majority && role_ == type::Role::Candidate) {
                     becomeLeaderLocked(); // convert to Leader
@@ -218,7 +218,7 @@ void Raft::becomeFollowerLocked(int32_t newTerm){
     }
     currentTerm_ = newTerm;
     role_ = type::Role::Follower;
-    spdlog::info("[Raft] {} becomes Follower (term={})", me_, currentTerm_);
+    spdlog::info("[Raft] Node {} becomes follower (term={})", me_, currentTerm_);
     votedFor_ = std::nullopt;
     // stop heartbeat timer if running
     heartbeatTimer_->Stop();
@@ -241,7 +241,7 @@ void Raft::becomeCandidateLocked(){
     // Increment current term and convert to candidate
     currentTerm_++;
     role_ = type::Role::Candidate;
-    spdlog::info("[Raft] {} becomes candidate (term={})", me_, currentTerm_);
+    spdlog::info("[Raft] Node {} becomes candidate (term={})", me_, currentTerm_);
     votedFor_ = me_;
     resetElectionTimerLocked();
     startElectionLocked();
@@ -303,10 +303,10 @@ type::RequestVoteReply Raft::HandleRequestVote(const type::RequestVoteArgs& args
         votedFor_ = args.candidateId;
         reply.voteGranted = true;
         resetElectionTimerLocked(); // reset follower timer
-        spdlog::info("[Raft] {} voted for {} in term {}", me_, args.candidateId, currentTerm_);
+        spdlog::info("[Raft] Node {} voted for node {} in term {}", me_, args.candidateId, currentTerm_);
     } else {
         reply.voteGranted = false;
-        spdlog::info("[Raft] {} rejecting vote for {} in term {}", me_, args.candidateId, currentTerm_);
+        spdlog::info("[Raft] Node {} rejecting vote for node {} in term {}", me_, args.candidateId, currentTerm_);
     }
 
     return reply;
@@ -328,7 +328,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     // Step 2: If term > currentTerm, update and convert to follower
     if (args.term > currentTerm_) {
         becomeFollowerLocked(args.term); 
-        spdlog::info("[Raft] {} updating term to {} and becomes follower", me_, currentTerm_);
+        spdlog::info("[Raft] Node {} updating term to {} and becomes follower", me_, currentTerm_);
     }
     // Step 3: Reset election timeout since valid leader contacted us
     // Receiving valid AppendEntries acts as heartbeat → reset timeout
@@ -365,7 +365,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
             }
         }else{
             log_.push_back(entry);
-            spdlog::info("[Raft] {} appended new log entry at index {} from leader {}", me_, index, args.leaderId);
+            spdlog::info("[Raft] Node {} appended new log entry at index {} from leader {}", me_, index, args.leaderId);
         }
     }
 
@@ -389,7 +389,7 @@ void Raft::AppendLogEntryLocked(const std::string& command) {
     entry.index = getLastLogIndexLocked() + 1;
 
     log_.push_back(entry);
-    spdlog::info("[Raft] {} appended new log entry for command '{}'", me_, command);
+    spdlog::info("[Raft] Node {} appended new log entry for command '{}'", me_, command);
     // spdlog::info("[Raft] term: {}, index: {}", entry.term, entry.index);
 }
 
@@ -430,7 +430,7 @@ void Raft::updateCommitIndexLocked(){
         int majority = (peers_.size() / 2) + 1;
         if (replicatedCount >= majority) {
             commitIndex_ = N;
-            spdlog::info("[Raft] {} updated commitIndex to {}", me_, commitIndex_);
+            spdlog::info("[Raft] Node {} updated commitIndex to {}", me_, commitIndex_);
             apply_cv_.notify_one(); // notify apply thread
             break;
         }
@@ -479,7 +479,7 @@ void Raft::applyLogsLocked(){
         const type::LogEntry& entry = log_.at(lastApplied_-1);
         // Here you should actually apply 'entry.command' to your state machine.
         // e.g. stateMachine.apply(entry.command);
-        spdlog::info("[Raft] {} applied log entry at index {} with command '{}' (term={})", 
+        spdlog::info("[Raft] Node {} applied log entry at index {} with command '{}' (term={})", 
                      me_, lastApplied_, entry.command,entry.term);
     }
 }
@@ -542,7 +542,7 @@ void Raft::broadcastHeartbeatLocked(){
                 break;
             }
             else {
-                spdlog::info("[Raft] Node {} heartbeat acknowledged by {}", me_, peer);
+                spdlog::info("[Raft] Node {} heartbeat acknowledged by node {}", me_, peer);
             }
         } else {
             spdlog::warn("[Raft] Node {} heartbeat to {} failed", me_, peer);
@@ -565,7 +565,7 @@ void Raft::broadcastAppendEntriesLocked(){
                 if(reply->success){
                     nextIndex_[peer] = getLastLogIndexLocked() + 1;
                     matchIndex_[peer] = nextIndex_[peer] - 1;
-                    spdlog::info("[Raft] Node {} AppendEntries success from {}, matchIndex={} nextIndex={}", 
+                    spdlog::info("[Raft] Node {} AppendEntries success from {}, matchIndex={}, nextIndex={}", 
                     me_, peer, matchIndex_[peer], nextIndex_[peer]);
                     updateCommitIndexLocked();
                 } else {
