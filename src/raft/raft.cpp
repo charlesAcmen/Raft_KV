@@ -149,6 +149,21 @@ void Raft::Join() {
         // spdlog::info("[Raft] {} Join() - apply thread exited", me_);
     }
 }
+//------------------- Testing utilities -------------------
+void Raft::testAppendLog(const std::vector<type::LogEntry>& entries){
+    std::lock_guard<std::mutex> lock(mu_);
+    for (const auto& entry : entries) {
+        log_.push_back(entry);
+        spdlog::info("[Raft] Node {} testAppendLog appended log entry at index {} (term={})", 
+                     me_, entry.index, entry.term);
+    }
+}
+const std::vector<type::LogEntry>& Raft::testGetLog() const{
+    return log_;
+}
+type::AppendEntriesReply Raft::handleAppendEntries(const type::AppendEntriesArgs& args){
+    return HandleAppendEntries(args);
+}
 
 //-------------------private methods-------------------
 void Raft::run() {
@@ -320,7 +335,6 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
             me_, args.leaderId, args.term, currentTerm_);
         return reply;
     }
-
     // Step 2: If term > currentTerm, update and convert to follower
     if (args.term > currentTerm_) {
         becomeFollowerLocked(args.term); 
@@ -329,7 +343,6 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     // Step 3: Reset election timeout since valid leader contacted us
     // Receiving valid AppendEntries acts as heartbeat → reset timeout
     resetElectionTimerLocked();
-
     // Step 4: Check if log doesn’t contain an entry at prevLogIndex whose term matches prevLogTerm
     // 如果日志中没有在 prevLogIndex 位置的条目，
     // 或者 有该条目但其 term 与 prevLogTerm 不匹配，
@@ -343,10 +356,6 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
         //     getLogTermLocked(args.prevLogIndex), args.prevLogTerm);
         return reply;
     }
-
-    
-
-
     // Step 5: Append any new entries not already in the log
     // If existing entries conflict with new ones (same index but different term), 
     // delete the existing entry and all that follow it
@@ -358,13 +367,20 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
             if(getLogTermLocked(index) != args.entries[i].term){
                 // Conflict, delete all entries from index onward
                 deleteLogFromIndexLocked(index);
+
+                // Append all remaining entries (including current one)
+                for (size_t j = i; j < args.entries.size(); ++j) {
+                    log_.push_back(args.entries[j]);
+                    spdlog::info("[Raft] Node {} appended new log entry at index {} from leader {}",
+                        me_, args.prevLogIndex + 1 + j, args.leaderId);
+                }
+                break;
             }
         }else{
             log_.push_back(entry);
             spdlog::info("[Raft] Node {} appended new log entry at index {} from leader {}", me_, index, args.leaderId);
         }
     }
-
     // Step 6: Update commitIndex
     if (args.leaderCommit > commitIndex_) {
         // Only advance commitIndex up to the highest log index we have; 
@@ -374,7 +390,6 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
         apply_cv_.notify_one(); // notify apply thread
         // spdlog::info("[Raft] {} apply_cv_ notified",me_);
     }
-
     reply.success = true;
     return reply;
 }

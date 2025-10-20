@@ -37,6 +37,12 @@ class Raft {
         // Block until internal thread exits (join).
         void Join();
 
+
+
+        //---------- Testing utilities ----------
+        void testAppendLog(const std::vector<type::LogEntry>& entries);
+        const std::vector<type::LogEntry>& testGetLog() const;
+        type::AppendEntriesReply handleAppendEntries(const type::AppendEntriesArgs& args);
     private:
         //----constants----
         // Heartbeat interval for leaders to send AppendEntries RPCs in milliseconds
