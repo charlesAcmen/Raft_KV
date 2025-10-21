@@ -1,23 +1,32 @@
 #include "raft/persister.h"
+#include "raft/codec/raft_codec.h"
 #include <sstream>
-
+#include <spdlog/spdlog.h>
 namespace raft {
 
 // ---------------- Persister ----------------
 
-void Persister::SaveRaftState(const std::string& state) {
+void Persister::SaveRaftState(
+    int32_t currentTerm, std::optional<int32_t> votedFor, const std::vector<type::LogEntry>& log) {
     std::lock_guard<std::mutex> lock(mu_);
-    raftState_ = state;
+    raftState_ = codec::RaftCodec::encodeRaftState(currentTerm, votedFor, log);
 }
 
-std::string Persister::ReadRaftState() const {
+std::string Persister::ReadRaftState(
+    int32_t& currentTerm, std::optional<int32_t>& votedFor, std::vector<type::LogEntry>& logData) const {
     std::lock_guard<std::mutex> lock(mu_);
+    bool success = codec::RaftCodec::decodeRaftState(raftState_,currentTerm, votedFor, logData);
+    if(!success){
+        spdlog::error("[Persister] Failed to decode Raft state.");
+        return "";
+    }
     return raftState_;
 }
 
-void Persister::SaveStateAndSnapshot(const std::string& state, const std::string& snapshot) {
+void Persister::SaveStateAndSnapshot(
+    int32_t currentTerm, std::optional<int32_t> votedFor,const std::vector<type::LogEntry>& logData, const std::string& snapshot) {
     std::lock_guard<std::mutex> lock(mu_);
-    raftState_ = state;
+    raftState_ = codec::RaftCodec::encodeRaftState(currentTerm, votedFor, logData);
     snapshot_ = snapshot;
 }
 

@@ -13,14 +13,11 @@ Raft::Raft(int me,const std::vector<int>& peers,std::shared_ptr<IRaftTransport> 
     // -----------------------
     // Basic field initialization
     // -----------------------
-
     for (int peerId : peers_) {
         if (peerId == me_) continue;
         nextIndex_[peerId] = getLastLogIndexLocked() + 1; // next log entry to send
         matchIndex_[peerId] = 0; // last known replicated index
     }   
-
-
 
     // -----------------------
     // Basic invariant checks
@@ -233,6 +230,7 @@ void Raft::becomeFollowerLocked(int32_t newTerm){
     role_ = type::Role::Follower;
     spdlog::info("[Raft] Node {} becomes follower (term={})", me_, currentTerm_);
     votedFor_ = std::nullopt;
+    persist();
     // stop heartbeat timer if running
     heartbeatTimer_->Stop();
     // reset election timer
@@ -256,6 +254,7 @@ void Raft::becomeCandidateLocked(){
     role_ = type::Role::Candidate;
     spdlog::info("[Raft] Node {} becomes candidate (term={})", me_, currentTerm_);
     votedFor_ = me_;
+    persist();
     resetElectionTimerLocked();
 }
 // Leader rules:
@@ -313,6 +312,7 @@ type::RequestVoteReply Raft::HandleRequestVote(const type::RequestVoteArgs& args
     //have not voted this term or voted for candidate, and candidate's log is at least as up-to-date
     if ((votedFor_ == std::nullopt || votedFor_ == args.candidateId) && logOk) {
         votedFor_ = args.candidateId;
+        persist();
         reply.voteGranted = true;
         resetElectionTimerLocked(); // reset follower timer
         spdlog::info("[Raft] Node {} voted for node {} in term {}", me_, args.candidateId, currentTerm_);
@@ -609,8 +609,14 @@ void Raft::resetHeartbeatTimerLocked(){
 }
 // ----------- Persistent state management -----------
 void Raft::persist(){
+    spdlog::info("[Raft] Node {} persisting state: term={}, votedFor={}, logSize={}", 
+                 me_, currentTerm_, votedFor_.has_value() ? std::to_string(votedFor_.value()) : "null", log_.size());
+    persister_->SaveRaftState(currentTerm_, votedFor_, log_);
 }
 void Raft::readPersist(){
+    persister_->ReadRaftState(currentTerm_, votedFor_, log_);
+    spdlog::info("[Raft] Node {} read persisted state: term={}, votedFor={}, logSize={}", 
+                 me_, currentTerm_, votedFor_.has_value() ? std::to_string(votedFor_.value()) : "null", log_.size());
 }
 // -------- Timer functions -----------
 // Called when the election timer times out.

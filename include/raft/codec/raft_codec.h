@@ -2,7 +2,7 @@
 #include "../types.h"
 #include <string>
 #include <sstream>
-
+#include <optional>
 namespace raft::codec {
 
 class RaftCodec {
@@ -59,10 +59,15 @@ public:
      * @param logData     serialized log entries (already encoded)
      * @return std::string encoded byte stream
      */
-    static inline std::string encodeRaftState(int currentTerm, int votedFor, const std::vector<type::LogEntry>& log) {
+    static inline std::string encodeRaftState(
+        int32_t currentTerm, std::optional<int32_t> votedFor, const std::vector<type::LogEntry>& log) {
         std::stringstream ss;
         ss << currentTerm << "\n";
-        ss << votedFor << "\n";
+        if(votedFor){
+            ss << *votedFor << "\n";
+        }else{
+            ss << "null\n";
+        }
         ss << log.size() << "\n";
         for (const auto& entry : log) {
             ss << entry.index << " " << entry.term << " " << entry.command << "\n";
@@ -192,9 +197,12 @@ public:
      * @param votedFor output votedFor
      * @param logData output log entries (serialized form)
      */
-    static inline bool decodeRaftState(const std::string& data, int& currentTerm, int& votedFor, std::vector<type::LogEntry>& logData){
-        if(!data.empty()) return false;
+    static inline bool decodeRaftState(
+        const std::string& data,
+        int32_t& currentTerm, std::optional<int32_t>& votedFor, std::vector<type::LogEntry>& logData){
+        if(!logData.empty()) return false;
         std::stringstream ss(data);
+        // std::stringstream ss(logData);
         std::string field;
         if (!std::getline(ss, field, '\n')) return false;
         if (field.empty()) return false;
@@ -202,7 +210,11 @@ public:
 
         if (!std::getline(ss, field, '\n')) return false;
         if (field.empty()) return false;
-        votedFor = std::stoi(field);
+        if (field == "null") {
+            votedFor.reset();
+        } else {
+            votedFor = std::stoi(field);
+        }
 
         if (!std::getline(ss, field, '\n')) return false;
         if (field.empty()) return false;
