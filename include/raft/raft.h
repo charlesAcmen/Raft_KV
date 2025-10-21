@@ -1,6 +1,8 @@
 #pragma once
 
 #include "types.h"  // for type::LogEntry, type::Role, etc
+#include "raft/timer_thread.h"
+#include "raft/persister.h"
 #include <mutex>    //lock for mu_
 #include <vector>
 #include <unordered_map> //for nextIndex_ and matchIndex_
@@ -13,13 +15,17 @@ namespace raft {
 //---------- Forward declarations ----------
 class IRaftTransport;
 class ITimer;
-class ITimerFactory;
-// class IPersister;
+// class ITimerFactory;
+// class ThreadTimerFactory;
+// class Persister;
 class Raft {
     public:
         Raft(
-            int,const std::vector<int>&,std::shared_ptr<IRaftTransport>,std::shared_ptr<ITimerFactory> = nullptr);
-
+            int,const std::vector<int>&,
+            std::shared_ptr<IRaftTransport>,
+            std::shared_ptr<ITimerFactory> = std::make_shared<ThreadTimerFactory>(),
+            std::shared_ptr<Persister> = std::make_shared<Persister>()
+        );
         ~Raft();
        
         // Submit a command to this Raft node
@@ -188,6 +194,9 @@ class Raft {
         //created by timerFactory_
         std::unique_ptr<ITimer> electionTimer_;
         std::unique_ptr<ITimer> heartbeatTimer_;
+
+        // Persister for saving/loading persistent state
+        std::shared_ptr<Persister> persister_;
 
         // background thread for running Raft
         std::thread thread_;        

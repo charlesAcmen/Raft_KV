@@ -50,8 +50,25 @@ public:
         ss << reply.term << "\n" << (reply.success ? "1" : "0");
         return ss.str();
     }
-
-
+    /**
+     * @brief Serialize Raft's persistent fields (term, vote, log)
+     *        into a byte stream for persisting.
+     * 
+     * @param currentTerm current term number
+     * @param votedFor    ID of the candidate voted for
+     * @param logData     serialized log entries (already encoded)
+     * @return std::string encoded byte stream
+     */
+    static inline std::string encodeRaftState(int currentTerm, int votedFor, const std::vector<type::LogEntry>& log) {
+        std::stringstream ss;
+        ss << currentTerm << "\n";
+        ss << votedFor << "\n";
+        ss << log.size() << "\n";
+        for (const auto& entry : log) {
+            ss << entry.index << " " << entry.term << " " << entry.command << "\n";
+        }
+        return ss.str();
+    }
 
     //---------string to struct---------
 
@@ -163,6 +180,47 @@ public:
         if (!std::getline(ss, field, '\n')) return {};
         reply.success = (field == "1");
         return reply;
+    }
+
+
+
+    /**
+     * @brief Deserialize Raft's persistent fields from a byte stream.
+     * 
+     * @param data serialized byte stream from persister
+     * @param currentTerm output term
+     * @param votedFor output votedFor
+     * @param logData output log entries (serialized form)
+     */
+    static inline bool decodeRaftState(const std::string& data, int& currentTerm, int& votedFor, std::vector<type::LogEntry>& logData){
+        if(!data.empty()) return false;
+        std::stringstream ss(data);
+        std::string field;
+        if (!std::getline(ss, field, '\n')) return false;
+        if (field.empty()) return false;
+        currentTerm = std::stoi(field);
+
+        if (!std::getline(ss, field, '\n')) return false;
+        if (field.empty()) return false;
+        votedFor = std::stoi(field);
+
+        if (!std::getline(ss, field, '\n')) return false;
+        if (field.empty()) return false;
+        int logSize = std::stoi(field);
+
+        for (int i = 0; i < logSize; ++i) {
+            if (!std::getline(ss, field)) return false; // not enough lines
+            std::stringstream entrySS(field);
+            type::LogEntry entry;
+            std::string commandPart;
+
+            if(!(entrySS >> entry.index >> entry.term)) return false;
+            std::getline(entrySS, commandPart);
+            if (!commandPart.empty() && commandPart[0] == ' ') commandPart.erase(0, 1);
+            entry.command = commandPart;
+            logData.push_back(entry);
+        }
+        return true;
     }
 };
 

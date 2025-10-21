@@ -42,11 +42,9 @@ void Cluster::CreateNodes(int n) {
         type::PeerInfo self = peers[i];
         std::shared_ptr<IRaftTransport> transport = 
             std::make_shared<RaftTransportUnix>(self, peers);
-        std::shared_ptr<ITimerFactory> timerFactory = 
-            std::make_shared<ThreadTimerFactory>(); 
         // inject transport into Raft node and create node
         std::shared_ptr<Raft> raftNode = 
-            std::make_shared<Raft>(self.id, peerIds,transport,timerFactory);        
+            std::make_shared<Raft>(self.id, peerIds,transport);        
         nodes_.push_back(raftNode);
     }
     spdlog::info("Raft cluster with {} nodes initialized.", nodes_.size());

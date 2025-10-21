@@ -6,9 +6,9 @@
 #include <random>                   // for random election timeout 
 namespace raft{
 //-------------------public methods-------------------
-Raft::Raft(int me,const std::vector<int>& peers,
-    std::shared_ptr<IRaftTransport> transport,std::shared_ptr<ITimerFactory> timerFactory)
-    :me_(me), peers_(peers), transport_(transport),timerFactory_(timerFactory){
+Raft::Raft(int me,const std::vector<int>& peers,std::shared_ptr<IRaftTransport> transport,
+    std::shared_ptr<ITimerFactory> timerFactory,std::shared_ptr<Persister> persister)
+    :me_(me), peers_(peers), transport_(transport),timerFactory_(timerFactory),persister_(persister) {
     spdlog::set_pattern("[%l] %v");
     // -----------------------
     // Basic field initialization
@@ -352,8 +352,6 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
         reply.success = false;
         spdlog::info("[Raft] {} rejecting AppendEntries from {}: log inconsistency at prevLogIndex {}",
             me_, args.leaderId, args.prevLogIndex);
-        // spdlog::info("[Raft] getLogTermLocked(args.prevLogIndex) :{},args.prevLogTerm: {}",
-        //     getLogTermLocked(args.prevLogIndex), args.prevLogTerm);
         return reply;
     }
     // Step 5: Append any new entries not already in the log
