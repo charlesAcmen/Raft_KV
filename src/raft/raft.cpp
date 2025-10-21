@@ -13,6 +13,7 @@ Raft::Raft(int me,const std::vector<int>& peers,std::shared_ptr<IRaftTransport> 
     // -----------------------
     // Basic field initialization
     // -----------------------
+
     for (int peerId : peers_) {
         if (peerId == me_) continue;
         nextIndex_[peerId] = getLastLogIndexLocked() + 1; // next log entry to send
@@ -606,8 +607,12 @@ void Raft::resetElectionTimerLocked(){
 void Raft::resetHeartbeatTimerLocked(){
     heartbeatTimer_->Reset(Raft::HEARTBEAT_INTERVAL);
 }
-
-// -------- Timer callbacks -----------
+// ----------- Persistent state management -----------
+void Raft::persist(){
+}
+void Raft::readPersist(){
+}
+// -------- Timer functions -----------
 // Called when the election timer times out.
 void Raft::onElectionTimeout(){
     std::lock_guard<std::mutex> lock(mu_);

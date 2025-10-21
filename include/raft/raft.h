@@ -126,9 +126,16 @@ class Raft {
         // Applies committed log entries to the state machine
         void applyLogsLocked();
         void deleteLogFromIndexLocked(int index);
-        
         //-------------------------------------
-        // -------- Timer functions -----------
+        //----------- Persister ---------------
+        //-------------------------------------
+        void persist();
+        void readPersist();
+
+
+
+        //-------------------------------------
+        //--------- Timer functions -----------
         //-------------------------------------
 
         //called when election timer fires
