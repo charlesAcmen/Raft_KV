@@ -36,7 +36,7 @@ TEST(RaftFollower, ConflictDeletion) {
         .leaderCommit = 3
     };
     // follower 执行 AppendEntries
-    follower.handleAppendEntries(args);
+    follower.testHandleAppendEntries(args);
     auto& log = follower.testGetLog();
     EXPECT_EQ(log.size(), 3);             // 冲突之后旧日志被删除
     EXPECT_EQ(log[0].command, "cmd1");    // 保持不变

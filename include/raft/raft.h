@@ -46,9 +46,20 @@ class Raft {
 
 
         //---------- Testing utilities ----------
-        void testAppendLog(const std::vector<type::LogEntry>& entries);
+        
+        int32_t testGetCurrentTerm() const;
+        std::optional<int32_t> testGetVotedFor() const;
         const std::vector<type::LogEntry>& testGetLog() const;
-        type::AppendEntriesReply handleAppendEntries(const type::AppendEntriesArgs& args);
+        
+        void testSetCurrentTerm(int32_t term);
+        void testSetVotedFor(std::optional<int32_t> votedFor);
+        void testAppendLog(const std::vector<type::LogEntry>& entries);
+        void testSetRaftState(const std::string& state);
+
+        type::AppendEntriesReply testHandleAppendEntries(const type::AppendEntriesArgs& args);
+        
+        std::string testGetPersistedState() const;
+        void testPersistState();
     private:
         //----constants----
         // Heartbeat interval for leaders to send AppendEntries RPCs in milliseconds
@@ -130,7 +141,7 @@ class Raft {
         //----------- Persister ---------------
         //-------------------------------------
         void persistLocked();
-        std::string readPersistLocked();
+        std::string readPersistedStateLocked();
 
 
 
@@ -153,7 +164,7 @@ class Raft {
 
 
         // internal data protected by mu_
-        std::mutex mu_;
+        mutable std::mutex mu_;
 
         // Raft identity and cluster
         const int me_;                      // this peer's id (index into peers_)

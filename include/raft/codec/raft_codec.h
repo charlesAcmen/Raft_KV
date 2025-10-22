@@ -200,15 +200,19 @@ public:
     static inline bool decodeRaftState(
         const std::string& data,
         int32_t& currentTerm, std::optional<int32_t>& votedFor, std::vector<type::LogEntry>& logData){
-        if(!logData.empty()) return false;
+        logData.clear();    // ensure logData is empty before populating
         std::stringstream ss(data);
         std::string field;
-        if (!std::getline(ss, field, '\n')) return false;
-        if (field.empty()) return false;
+        if (!std::getline(ss, field, '\n')) 
+            return false;
+        if (field.empty()) 
+            return false;
         currentTerm = std::stoi(field);
 
-        if (!std::getline(ss, field, '\n')) return false;
-        if (field.empty()) return false;
+        if (!std::getline(ss, field, '\n')) 
+            return false;
+        if (field.empty()) 
+            return false;
         if (field == "null") {
             votedFor.reset();
         } else {

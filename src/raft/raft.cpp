@@ -106,15 +106,15 @@ void Raft::Start() {
     }
     // start communication layer
     transport_->Start();
+    spdlog::info("[Raft] {} started", me_);
+    thread_ = std::thread([this]() { this->run(); });
+    apply_thread_ = std::thread([this] { ApplyLoop();});
     // start election timer
     // do not start heartbeat timer yet cuz only leader uses it
     {
         std::lock_guard<std::mutex> lock(mu_);
         resetElectionTimerLocked();
     }
-    spdlog::info("[Raft] {} started", me_);
-    thread_ = std::thread([this]() { this->run(); });
-    apply_thread_ = std::thread([this] { ApplyLoop();});
 }  
 
 void Raft::Stop(){
@@ -148,6 +148,29 @@ void Raft::Join() {
     }
 }
 //------------------- Testing utilities -------------------
+int32_t Raft::testGetCurrentTerm() const{
+    std::lock_guard<std::mutex> lock(mu_);
+    return currentTerm_;
+}
+std::optional<int32_t> Raft::testGetVotedFor() const{
+    std::lock_guard<std::mutex> lock(mu_);
+    return votedFor_;
+}
+const std::vector<type::LogEntry>& Raft::testGetLog() const{
+    std::lock_guard<std::mutex> lock(mu_);
+    return log_;
+}
+
+
+
+void Raft::testSetCurrentTerm(int32_t term){
+    std::lock_guard<std::mutex> lock(mu_);
+    currentTerm_ = term;
+}
+void Raft::testSetVotedFor(std::optional<int32_t> votedFor){
+    std::lock_guard<std::mutex> lock(mu_);
+    votedFor_ = votedFor;
+}
 void Raft::testAppendLog(const std::vector<type::LogEntry>& entries){
     std::lock_guard<std::mutex> lock(mu_);
     for (const auto& entry : entries) {
@@ -156,11 +179,23 @@ void Raft::testAppendLog(const std::vector<type::LogEntry>& entries){
                      me_, entry.index, entry.term);
     }
 }
-const std::vector<type::LogEntry>& Raft::testGetLog() const{
-    return log_;
+void Raft::testSetRaftState(const std::string& state){
+    std::lock_guard<std::mutex> lock(mu_);
+    persister_->SetRaftState(state);
+    readPersistedStateLocked(); // update in-memory state from persisted state
 }
-type::AppendEntriesReply Raft::handleAppendEntries(const type::AppendEntriesArgs& args){
+type::AppendEntriesReply Raft::testHandleAppendEntries(const type::AppendEntriesArgs& args){
     return HandleAppendEntries(args);
+}
+
+std::string Raft::testGetPersistedState() const{
+    std::lock_guard<std::mutex> lock(mu_);
+    return persister_->GetRaftState();
+}
+
+void Raft::testPersistState(){
+    std::lock_guard<std::mutex> lock(mu_);
+    persistLocked();
 }
 
 //-------------------private methods-------------------
@@ -231,8 +266,6 @@ void Raft::becomeFollowerLocked(int32_t newTerm){
     spdlog::info("[Raft] Node {} becomes follower (term={})", me_, currentTerm_);
     votedFor_ = std::nullopt;
     persistLocked();
-    std::string raftState = readPersistLocked();
-    spdlog::info("[Raft] Node {} persisted state after becoming follower: {}", me_, raftState);
     // stop election timer if running
     // stop heartbeat timer if running
     heartbeatTimer_->Stop();
@@ -258,8 +291,6 @@ void Raft::becomeCandidateLocked(){
     spdlog::info("[Raft] Node {} becomes candidate (term={})", me_, currentTerm_);
     votedFor_ = me_;
     persistLocked();
-    std::string raftState = readPersistLocked();
-    spdlog::info("[Raft] Node {} persisted state after becoming candidate: {}", me_, raftState);
     // reset election timer
     resetElectionTimerLocked();
 }
@@ -397,8 +428,6 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     }
     reply.success = true;
     persistLocked();
-    std::string raftState = readPersistLocked();
-    spdlog::info("[Raft] Node {} persisted state after AppendEntries: {}", me_, raftState);
     return reply;
 }
 
@@ -411,8 +440,6 @@ void Raft::AppendLogEntryLocked(const std::string& command) {
 
     log_.push_back(entry);
     persistLocked();
-    std::string raftState = readPersistLocked();
-    spdlog::info("[Raft] Node {} persisted state after appending log: {}", me_, raftState);
     spdlog::info("[Raft] Node {} appended new log entry for command '{}'", me_, command);
 }
 
@@ -620,15 +647,10 @@ void Raft::resetHeartbeatTimerLocked(){
 }
 // ----------- Persistent state management -----------
 void Raft::persistLocked(){
-    // spdlog::info("[Raft] Node {} persisting state: term={}, votedFor={}, logSize={}", 
-    //              me_, currentTerm_, votedFor_.has_value() ? std::to_string(votedFor_.value()) : "null", log_.size());
     persister_->SaveRaftState(currentTerm_, votedFor_, log_);
 }
-std::string Raft::readPersistLocked(){
-    std::string raftState = persister_->ReadRaftState(currentTerm_, votedFor_, log_);
-    // spdlog::info("[Raft] Node {} read persisted state: term={}, votedFor={}, logSize={}", 
-    //              me_, currentTerm_, votedFor_.has_value() ? std::to_string(votedFor_.value()) : "null", log_.size());
-    return raftState;
+std::string Raft::readPersistedStateLocked(){
+    return persister_->ReadRaftState(currentTerm_, votedFor_, log_);
 }
 // -------- Timer functions -----------
 // Called when the election timer times out.

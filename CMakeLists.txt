@@ -33,7 +33,15 @@ target_include_directories(raft_lib PUBLIC
 # add_test(NAME RaftConflictTest COMMAND raft_test)
 
 ##############persister test##############
+# enable_testing()
+# add_executable(raft_test test/raft_state_test.cpp)
+# target_link_libraries(raft_test PRIVATE raft_lib gtest gtest_main pthread spdlog::spdlog)
+# add_test(NAME RaftPersisterTest COMMAND raft_test)
+
+
+
+##############raft restart state test##############
 enable_testing()
 add_executable(raft_test test/raft_state_test.cpp)
 target_link_libraries(raft_test PRIVATE raft_lib gtest gtest_main pthread spdlog::spdlog)
-add_test(NAME RaftPersisterTest COMMAND raft_test)
+add_test(NAME RaftRestartTest COMMAND raft_test)
