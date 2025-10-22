@@ -21,14 +21,14 @@ int main(){
 
    
     cluster.SubmitCommand("SET x 1");
-    cluster.SubmitCommand("SET y 2");
-    cluster.SubmitCommand("GET x");
-    cluster.SubmitCommand("SET x 3");
-    cluster.SubmitCommand("GET x");
-    cluster.SubmitCommand("INCR y");
-    cluster.SubmitCommand("GET y");
-    cluster.SubmitCommand("DELETE x");
-    cluster.SubmitCommand("GET x");
+    // cluster.SubmitCommand("SET y 2");
+    // cluster.SubmitCommand("GET x");
+    // cluster.SubmitCommand("SET x 3");
+    // cluster.SubmitCommand("GET x");
+    // cluster.SubmitCommand("INCR y");
+    // cluster.SubmitCommand("GET y");
+    // cluster.SubmitCommand("DELETE x");
+    // cluster.SubmitCommand("GET x");
 
     // This will block until user presses Ctrl+C (SIGINT),
     // then Cluster will StopAll() + JoinAll() before returning.

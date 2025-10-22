@@ -230,7 +230,10 @@ void Raft::becomeFollowerLocked(int32_t newTerm){
     role_ = type::Role::Follower;
     spdlog::info("[Raft] Node {} becomes follower (term={})", me_, currentTerm_);
     votedFor_ = std::nullopt;
-    persist();
+    persistLocked();
+    std::string raftState = readPersistLocked();
+    spdlog::info("[Raft] Node {} persisted state after becoming follower: {}", me_, raftState);
+    // stop election timer if running
     // stop heartbeat timer if running
     heartbeatTimer_->Stop();
     // reset election timer
@@ -254,7 +257,10 @@ void Raft::becomeCandidateLocked(){
     role_ = type::Role::Candidate;
     spdlog::info("[Raft] Node {} becomes candidate (term={})", me_, currentTerm_);
     votedFor_ = me_;
-    persist();
+    persistLocked();
+    std::string raftState = readPersistLocked();
+    spdlog::info("[Raft] Node {} persisted state after becoming candidate: {}", me_, raftState);
+    // reset election timer
     resetElectionTimerLocked();
 }
 // Leader rules:
@@ -312,7 +318,7 @@ type::RequestVoteReply Raft::HandleRequestVote(const type::RequestVoteArgs& args
     //have not voted this term or voted for candidate, and candidate's log is at least as up-to-date
     if ((votedFor_ == std::nullopt || votedFor_ == args.candidateId) && logOk) {
         votedFor_ = args.candidateId;
-        persist();
+        persistLocked();
         reply.voteGranted = true;
         resetElectionTimerLocked(); // reset follower timer
         spdlog::info("[Raft] Node {} voted for node {} in term {}", me_, args.candidateId, currentTerm_);
@@ -390,6 +396,9 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
         // spdlog::info("[Raft] {} apply_cv_ notified",me_);
     }
     reply.success = true;
+    persistLocked();
+    std::string raftState = readPersistLocked();
+    spdlog::info("[Raft] Node {} persisted state after AppendEntries: {}", me_, raftState);
     return reply;
 }
 
@@ -401,8 +410,10 @@ void Raft::AppendLogEntryLocked(const std::string& command) {
     entry.index = getLastLogIndexLocked() + 1;
 
     log_.push_back(entry);
+    persistLocked();
+    std::string raftState = readPersistLocked();
+    spdlog::info("[Raft] Node {} persisted state after appending log: {}", me_, raftState);
     spdlog::info("[Raft] Node {} appended new log entry for command '{}'", me_, command);
-    // spdlog::info("[Raft] term: {}, index: {}", entry.term, entry.index);
 }
 
 
@@ -608,15 +619,16 @@ void Raft::resetHeartbeatTimerLocked(){
     heartbeatTimer_->Reset(Raft::HEARTBEAT_INTERVAL);
 }
 // ----------- Persistent state management -----------
-void Raft::persist(){
-    spdlog::info("[Raft] Node {} persisting state: term={}, votedFor={}, logSize={}", 
-                 me_, currentTerm_, votedFor_.has_value() ? std::to_string(votedFor_.value()) : "null", log_.size());
+void Raft::persistLocked(){
+    // spdlog::info("[Raft] Node {} persisting state: term={}, votedFor={}, logSize={}", 
+    //              me_, currentTerm_, votedFor_.has_value() ? std::to_string(votedFor_.value()) : "null", log_.size());
     persister_->SaveRaftState(currentTerm_, votedFor_, log_);
 }
-void Raft::readPersist(){
-    persister_->ReadRaftState(currentTerm_, votedFor_, log_);
-    spdlog::info("[Raft] Node {} read persisted state: term={}, votedFor={}, logSize={}", 
-                 me_, currentTerm_, votedFor_.has_value() ? std::to_string(votedFor_.value()) : "null", log_.size());
+std::string Raft::readPersistLocked(){
+    std::string raftState = persister_->ReadRaftState(currentTerm_, votedFor_, log_);
+    // spdlog::info("[Raft] Node {} read persisted state: term={}, votedFor={}, logSize={}", 
+    //              me_, currentTerm_, votedFor_.has_value() ? std::to_string(votedFor_.value()) : "null", log_.size());
+    return raftState;
 }
 // -------- Timer functions -----------
 // Called when the election timer times out.

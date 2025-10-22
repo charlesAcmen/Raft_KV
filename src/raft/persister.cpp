@@ -44,4 +44,15 @@ size_t Persister::SnapshotSize() const {
     std::lock_guard<std::mutex> lock(mu_);
     return snapshot_.size();
 }
+
+
+//-----------Testing Helpers-----------
+void Persister::SetRaftState(const std::string& state) {
+    std::lock_guard<std::mutex> lock(mu_);
+    raftState_ = state;
+}
+std::string Persister::GetRaftState() const {
+    std::lock_guard<std::mutex> lock(mu_);
+    return raftState_;
+}
 } // namespace raft

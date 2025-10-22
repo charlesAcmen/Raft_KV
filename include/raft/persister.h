@@ -39,6 +39,11 @@ public:
     size_t RaftStateSize() const;
     size_t SnapshotSize() const;
 
+
+
+    // For testing: directly set/get raftState_
+    void SetRaftState(const std::string& state);
+    std::string GetRaftState() const;
 private:
 
     mutable std::mutex mu_;

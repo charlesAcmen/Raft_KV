@@ -129,8 +129,8 @@ class Raft {
         //-------------------------------------
         //----------- Persister ---------------
         //-------------------------------------
-        void persist();
-        void readPersist();
+        void persistLocked();
+        std::string readPersistLocked();
 
 
 

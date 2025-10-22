@@ -202,7 +202,6 @@ public:
         int32_t& currentTerm, std::optional<int32_t>& votedFor, std::vector<type::LogEntry>& logData){
         if(!logData.empty()) return false;
         std::stringstream ss(data);
-        // std::stringstream ss(logData);
         std::string field;
         if (!std::getline(ss, field, '\n')) return false;
         if (field.empty()) return false;
