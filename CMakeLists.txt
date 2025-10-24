@@ -8,13 +8,12 @@ find_package(spdlog REQUIRED)
 file(GLOB SOURCE_FILES
     "src/rpc/*.cpp"
     "src/raft/*.cpp"
+    "src/kvstore/*.cpp"
 )
 
 # static library:.a or .lib
 # .h files will not be compiled separately
-add_library(raft_lib 
-${SOURCE_FILES} 
-)
+add_library(raft_lib ${SOURCE_FILES})
 
 #header file searching path
 target_include_directories(raft_lib PUBLIC
