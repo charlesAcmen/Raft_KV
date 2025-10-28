@@ -28,6 +28,8 @@ class Raft {
         );
         ~Raft();
        
+        void SetApplyCallback(std::function<void(type::ApplyMsg&)> cb);
+        
         // Submit a command to this Raft node
         // Returns false if this node is not the leader
         bool SubmitCommand(const std::string& command);
@@ -190,7 +192,8 @@ class Raft {
         
         std::condition_variable apply_cv_; // to signal application of logs to state machine
         std::thread apply_thread_; // background thread for applying logs
-        // std::mutex apply_mu_; // separate mutex for apply_cv_ to avoid deadlock
+        // callback to apply committed logs to state machine
+        std::function<void(type::ApplyMsg&)> applyCallback_; 
 
         // Volatile state on leaders (reinitialized after election)
         // (Reinitialized after election)

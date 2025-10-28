@@ -6,11 +6,7 @@
 namespace kv{
 class KVServer {
 public:
-    KVServer(
-        int id,
-        const std::vector<int>& peerIds,
-        std::shared_ptr<raft::IRaftTransport> transport
-    );
+    KVServer(std::shared_ptr<raft::Raft> raft);
     // Public API - exported as RPC handlers
     // Called by network RPC from Clerk
     void PUT(const std::string& key, const std::string& value);

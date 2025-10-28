@@ -21,13 +21,17 @@ struct PeerInfo {
     std::string sockPath;   // /tmp/raft-node-<id>.sock,Unix socket path for RPC
 };
 
+
 struct LogEntry {
     int32_t index{0}; // 1-based index in the raft log
     int32_t term{0};  // term when entry was received by leader
     std::string command; // opaque command (may be empty for heartbeats)
 };
 
-
+struct ApplyMsg{
+    //TODO: snapshot fields to add later
+    LogEntry entry;
+};
 // RequestVote RPC arguments
 struct RequestVoteArgs {
     int32_t term{0}; // candidate’s term

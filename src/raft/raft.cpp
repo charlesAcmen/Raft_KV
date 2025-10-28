@@ -78,6 +78,11 @@ Raft::~Raft() {
     Stop();
     Join();
 }
+void Raft::SetApplyCallback(std::function<void(type::ApplyMsg&)> cb){
+    std::lock_guard<std::mutex> lock(mu_);
+    applyCallback_ = std::move(cb);
+}
+
 bool Raft::SubmitCommand(const std::string& command){
     std::lock_guard<std::mutex> lock(mu_);
     if (role_.load(std::memory_order_acquire) != type::Role::Leader) {
