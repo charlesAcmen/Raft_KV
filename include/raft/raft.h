@@ -24,8 +24,7 @@ class Raft {
             int,const std::vector<int>&,
             std::shared_ptr<IRaftTransport>,
             std::shared_ptr<ITimerFactory> = std::make_shared<ThreadTimerFactory>(),
-            std::shared_ptr<Persister> = std::make_shared<Persister>()
-        );
+            std::shared_ptr<Persister> = std::make_shared<Persister>());
         ~Raft();
        
         void SetApplyCallback(std::function<void(type::ApplyMsg&)> cb);
@@ -34,7 +33,7 @@ class Raft {
         // Returns false if this node is not the leader
         bool SubmitCommand(const std::string& command);
 
-        bool isLeader() const;
+        void GetState(int32_t& currentTerm, bool& isLeader) const;
 
         // Start internal worker thread,transport,and timers.
         void Start();

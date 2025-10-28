@@ -85,7 +85,7 @@ void Raft::SetApplyCallback(std::function<void(type::ApplyMsg&)> cb){
 
 bool Raft::SubmitCommand(const std::string& command){
     std::lock_guard<std::mutex> lock(mu_);
-    if (role_.load(std::memory_order_acquire) != type::Role::Leader) {
+    if (role_.load() != type::Role::Leader) {
         spdlog::warn("[Raft] {} rejected client command '{}': not leader", me_, command);
         return false;
     }
@@ -96,6 +96,11 @@ bool Raft::SubmitCommand(const std::string& command){
     return true;
 }
 
+void Raft::GetState(int32_t& currentTerm, bool& isLeader) const {
+    std::lock_guard<std::mutex> lock(mu_);
+    currentTerm = currentTerm_;
+    isLeader = (role_.load() == type::Role::Leader);
+}
 
 
 void Raft::Start() {
@@ -205,7 +210,7 @@ void Raft::testPersistState(){
 
 //-------------------private methods-------------------
 void Raft::run() {
-    while (running_.load(std::memory_order_acquire)) {
+    while (running_.load()) {
         // ==========================
         // Sleep briefly to reduce busy wait
         // ==========================
@@ -234,7 +239,7 @@ void Raft::startElectionLocked(){
                 votesGranted++;
                 spdlog::info("[Raft] Node {} received vote from node {} (total votes={})", me_, peer, votesGranted);
                 // check if won majority
-                if (votesGranted >= majority && role_.load(std::memory_order_acquire) == type::Role::Candidate) {
+                if (votesGranted >= majority && role_.load() == type::Role::Candidate) {
                     becomeLeaderLocked(); // convert to Leader
                     break; // no need to send more votes
                 }
@@ -262,12 +267,12 @@ void Raft::startElectionLocked(){
 // If election timeout elapses without receiving AppendEntries RPC from current leader 
 // or granting vote to candidate: convert to candidate
 void Raft::becomeFollowerLocked(int32_t newTerm){
-    if (role_.load(std::memory_order_acquire) == type::Role::Follower && currentTerm_ == newTerm) {
+    if (role_.load() == type::Role::Follower && currentTerm_ == newTerm) {
         // already follower in this term
         return;
     }
     currentTerm_ = newTerm;
-    role_.store(type::Role::Follower, std::memory_order_release);
+    role_.store(type::Role::Follower);
     spdlog::info("[Raft] Node {} becomes follower (term={})", me_, currentTerm_);
     votedFor_ = std::nullopt;
     persistLocked();
@@ -287,12 +292,12 @@ void Raft::becomeFollowerLocked(int32_t newTerm){
 // If AppendEntries RPC received from new leader: convert to follower
 // If election timeout elapses: start new election
 void Raft::becomeCandidateLocked(){
-    if (role_.load(std::memory_order_acquire) == type::Role::Candidate) {
+    if (role_.load() == type::Role::Candidate) {
         return; // already candidate
     }
     // Increment current term and convert to candidate
     currentTerm_++;
-    role_.store(type::Role::Candidate, std::memory_order_release);
+    role_.store(type::Role::Candidate);
     spdlog::info("[Raft] Node {} becomes candidate (term={})", me_, currentTerm_);
     votedFor_ = me_;
     persistLocked();
@@ -311,10 +316,10 @@ void Raft::becomeCandidateLocked(){
 // 4. If there exists an N such that N > commitIndex, a majority of matchIndex[i] ≥ N,
 // and log[N].term == currentTerm: set commitIndex = N
 void Raft::becomeLeaderLocked(){
-    if (role_.load(std::memory_order_acquire) == type::Role::Leader) {
+    if (role_.load() == type::Role::Leader) {
         return; // already leader
     }
-    role_.store(type::Role::Leader, std::memory_order_release);
+    role_.store(type::Role::Leader);
     spdlog::info("[Raft] {} becomes Leader (term={})", me_, currentTerm_);
     electionTimer_->Stop();
     //reset to start heartbeat timer
@@ -451,13 +456,13 @@ void Raft::AppendLogEntryLocked(const std::string& command) {
 
 
 void Raft::ApplyLoop() {
-    while (running_.load(std::memory_order_acquire)) {
+    while (running_.load()) {
         std::unique_lock<std::mutex> lock(mu_);
         apply_cv_.wait(lock, [&] {
             // Wake up if there are committed logs to apply or if stopping
-            return lastApplied_ < commitIndex_ || !running_.load(std::memory_order_acquire);
+            return lastApplied_ < commitIndex_ || !running_.load();
         });
-        if (!running_.load(std::memory_order_acquire)) break;
+        if (!running_.load()) break;
         //TODO: apply committed logs to state machine asynchronously
         applyLogsLocked();
     }
@@ -469,7 +474,7 @@ and log[N].term == currentTerm, set commitIndex = N.
 */
 void Raft::updateCommitIndexLocked(){
     // Only leader updates commitIndex_
-    if (role_.load(std::memory_order_acquire) != type::Role::Leader) return;
+    if (role_.load() != type::Role::Leader) return;
 
     for (int N = getLastLogIndexLocked(); N > commitIndex_; --N) {
         // Raft §5.4.2: Only commit logs from the current term
@@ -676,7 +681,7 @@ void Raft::onElectionTimeout(){
 void Raft::onHeartbeatTimeout(){
     std::lock_guard<std::mutex> lock(mu_);
     // spdlog::info("[Raft] Heartbeat timeout occurred on node {}.", me_);
-    if (role_.load(std::memory_order_acquire) != type::Role::Leader) {
+    if (role_.load() != type::Role::Leader) {
         spdlog::error("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
         return;
     }
@@ -708,9 +713,4 @@ std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peerId){
     }
     return reply;
 }
-
-bool Raft::isLeader() const {
-    return role_.load(std::memory_order_acquire) == type::Role::Leader;
-}
-
 }// namespace raft
