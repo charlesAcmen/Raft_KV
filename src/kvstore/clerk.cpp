@@ -13,6 +13,6 @@ void Clerk::PutAppend(
     const std::string& key, 
     const std::string& value,
     const std::string op) { 
-    //TODO:          
+          
 }
 }//namespace kv
