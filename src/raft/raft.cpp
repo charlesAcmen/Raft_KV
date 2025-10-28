@@ -535,8 +535,10 @@ void Raft::applyLogsLocked(){
         // Here should actually apply entry.command to state machine.
         if(applyCallback_){
             type::ApplyMsg msg{
-                .entry = entry
-            }
+                .CommandValid = true,
+                .Command = entry.command,
+                .CommandIndex = entry.index
+            };
             applyCallback_(msg);
         }
         spdlog::info("[Raft] Node {} applied log entry at index {} with command '{}' (term={})", 
