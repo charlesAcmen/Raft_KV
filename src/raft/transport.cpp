@@ -9,7 +9,7 @@ void IRaftTransport::RegisterRequestVoteHandler(
     std::function<std::string(const std::string&)> handler) {
     requestVoteHandler_ = std::move(handler);
     if (server_) {
-        server_->Register_Handler("RequestVote", requestVoteHandler_);
+        server_->Register_Handler("Raft.RequestVote", requestVoteHandler_);
     }
 }
 
@@ -17,7 +17,7 @@ void IRaftTransport::RegisterAppendEntriesHandler(
     std::function<std::string(const std::string&)> handler) {
     appendEntriesHandler_ = std::move(handler);
     if (server_) {
-        server_->Register_Handler("AppendEntries", appendEntriesHandler_);
+        server_->Register_Handler("Raft.AppendEntries", appendEntriesHandler_);
     }
 }
 }// namespace raft

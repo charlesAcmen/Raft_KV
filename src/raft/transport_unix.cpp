@@ -22,7 +22,6 @@ RaftTransportUnix::RaftTransportUnix(
     }
     // do not start the server here, because the handlers are not registered yet
     // and node will be blocked when starting the server
-    // server_->start();
 }
 RaftTransportUnix::~RaftTransportUnix() {
     Stop();
@@ -86,7 +85,7 @@ bool RaftTransportUnix::RequestVoteRPC(
 
     //convert args to string as request
     std::string request = codec::RaftCodec::encode(args);
-    std::string response = client->Call("RequestVote", request);
+    std::string response = client->Call("Raft.RequestVote", request);
     reply = codec::RaftCodec::decodeRequestVoteReply(response);
     return true;
 }
@@ -114,7 +113,7 @@ bool RaftTransportUnix::AppendEntriesRPC(
     rpc::RpcClient* client = it->second.get();//unique_ptr
 
     std::string request = codec::RaftCodec::encode(args);
-    std::string response = client->Call("AppendEntries", request);
+    std::string response = client->Call("Raft.AppendEntries", request);
     reply = codec::RaftCodec::decodeAppendEntriesReply(response);
     return true;
 }
