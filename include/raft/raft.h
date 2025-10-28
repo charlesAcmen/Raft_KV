@@ -21,10 +21,7 @@ class ITimer;
 class Raft {
     public:
         Raft(
-            int,const std::vector<int>&,
-            std::shared_ptr<IRaftTransport>,
-            std::shared_ptr<ITimerFactory> = std::make_shared<ThreadTimerFactory>(),
-            std::shared_ptr<Persister> = std::make_shared<Persister>());
+            int,const std::vector<int>&,std::shared_ptr<IRaftTransport>);
         ~Raft();
        
         void SetApplyCallback(std::function<void(type::ApplyMsg&)> cb);

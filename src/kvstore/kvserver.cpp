@@ -1,10 +1,11 @@
 #include "kvstore/kvserver.h"
+#include "kvstore/statemachine.h"  
 namespace kv {
-KVServer::KVServer(std::shared_ptr<raft::Raft> raft)
-    : raft_(raft), kvStateMachine_(std::make_shared<KVStateMachine>()) {
-    raft_->SetApplyCallback(
-        [this](type::ApplyMsg& msg) {
-            kvStateMachine_->Apply(msg.command);
+KVServer::KVServer(int me,std::shared_ptr<raft::Raft> raft,int maxRaftState)
+    : rf_(raft), kvStateMachine_(std::make_shared<KVStateMachine>()) {
+    rf_->SetApplyCallback(
+        [this](raft::type::ApplyMsg& msg) {
+            kvStateMachine_->Apply(msg.Command);
         }
     );
 }

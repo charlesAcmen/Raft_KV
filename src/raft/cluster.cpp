@@ -108,7 +108,10 @@ void Cluster::WaitForShutdown() {
 //---------private methods ----------
 std::shared_ptr<Raft> Cluster::GetLeader() const {
     for (const auto& node : nodes_) {
-        if (node->isLeader()) {
+        int32_t term;
+        bool isLeader;
+        node->GetState(term, isLeader);
+        if (isLeader) {
             return node;
         }
     }

@@ -6,10 +6,12 @@
 #include <random>                   // for random election timeout 
 namespace raft{
 //-------------------public methods-------------------
-Raft::Raft(int me,const std::vector<int>& peers,std::shared_ptr<IRaftTransport> transport,
-    std::shared_ptr<ITimerFactory> timerFactory,std::shared_ptr<Persister> persister)
-    :me_(me), peers_(peers), transport_(transport),timerFactory_(timerFactory),persister_(persister) {
+Raft::Raft(
+    int me,const std::vector<int>& peers,std::shared_ptr<IRaftTransport> transport)
+    :me_(me), peers_(peers), transport_(transport){
     spdlog::set_pattern("[%l] %v");
+
+    
     // -----------------------
     // Basic field initialization
     // -----------------------
@@ -18,6 +20,10 @@ Raft::Raft(int me,const std::vector<int>& peers,std::shared_ptr<IRaftTransport> 
         nextIndex_[peerId] = getLastLogIndexLocked() + 1; // next log entry to send
         matchIndex_[peerId] = 0; // last known replicated index
     }   
+
+    timerFactory_ = std::make_shared<ThreadTimerFactory>();
+    persister_ = std::make_shared<Persister>();
+
 
     // -----------------------
     // Basic invariant checks

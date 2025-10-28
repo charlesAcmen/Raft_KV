@@ -1,7 +1,7 @@
 #include "kvstore/clerk.h"
 namespace kv {
-std::string Clerk::Get(const std::string& key) {
-    return ""; // TODO: implement
+std::string Clerk::Get(const std::string& key) const {
+    return "";
 }
 void Clerk::Put(const std::string& key, const std::string& value) {
     PutAppend(key, value, "Put");
