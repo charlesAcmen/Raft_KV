@@ -1,5 +1,5 @@
 #include "raft/raft.h"
-#include "raft/timer_thread.h"      // complete definition of ITimerFactory and ITimer
+#include "raft/timer_thread.h"      // complete definition of thread timerFactory and thread Timer
 #include "raft/transport.h"         // complete definition of IRaftTransport
 #include "raft/codec/raft_codec.h"  // used in register rpc handlers
 #include <spdlog/spdlog.h>
@@ -238,7 +238,7 @@ void Raft::startElectionLocked(){
     // Send RequestVote RPCs to all peers
     for (const auto& peer : peers_) {
         if (peer == me_) continue; // skip self
-        std::optional<type::RequestVoteReply> reply = sendRequestVoteRPCLocked(peer);
+        std::optional<type::RequestVoteReply> reply = sendRequestVoteLocked(peer);
         if(reply){
             if(reply->voteGranted){
                 // handle vote granted
@@ -569,7 +569,7 @@ void Raft::deleteLogFromIndexLocked(int index){
 
 //--------- Helper functions ----------      
 // RVO ensures that returning the struct avoids any unnecessary copies.
-std::optional<type::RequestVoteReply> Raft::sendRequestVoteRPCLocked(int peerId){
+std::optional<type::RequestVoteReply> Raft::sendRequestVoteLocked(int peerId){
     // spdlog::info("[Raft] {} sending RequestVote RPC to peer {}", me_, peerId);
     type::RequestVoteArgs args{};
     args.term = currentTerm_;
@@ -586,7 +586,7 @@ std::optional<type::RequestVoteReply> Raft::sendRequestVoteRPCLocked(int peerId)
     }
     return reply;
 } 
-std::optional<type::AppendEntriesReply> Raft::sendAppendEntriesRPCLocked(int peerId){
+std::optional<type::AppendEntriesReply> Raft::sendAppendEntriesLocked(int peerId){
     // spdlog::info("[Raft] {} sending AppendEntries RPC to peer {}", me_, peerId);
     type::AppendEntriesArgs args{};
     args.term = currentTerm_;
@@ -626,7 +626,7 @@ void Raft::broadcastHeartbeatLocked(){
 void Raft::broadcastAppendEntriesLocked(){
     for(const auto& peer : peers_){
         if(peer == me_) continue; // skip self
-        std::optional<type::AppendEntriesReply> reply = sendAppendEntriesRPCLocked(peer);
+        std::optional<type::AppendEntriesReply> reply = sendAppendEntriesLocked(peer);
         if (reply) {
             //rpc reply received
             if (reply->term > currentTerm_) {

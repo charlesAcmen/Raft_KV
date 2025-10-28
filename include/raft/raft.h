@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.h"  // for type::LogEntry, type::Role, etc
-#include "raft/timer_thread.h"
+#include "raft/timer.h"         // for ITimerFactory
 #include "raft/persister.h"
 #include <mutex>    //lock for mu_
 #include <vector>
@@ -15,9 +15,6 @@ namespace raft {
 //---------- Forward declarations ----------
 class IRaftTransport;
 class ITimer;
-// class ITimerFactory;
-// class ThreadTimerFactory;
-// class Persister;
 class Raft {
     public:
         Raft(
@@ -95,9 +92,9 @@ class Raft {
         //--------- Helper functions ----------
         //-------------------------------------
         // Send one RequestVote RPC
-        std::optional<type::RequestVoteReply> sendRequestVoteRPCLocked(int peerId);     
+        std::optional<type::RequestVoteReply> sendRequestVoteLocked(int peerId);     
         // Send one AppendEntries RPC (heartbeat or log)
-        std::optional<type::AppendEntriesReply> sendAppendEntriesRPCLocked(int peerId);  
+        std::optional<type::AppendEntriesReply> sendAppendEntriesLocked(int peerId);  
         // Send empty AppendEntries to all peers
         void broadcastHeartbeatLocked(); 
         // Send AppendEntries (with log entries) to all peers   
