@@ -532,8 +532,13 @@ void Raft::applyLogsLocked(){
         lastApplied_++;
         //0 based index for log_ vector
         const type::LogEntry& entry = log_.at(lastApplied_-1);
-        // Here you should actually apply 'entry.command' to your state machine.
-        // e.g. stateMachine.apply(entry.command);
+        // Here should actually apply entry.command to state machine.
+        if(applyCallback_){
+            type::ApplyMsg msg{
+                .entry = entry
+            }
+            applyCallback_(msg);
+        }
         spdlog::info("[Raft] Node {} applied log entry at index {} with command '{}' (term={})", 
                      me_, lastApplied_, entry.command,entry.term);
     }

@@ -29,8 +29,15 @@ struct LogEntry {
 };
 
 struct ApplyMsg{
-    //TODO: snapshot fields to add later
-    LogEntry entry;
+    bool CommandValid{false}; // true if this is a newly committed log entry
+    std::string Command;   // the command to apply to state machine
+    int32_t CommandIndex{0}; // the index of the command in the log
+
+    // For 2D:
+    bool SnapshotValid{false}; // true if this is a snapshot to apply
+    std::string Snapshot; // the snapshot to apply to state machine
+    int32_t SnapshotTerm{0}; // the term of the last included log entry in the snapshot
+    int32_t SnapshotIndex{0}; // the index of the last included log entry in the snapshot
 };
 // RequestVote RPC arguments
 struct RequestVoteArgs {
