@@ -12,6 +12,11 @@ public:
     
     void Start() override;
     void Stop() override;
+
+    bool GetRPC(
+        int targetId,const GetArgs& args,GetReply& reply) override;
+    bool PutAppendRPC(
+        int targetId,const PutAppendArgs& args,PutAppendReply& reply) override;
 private:
 };
 }//namespace kv

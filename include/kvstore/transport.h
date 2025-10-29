@@ -43,9 +43,7 @@ public:
      * @return true if the RPC succeeded, false on timeout/failure
      */
     virtual bool PutAppendRPC(
-        int targetId, 
-                              const PutAppendArgs& args, 
-                              PutAppendReply& reply) = 0;
+        int targetId,const PutAppendArgs& args,PutAppendReply& reply) = 0;
 
     /**
      * @brief Register handler function for Get RPCs.

@@ -28,7 +28,9 @@ public:
     virtual void RegisterAppendEntriesHandler(
         std::function<std::string(const std::string&)> handler);   
 protected:
-    IRaftTransport(const rpc::type::PeerInfo&,const std::vector<rpc::type::PeerInfo>&);
+    IRaftTransport(
+        const rpc::type::PeerInfo&,
+        const std::vector<rpc::type::PeerInfo>&);
 
     // RPC handlers
     std::function<std::string(const std::string&)> requestVoteHandler_;

@@ -17,4 +17,12 @@ void KVTransportUnix::Start(){
 void KVTransportUnix::Stop(){
 
 }
+bool KVTransportUnix::GetRPC(
+    int targetId,const GetArgs& args,GetReply& reply){
+    return false;
+}
+bool KVTransportUnix::PutAppendRPC(
+    int targetId,const PutAppendArgs& args,PutAppendReply& reply){
+    return false;
+}   
 }//namespace kv

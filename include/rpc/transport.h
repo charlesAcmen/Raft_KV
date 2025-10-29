@@ -1,4 +1,5 @@
 #pragma once
+#include "rpc/types.h"
 #include <vector>       //for list of peers
 #include <unordered_map>//for map of clients
 #include <memory>       //for unique_ptr
