@@ -2,6 +2,7 @@
 #include "raft/raft.h"
 #include "raft/transport_unix.h"
 #include "raft/timer_thread.h"
+#include "rpc/types.h"
 #include <vector>
 #include <spdlog/spdlog.h>
 #include <thread>
@@ -30,7 +31,7 @@ void Cluster::CreateNodes(int n) {
     StopAll(); 
     JoinAll();
     nodes_.clear();
-    std::vector<type::PeerInfo> peers;
+    std::vector<rpc::type::PeerInfo> peers;
     std::vector<int> peerIds;
     for (int i = 0; i < n; ++i) {
         peers.push_back({i+1, "/tmp/raft-node-" + std::to_string(i+1) + ".sock"});
@@ -39,7 +40,7 @@ void Cluster::CreateNodes(int n) {
 
 
     for (int i = 0; i < n; ++i) {
-        type::PeerInfo self = peers[i];
+        rpc::type::PeerInfo self = peers[i];
         std::shared_ptr<IRaftTransport> transport = 
             std::make_shared<RaftTransportUnix>(self, peers);
         // inject transport into Raft node and create node

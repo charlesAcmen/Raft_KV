@@ -1,7 +1,6 @@
 #pragma once
 
-#include "raft/types.h"
-
+#include "rpc/types.h"
 #include <string>
 #include <functional>   //handler function
 #include <unordered_map> //handlers
@@ -19,7 +18,7 @@ RPC response format is defined as:
 namespace rpc{
 class RpcServer {
     public:
-        RpcServer(const raft::type::PeerInfo& selfInfo);
+        RpcServer(const type::PeerInfo& selfInfo);
         ~RpcServer();
         //register rpc handler by method name
         void Register_Handler(const std::string& method,std::function<std::string(const std::string&)> handler);
@@ -34,7 +33,7 @@ class RpcServer {
         std::vector<std::thread> clientThreads_;
         //mutex to protect clientThreads_ when adding new threads
         std::mutex threads_mtx_;
-        raft::type::PeerInfo selfInfo_;
+        type::PeerInfo selfInfo_;
 
         int server_fd{-1};
         //server running flag

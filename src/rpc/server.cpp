@@ -8,7 +8,7 @@
 #include <thread>                   //handleClient thread
 
 namespace rpc{
-    RpcServer::RpcServer(const raft::type::PeerInfo& selfInfo){
+    RpcServer::RpcServer(const type::PeerInfo& selfInfo){
         selfInfo_ = selfInfo;
         initSocket();
     }

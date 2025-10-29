@@ -8,8 +8,8 @@
 #include <spdlog/spdlog.h>  //logging
 #include "rpc/delimiter_codec.h"    //encode and decode
 namespace rpc{
-    RpcClient::RpcClient(const raft::type::PeerInfo& selfInfo,
-              const raft::type::PeerInfo& targetInfo):
+    RpcClient::RpcClient(const type::PeerInfo& selfInfo,
+              const type::PeerInfo& targetInfo):
               selfInfo_(selfInfo),targetInfo_(targetInfo){
         initSocket();
     }

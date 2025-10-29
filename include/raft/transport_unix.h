@@ -1,5 +1,6 @@
 #pragma once
 #include "raft/transport.h" 
+#include "rpc/types.h"
 #include <vector>
 #include <string>
 #include <functional>
@@ -8,7 +9,7 @@ namespace raft {
 // Unix-domain-socket-based transport for single-machine multi-process simulation.
 class RaftTransportUnix : public IRaftTransport {
 public:
-    explicit RaftTransportUnix(const type::PeerInfo&,const std::vector<type::PeerInfo>&);
+    explicit RaftTransportUnix(const rpc::type::PeerInfo&,const std::vector<rpc::type::PeerInfo>&);
     ~RaftTransportUnix() override;
 
     void Start() override;
