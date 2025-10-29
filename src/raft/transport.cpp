@@ -3,8 +3,9 @@
 #include "rpc/server.h"
 namespace raft{
 IRaftTransport::IRaftTransport(
-    const rpc::type::PeerInfo& self,const std::vector<rpc::type::PeerInfo>& peers)
-    : self_(self), peers_(peers) {}
+    const rpc::type::PeerInfo& self,
+    const std::vector<rpc::type::PeerInfo>& peers)
+    : ITransport(self,peers){}
 void IRaftTransport::RegisterRequestVoteHandler(
     std::function<std::string(const std::string&)> handler) {
     requestVoteHandler_ = std::move(handler);

@@ -1,9 +1,6 @@
 #pragma once
 #include "raft/transport.h" 
 #include "rpc/types.h"
-#include <vector>
-#include <string>
-#include <functional>
 #include <thread>       //for server thread and client thread
 namespace raft {
 // Unix-domain-socket-based transport for single-machine multi-process simulation.

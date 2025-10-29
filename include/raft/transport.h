@@ -5,14 +5,6 @@
 #include "rpc/transport.h"
 #include <functional>   //for rpc handlers
 #include <string>
-#include <vector>       //for list of peers
-#include <unordered_map>//for map of clients
-#include <memory>       //for unique_ptr
-namespace rpc {
-    class RpcClient;
-    class RpcServer;
-}
-
 namespace raft {
 // Transport abstraction used by Raft to send RPCs to peers. 
 // Keeping this abstract decouples Raft state-machine logic 
@@ -37,15 +29,6 @@ public:
         std::function<std::string(const std::string&)> handler);   
 protected:
     IRaftTransport(const rpc::type::PeerInfo&,const std::vector<rpc::type::PeerInfo>&);
-
-    // Information about self and peers
-    const rpc::type::PeerInfo self_;
-    const std::vector<rpc::type::PeerInfo> peers_;
-
-    // RPC server and clients
-    std::unique_ptr<rpc::RpcServer> server_;
-    // key: peer id
-    std::unordered_map<int, std::unique_ptr<rpc::RpcClient>> clients_;
 
     // RPC handlers
     std::function<std::string(const std::string&)> requestVoteHandler_;

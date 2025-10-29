@@ -3,8 +3,9 @@
 #include "rpc/server.h"
 namespace kv{
 IKVTransport::IKVTransport(
-    const rpc::type::PeerInfo& self,const std::vector<rpc::type::PeerInfo>& peers)
-    : self_(self), peers_(peers) {}
+    const rpc::type::PeerInfo& self,
+    const std::vector<rpc::type::PeerInfo>& peers)
+    : ITransport(self,peers) {}
 void IKVTransport::RegisterGetHandler(
     std::function<std::string(const std::string&)> handler) {
     getHandler_ = std::move(handler);

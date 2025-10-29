@@ -73,15 +73,6 @@ protected:
         const rpc::type::PeerInfo& self,
         const std::vector<rpc::type::PeerInfo>& peers);
 
-    // Information about self and all peers
-    const rpc::type::PeerInfo self_;
-    const std::vector<rpc::type::PeerInfo> peers_;
-
-    // RPC server and clients
-    std::unique_ptr<rpc::RpcServer> server_;
-    // key: peer id
-    std::unordered_map<int, std::unique_ptr<rpc::RpcClient>> clients_;
-
     // RPC handlers
     std::function<std::string(const std::string&)> getHandler_;
     std::function<std::string(const std::string&)> putAppendHandler_;
