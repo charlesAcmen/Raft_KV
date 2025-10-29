@@ -3,7 +3,6 @@
 #include "raft/types.h"
 #include "rpc/types.h"
 #include "rpc/transport.h"
-#include <chrono>       //for RPC timeout constexpr
 #include <functional>   //for rpc handlers
 #include <string>
 #include <vector>       //for list of peers
@@ -38,7 +37,6 @@ public:
         std::function<std::string(const std::string&)> handler);   
 protected:
     IRaftTransport(const rpc::type::PeerInfo&,const std::vector<rpc::type::PeerInfo>&);
-    static constexpr std::chrono::milliseconds RPC_TIMEOUT{500};
 
     // Information about self and peers
     const rpc::type::PeerInfo self_;
