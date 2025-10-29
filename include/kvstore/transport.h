@@ -6,11 +6,6 @@
 #include <functional>   //for rpc handlers
 #include <vector>       //for list of peers
 #include <string>
-namespace rpc {
-    class RpcClient;
-    class RpcServer;
-}
-
 namespace kv{
 /**
  * @brief Abstract transport layer for KVServer RPCs.
