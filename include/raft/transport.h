@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include "rpc/transport.h"
 #include <chrono>       //for RPC timeout constexpr
 #include <functional>   //for rpc handlers
 #include <string>
@@ -16,20 +17,14 @@ namespace raft {
 // Transport abstraction used by Raft to send RPCs to peers. 
 // Keeping this abstract decouples Raft state-machine logic 
 // from the underlying RPC mechanism.
-class IRaftTransport {
+class IRaftTransport : public rpc::ITransport {
 public:
-    IRaftTransport(const type::PeerInfo&,const std::vector<type::PeerInfo>&);
     virtual ~IRaftTransport() = default;
-
-
-    virtual void Start() = 0;
-    virtual void Stop() = 0;
 
     // Synchronously call RequestVote on `targetId`
     virtual bool RequestVoteRPC(int targetId,
     const type::RequestVoteArgs& args,
     type::RequestVoteReply& reply) = 0;
-
 
     // Synchronously call AppendEntries on `targetId`
     virtual bool AppendEntriesRPC(int targetId,
@@ -41,6 +36,7 @@ public:
     virtual void RegisterAppendEntriesHandler(
         std::function<std::string(const std::string&)> handler);   
 protected:
+    IRaftTransport(const type::PeerInfo&,const std::vector<type::PeerInfo>&);
     static constexpr std::chrono::milliseconds RPC_TIMEOUT{500};
 
     // Information about self and peers

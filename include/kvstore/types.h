@@ -12,7 +12,7 @@ struct PutAppendArgs{
 	// otherwise RPC will break.
 };
 struct PutAppendReply{
-    Err Err;
+    Err err;
 };
 struct GetArgs{
     std::string Key;
