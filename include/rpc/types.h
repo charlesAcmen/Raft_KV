@@ -5,6 +5,6 @@ namespace rpc::type {
 // In real world, we may want to support TCP/IP as well
 struct PeerInfo {
     int id;                 // unique rpc node ID
-    std::string sockPath;   // /tmp/raft-node-<id>.sock,Unix socket path for RPC
+    std::string address;   // /tmp/raft-node-<id>.sock,Unix socket path for RPC
 };
 }//namespace rpc

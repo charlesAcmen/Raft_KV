@@ -23,7 +23,7 @@ bool RpcClient::Connect(){
     struct sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
     //target path for client
-    std::string sock_path = targetInfo_.sockPath;
+    std::string sock_path = targetInfo_.address;
     //c_str():convert c++ string to c str to fit strncpy
     std::strncpy(addr.sun_path, sock_path.c_str(), sizeof(addr.sun_path) - 1);
     //ensure null-termination

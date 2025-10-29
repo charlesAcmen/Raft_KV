@@ -98,7 +98,7 @@ void RpcServer::initSocket(){
     sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
     //self path for server
-    std::string sock_path = selfInfo_.sockPath;
+    std::string sock_path = selfInfo_.address;
     //sock_path.c_str():convert std::string to const char*
     std::strncpy(addr.sun_path, sock_path.c_str(), sizeof(addr.sun_path) - 1);
     //ensure null-termination
