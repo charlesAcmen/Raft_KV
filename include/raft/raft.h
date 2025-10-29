@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"  // for type::LogEntry, type::Role, etc
+#include "raft/types.h"  // for type::LogEntry, type::Role, etc
 #include "raft/timer.h"         // for ITimerFactory
 #include "raft/persister.h"
 #include <mutex>    //lock for mu_
@@ -14,7 +14,6 @@
 namespace raft {
 //---------- Forward declarations ----------
 class IRaftTransport;
-class ITimer;
 class Raft {
     public:
         Raft(
