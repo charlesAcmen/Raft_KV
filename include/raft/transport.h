@@ -1,8 +1,8 @@
 #pragma once
 
-#include "raft/types.h"
-#include "rpc/types.h"
-#include "rpc/transport.h"
+#include "raft/types.h" // for RequestVoteArgs, RequestVoteReply, AppendEntriesArgs, AppendEntriesReply
+#include "rpc/types.h"  // for PeerInfo
+#include "rpc/transport.h"  // inherit from rpc::ITransport
 #include <functional>   //for rpc handlers
 #include <string>
 namespace raft {

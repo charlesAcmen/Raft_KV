@@ -7,14 +7,17 @@ namespace raft {
 class RaftTransportUnix : public IRaftTransport {
 public:
     explicit RaftTransportUnix(
-        const rpc::type::PeerInfo&,const std::vector<rpc::type::PeerInfo>&);
+        const rpc::type::PeerInfo&,
+        const std::vector<rpc::type::PeerInfo>&);
     ~RaftTransportUnix() override;
 
     void Start() override;
     void Stop() override;
 
-    bool RequestVoteRPC(int,const type::RequestVoteArgs&,type::RequestVoteReply&) override;
-    bool AppendEntriesRPC(int,const type::AppendEntriesArgs&,type::AppendEntriesReply&) override;
+    bool RequestVoteRPC(
+        int,const type::RequestVoteArgs&,type::RequestVoteReply&) override;
+    bool AppendEntriesRPC(
+        int,const type::AppendEntriesArgs&,type::AppendEntriesReply&) override;
 private:
     std::thread serverThread_;
     std::thread clientThread_;
