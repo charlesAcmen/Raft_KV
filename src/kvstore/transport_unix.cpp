@@ -26,12 +26,12 @@ void KVTransportUnix::Stop() {
  */
 bool KVTransportUnix::GetRPC(
     int targetId,const type::GetArgs& args,type::GetReply& reply){
-    return SendRPC<GetArgs,GetReply>(
+    return SendRPC<type::GetArgs,type::GetReply>(
         targetId,"KV.Get",args,reply,
-        [](const GetArgs& a)->std::string{
-            return codec::encode(a);
+        [](const type::GetArgs& a)->std::string{
+            return codec::KVCodec::encode(a);
         },
-        codec::decodeGetReply
+        codec::KVCodec::decodeGetReply
     );
 }
 /**
@@ -44,12 +44,12 @@ bool KVTransportUnix::GetRPC(
  */
 bool KVTransportUnix::PutAppendRPC(
     int targetId,const type::PutAppendArgs& args,type::PutAppendReply& reply){
-    return SendRPC<PutAppendArgs,PutAppendReply>(
+    return SendRPC<type::PutAppendArgs,type::PutAppendReply>(
         targetId,"KV.PutAppend",args,reply,
-        [](const PutAppendArgs& a)->std::string{
-            return codec::encode(a);
+        [](const type::PutAppendArgs& a)->std::string{
+            return codec::KVCodec::encode(a);
         },
-        codec::decodePutAppendReply
+        codec::KVCodec::decodePutAppendReply
     );
 }
 void KVTransportUnix::RegisterGetHandler(

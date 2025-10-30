@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-namespace kv::codec{
+namespace kv::type{
 //better than typedef
 using Err = std::string;
 struct PutAppendArgs{
