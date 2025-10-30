@@ -1,6 +1,7 @@
 #include "kvstore/kvserver.h"
 #include "kvstore/statemachine.h"  
 #include "kvstore/codec/kv_codec.h"
+#include <spdlog/spdlog.h>
 namespace kv {
 KVServer::KVServer(int me,
     const std::vector<int>& peers,
@@ -48,6 +49,8 @@ KVServer::KVServer(int me,
     );
     dead_.store(0);
     maxRaftState_ = maxRaftState;
+    spdlog::info("[KVServer] {} created.", me_);
+    spdlog::info("[KVServer] {}",maxRaftState_ == -1 ? "No snapshotting." : "Snapshotting enabled.");
 }
 KVServer::~KVServer() {
     Kill();
@@ -62,6 +65,10 @@ void KVServer::StartKVServer() {
 
 
 void KVServer::Kill() {
+    if(Killed()) {
+        spdlog::warn("[KVServer] {} already killed.", me_);
+        return;
+    }
     std::lock_guard<std::mutex> lk(mu_);
     dead_.store(1);
 }
@@ -72,12 +79,12 @@ bool KVServer::Killed() const {
 
 void KVServer::PutAppend(
     const type::PutAppendArgs& args,type::PutAppendReply& reply) {
-    
+    spdlog::info("[KVServer] {} PutAppend called: Key={}, Value={}, Op={}", me_, args.Key, args.Value, args.Op);
 
 }
 void KVServer::Get(
     const type::GetArgs& args,type::GetReply& reply) {
-    
+    spdlog::info("[KVServer] {} Get called: Key={}", me_, args.Key);
 }
 
 }// namespace kv

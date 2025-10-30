@@ -19,8 +19,6 @@ public:
     void Kill();
     bool Killed() const;
 
-
-
 private:
     void PutAppend(const type::PutAppendArgs& args,type::PutAppendReply& reply);
     void Get(const type::GetArgs& args,type::GetReply& reply);
