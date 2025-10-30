@@ -15,7 +15,7 @@ namespace kv{
  * It inherits from rpc::ITransport, which provides Start/Stop lifecycle
  * control for the transport.
  */
-class IKVTransport : public rpc::ITransport {
+class IKVTransport{
 public:
     virtual ~IKVTransport() = default;
     /**
@@ -39,35 +39,5 @@ public:
      */
     virtual bool PutAppendRPC(
         int targetId,const PutAppendArgs& args,PutAppendReply& reply) = 0;
-
-    /**
-     * @brief Register handler function for Get RPCs.
-     * 
-     * @param handler Function that receives serialized input and returns serialized output
-     */
-    virtual void RegisterGetHandler(
-        std::function<std::string(const std::string&)> handler);
-
-    /**
-     * @brief Register handler function for PutAppend RPCs.
-     * 
-     * @param handler Function that receives serialized input and returns serialized output
-     */
-    virtual void RegisterPutAppendHandler(
-        std::function<std::string(const std::string&)> handler);
-protected:
-    /**
-     * @brief Protected constructor to be called by derived classes.
-     * 
-     * @param self Information about this KV server (id + address)
-     * @param peers Information about all peers in the cluster
-     */
-    IKVTransport(
-        const rpc::type::PeerInfo& self,
-        const std::vector<rpc::type::PeerInfo>& peers);
-
-    // RPC handlers
-    std::function<std::string(const std::string&)> getHandler_;
-    std::function<std::string(const std::string&)> putAppendHandler_;
 };
 }//namespace kv

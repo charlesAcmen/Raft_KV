@@ -6,7 +6,7 @@
 namespace raft {
 // Unix-domain-socket-based transport for single-machine multi-process simulation.
 class RaftTransportUnix 
-    : public TransportBase,
+    : public rpc::TransportBase,
       public IRaftTransport {
 public:
     explicit RaftTransportUnix(
@@ -18,6 +18,15 @@ public:
         int,const type::RequestVoteArgs&,type::RequestVoteReply&) override;
     bool AppendEntriesRPC(
         int,const type::AppendEntriesArgs&,type::AppendEntriesReply&) override;
+    
+    virtual void RegisterRequestVoteHandler(
+        rpc::type::RPCHandler handler);
+    virtual void RegisterAppendEntriesHandler(
+        rpc::type::RPCHandler handler);  
+private:
+    // RPC handlers
+    rpc::type::RPCHandler requestVoteHandler_;
+    rpc::type::RPCHandler appendEntriesHandler_;
 };
 
 } // namespace raft

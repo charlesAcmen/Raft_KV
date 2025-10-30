@@ -4,6 +4,7 @@
 #include <unordered_map>//for map of clients
 #include <memory>       //for unique_ptr
 #include <thread>       //for server and client threads
+#include <functional>   //for encode and decode functions
 namespace rpc{
 class RpcClient;
 class RpcServer;
@@ -11,12 +12,23 @@ class TransportBase{
 public:
     virtual ~TransportBase() = default;
 
-    virtual void Start();
-    virtual void Stop();
+    void Start();
+    void Stop();
 protected:
     TransportBase(
         const type::PeerInfo& self,
         const std::vector<type::PeerInfo>& peers);
+
+    template<typename Args,typename Reply>
+    void SendRPC(
+        int targetID,
+        const std::string& rpcName, 
+        const Args&,
+        Reply&,
+        const std::function<std::string(const Args&)>& encodeFn,
+        const std::function<bool(const std::string&, Reply&)>& decodeFn);
+
+
     // Information about self and peers
     const type::PeerInfo self_;
     const std::vector<type::PeerInfo> peers_;

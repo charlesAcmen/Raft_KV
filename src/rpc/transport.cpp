@@ -46,5 +46,14 @@ void TransportBase::Stop() {
     if (serverThread_.joinable()) serverThread_.join();
     if (clientThread_.joinable()) clientThread_.join();
 }
-
+//----------protected methods----------------
+template<typename Args,typename Reply>
+void TransportBase::SendRPC(
+    int targetID,
+    const std::string& rpcName, 
+    const Args& args,
+    Reply& reply,   
+    const std::function<std::string(const Args&)>& encodeFn,
+    const std::function<bool(const std::string&, Reply&)>& decodeFn) {
+    }
 }// namespace rpc

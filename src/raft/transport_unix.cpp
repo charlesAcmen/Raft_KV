@@ -11,7 +11,7 @@ namespace raft{
 RaftTransportUnix::RaftTransportUnix(
     const rpc::type::PeerInfo& self, 
     const std::vector<rpc::type::PeerInfo>& peers)
-    : IRaftTransport(self, peers) {}
+    : TransportBase(self, peers) {}
 RaftTransportUnix::~RaftTransportUnix() {
     Stop();
 }
@@ -72,5 +72,22 @@ bool RaftTransportUnix::AppendEntriesRPC(
     std::string response = client->Call("Raft.AppendEntries", request);
     reply = codec::RaftCodec::decodeAppendEntriesReply(response);
     return true;
+}
+
+
+void RaftTransportUnix::RegisterRequestVoteHandler(
+    rpc::type::RPCHandler handler) {
+    requestVoteHandler_ = std::move(handler);
+    if (server_) {
+        server_->Register_Handler("Raft.RequestVote", requestVoteHandler_);
+    }
+}
+
+void RaftTransportUnix::RegisterAppendEntriesHandler(
+    rpc::type::RPCHandler handler) {
+    appendEntriesHandler_ = std::move(handler);
+    if (server_) {
+        server_->Register_Handler("Raft.AppendEntries", appendEntriesHandler_);
+    }
 }
 }// namespace raft
