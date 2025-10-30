@@ -24,7 +24,7 @@ public:
      * @param handler Function that receives serialized input and returns serialized output
      */
     virtual void RegisterGetHandler(
-        rpc::type::RPCHandler handler);
+        rpc::type::RPCHandler handler) override;
 
     /**
      * @brief Register handler function for PutAppend RPCs.
@@ -32,11 +32,7 @@ public:
      * @param handler Function that receives serialized input and returns serialized output
      */
     virtual void RegisterPutAppendHandler(
-        rpc::type::RPCHandler handler);
+        rpc::type::RPCHandler handler) override;
 private:
-
-    // RPC handlers
-    rpc::type::RPCHandler getHandler_;
-    rpc::type::RPCHandler putAppendHandler_;
 };
 }//namespace kv

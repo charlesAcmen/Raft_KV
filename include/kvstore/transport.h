@@ -34,5 +34,14 @@ public:
      */
     virtual bool PutAppendRPC(
         int targetId,const PutAppendArgs& args,PutAppendReply& reply) = 0;
+
+    virtual void RegisterGetHandler(
+        rpc::type::RPCHandler handler) = 0;
+    virtual void RegisterPutAppendHandler(
+        rpc::type::RPCHandler handler) = 0;
+protected:
+    // RPC handlers
+    rpc::type::RPCHandler getHandler_;
+    rpc::type::RPCHandler putAppendHandler_;
 };
 }//namespace kv

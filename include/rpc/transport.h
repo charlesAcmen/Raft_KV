@@ -19,15 +19,17 @@ protected:
         const type::PeerInfo& self,
         const std::vector<type::PeerInfo>& peers);
 
+
+    void RegisterHandler(
+        const std::string& rpcName,
+        const rpc::type::RPCHandler& handler);
+
     template<typename Args,typename Reply>
     void SendRPC(
-        int targetID,
-        const std::string& rpcName, 
-        const Args&,
-        Reply&,
-        const std::function<std::string(const Args&)>& encodeFn,
-        const std::function<bool(const std::string&, Reply&)>& decodeFn);
-
+        int targetID,const std::string& rpcName, 
+        const Args&,Reply&,
+        const std::function<std::string(const Args&)>&,
+        const std::function<bool(const std::string&, Reply&)>&);
 
     // Information about self and peers
     const type::PeerInfo self_;

@@ -20,14 +20,12 @@ public:
     type::AppendEntriesReply& reply) = 0; 
 
     virtual void RegisterRequestVoteHandler(
-        rpc::type::RPCHandler handler);
+        const rpc::type::RPCHandler& handler) = 0;
     virtual void RegisterAppendEntriesHandler(
-        rpc::type::RPCHandler handler); 
+        const rpc::type::RPCHandler& handler) = 0;
 protected:
     // RPC handlers
     rpc::type::RPCHandler requestVoteHandler_;
     rpc::type::RPCHandler appendEntriesHandler_;
 };
-
-
 } // namespace raft

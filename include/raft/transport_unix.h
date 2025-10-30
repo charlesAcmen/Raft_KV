@@ -18,6 +18,11 @@ public:
         int,const type::RequestVoteArgs&,type::RequestVoteReply&) override;
     bool AppendEntriesRPC(
         int,const type::AppendEntriesArgs&,type::AppendEntriesReply&) override;
+    
+    void RegisterRequestVoteHandler(
+        const rpc::type::RPCHandler& handler) override;
+    void RegisterAppendEntriesHandler(
+        const rpc::type::RPCHandler& handler) override;
 };
 
 } // namespace raft

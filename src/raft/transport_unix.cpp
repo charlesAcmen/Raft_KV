@@ -73,4 +73,15 @@ bool RaftTransportUnix::AppendEntriesRPC(
     reply = codec::RaftCodec::decodeAppendEntriesReply(response);
     return true;
 }
+
+void RaftTransportUnix::RegisterRequestVoteHandler(
+    const rpc::type::RPCHandler& handler) {
+    requestVoteHandler_ = std::move(handler);
+    TransportBase::RegisterHandler("Raft.RequestVote", handler);
+}
+void RaftTransportUnix::RegisterAppendEntriesHandler(
+    const rpc::type::RPCHandler& handler) {
+    appendEntriesHandler_ = std::move(handler);
+    TransportBase::RegisterHandler("Raft.AppendEntries", handler);
+}
 }// namespace raft

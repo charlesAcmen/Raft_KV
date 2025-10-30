@@ -46,14 +46,24 @@ void TransportBase::Stop() {
     if (serverThread_.joinable()) serverThread_.join();
     if (clientThread_.joinable()) clientThread_.join();
 }
+void TransportBase::RegisterHandler(
+    const std::string& rpcName,
+    const rpc::type::RPCHandler& handler) {
+    if (server_) {
+        server_->Register_Handler(rpcName, handler);
+    } else {
+        spdlog::error("[TransportBase] RegisterHandler failed: server not initialized");
+    }
+}
+
+
 //----------protected methods----------------
 template<typename Args,typename Reply>
 void TransportBase::SendRPC(
-    int targetID,
-    const std::string& rpcName, 
-    const Args& args,
-    Reply& reply,   
+    int targetID,const std::string& rpcName, 
+    const Args& args,Reply& reply,   
     const std::function<std::string(const Args&)>& encodeFn,
     const std::function<bool(const std::string&, Reply&)>& decodeFn) {
-    }
+
+}
 }// namespace rpc
