@@ -4,8 +4,7 @@
 #include <atomic>
 #include <mutex>
 #include "raft/raft.h"
-#include "kvstore/types.h"  
-// #include "kvstore/statemachine.h"
+#include "kvstore/types.h"
 namespace kv{
 class KVStateMachine; // forward declaration
 class KVServer {

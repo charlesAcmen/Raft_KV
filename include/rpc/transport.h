@@ -9,8 +9,6 @@
 #include <functional>   //for encode and decode functions
 #include <spdlog/spdlog.h>
 namespace rpc{
-class RpcClient;
-class RpcServer;
 class TransportBase{
 public:
     virtual ~TransportBase() = default;

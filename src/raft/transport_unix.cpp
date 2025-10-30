@@ -24,10 +24,7 @@ void RaftTransportUnix::Stop() {
 bool RaftTransportUnix::RequestVoteRPC(
     int targetId,const type::RequestVoteArgs& args,type::RequestVoteReply& reply) {
     return SendRPC<type::RequestVoteArgs,type::RequestVoteReply>(
-        targetId,
-        "Raft.RequestVote",
-        args,
-        reply,
+        targetId,"Raft.RequestVote",args,reply,
         [](const type::RequestVoteArgs& a) {
             return codec::RaftCodec::encode(a);
         },
@@ -37,11 +34,8 @@ bool RaftTransportUnix::RequestVoteRPC(
 bool RaftTransportUnix::AppendEntriesRPC(
     int targetId,const type::AppendEntriesArgs& args,type::AppendEntriesReply& reply) {
     return SendRPC<type::AppendEntriesArgs,type::AppendEntriesReply>(
-        targetId,
-        "Raft.AppendEntries",
-        args,
-        reply,
-        [](const type::AppendEntriesArgs& a) {
+        targetId,"Raft.AppendEntries",args,reply,
+        [](const type::AppendEntriesArgs& a) -> std::string{
             return codec::RaftCodec::encode(a);
         },
         codec::RaftCodec::decodeAppendEntriesReply

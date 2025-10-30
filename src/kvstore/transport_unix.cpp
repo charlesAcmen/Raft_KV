@@ -1,13 +1,12 @@
 #include "kvstore/transport_unix.h"
 #include "rpc/client.h"
 #include "rpc/server.h"
+#include "kvstore/codec/kv_codec.h"
 namespace kv{
 KVTransportUnix::KVTransportUnix(
     const rpc::type::PeerInfo& self_,
     const std::vector<rpc::type::PeerInfo>& peer_)
-    : TransportBase(self_, peer_) {
-    
-}
+    : TransportBase(self_, peer_) {}
 KVTransportUnix::~KVTransportUnix() {
     Stop();
 }
@@ -27,7 +26,13 @@ void KVTransportUnix::Stop() {
  */
 bool KVTransportUnix::GetRPC(
     int targetId,const GetArgs& args,GetReply& reply){
-    return false;
+    return SendRPC<GetArgs,GetReply>(
+        targetId,"KV.Get",args,reply,
+        [](const GetArgs& a)->std::string{
+            return codec::encode(a);
+        },
+        codec::decodeGetReply
+    );
 }
 /**
  * @brief Synchronously call Put or Append on target KV server.
@@ -39,7 +44,13 @@ bool KVTransportUnix::GetRPC(
  */
 bool KVTransportUnix::PutAppendRPC(
     int targetId,const PutAppendArgs& args,PutAppendReply& reply){
-    return false;
+    return SendRPC<PutAppendArgs,PutAppendReply>(
+        targetId,"KV.PutAppend",args,reply,
+        [](const PutAppendArgs& a)->std::string{
+            return codec::encode(a);
+        },
+        codec::decodePutAppendReply
+    );
 }
 void KVTransportUnix::RegisterGetHandler(
     rpc::type::RPCHandler handler) {

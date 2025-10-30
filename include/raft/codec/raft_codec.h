@@ -1,5 +1,5 @@
 #pragma once
-#include "../types.h"
+#include "raft/types.h"
 #include <string>
 #include <sstream>
 #include <optional>
@@ -237,6 +237,6 @@ public:
         }
         return true;
     }
-};
+};// class RaftCodec
 
 } // namespace raft::codec
