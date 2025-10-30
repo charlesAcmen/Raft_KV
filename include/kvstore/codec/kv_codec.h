@@ -14,7 +14,7 @@ public:
     }
     static inline std::string encode(const type::GetReply& reply) {
         std::stringstream ss;
-        ss << reply.err << "\n"
+        ss << type::ErrToString(reply.err) << "\n"
            << reply.Value << "\n";
         return ss.str();
     }
@@ -28,7 +28,7 @@ public:
     }
     static inline std::string encode(const type::PutAppendReply& reply) {
         std::stringstream ss;
-        ss << reply.err << "\n";
+        ss << type::ErrToString(reply.err) << "\n";
         return ss.str();
     }
 
@@ -57,7 +57,7 @@ public:
         std::string field;
         if(!std::getline(ss, field,'\n')) return {};
         if(field.empty()) return {};    
-        reply.err = field;
+        reply.err = type::StringToErr(field);
         return reply;
     }
     // string to GetArgs
@@ -78,7 +78,7 @@ public:
 
         if(!std::getline(ss, field,'\n')) return {};
         if(field.empty()) return {};
-        reply.err = field;
+        reply.err = type::StringToErr(field);
         if(!std::getline(ss, field,'\n')) return {};
         if(field.empty()) return {};
         reply.Value = field;

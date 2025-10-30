@@ -2,7 +2,32 @@
 #include <string>
 namespace kv::type{
 //better than typedef
-using Err = std::string;
+// using Err = std::string;
+enum class Err {
+    OK,
+    ErrNoKey,
+    ErrWrongLeader,
+    ErrTimeout,
+    ErrUnknown
+};
+inline std::string ErrToString(Err err) {
+    switch (err) {
+        case Err::OK: return "OK";
+        case Err::ErrNoKey: return "ErrNoKey";
+        case Err::ErrWrongLeader: return "ErrWrongLeader";
+        case Err::ErrTimeout: return "ErrTimeout";
+        case Err::ErrUnknown: return "ErrUnknown";
+        default: return "InvalidErr";
+    }
+};
+inline Err StringToErr(const std::string& str) {
+    if (str == "OK") return Err::OK;
+    if (str == "ErrNoKey") return Err::ErrNoKey;
+    if (str == "ErrWrongLeader") return Err::ErrWrongLeader;
+    if (str == "ErrTimeout") return Err::ErrTimeout;
+    if (str == "ErrUnknown") return Err::ErrUnknown;
+    return Err::ErrUnknown; // default case
+}
 struct PutAppendArgs{
     std::string Key;
     std::string Value;

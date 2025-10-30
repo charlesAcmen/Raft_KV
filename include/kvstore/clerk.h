@@ -7,6 +7,9 @@ namespace kv {
 class Clerk {
 public:
     Clerk(int,const std::vector<int>&,std::shared_ptr<IKVTransport>);
+    ~Clerk();
+    void Start();
+
 
     std::string Get(const std::string& key) const;
     void Put(const std::string& key, const std::string& value);
