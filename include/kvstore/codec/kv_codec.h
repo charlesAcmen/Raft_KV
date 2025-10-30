@@ -26,8 +26,50 @@ public:
            << args.Op << "\n";
         return ss.str();
     }
+    static inline std::string encode(const type::PutAppendReply& reply) {
+        std::stringstream ss;
+        ss << reply.err << "\n";
+        return ss.str();
+    }
+
 
     // ---------string to struct---------
+    // string to PutAppendArgs
+    static inline type::PutAppendArgs decodePutAppendArgs(const std::string& payload) {
+        struct type::PutAppendArgs args{};
+        std::stringstream ss(payload);
+        std::string field;
+        if (!std::getline(ss, field, '\n')) return {};
+        if( field.empty()) return {};
+        args.Key = field;
+        if (!std::getline(ss, field, '\n')) return {};
+        if( field.empty()) return {};
+        args.Value = field;
+        if (!std::getline(ss, field, '\n')) return {}; 
+        if( field.empty()) return {};
+        args.Op = field; 
+        return args;
+    }
+    // string to PutAppendReply
+    static inline type::PutAppendReply decodePutAppendReply(const std::string& payload) {
+        struct type::PutAppendReply reply{};
+        std::stringstream ss(payload);
+        std::string field;
+        if(!std::getline(ss, field,'\n')) return {};
+        if(field.empty()) return {};    
+        reply.err = field;
+        return reply;
+    }
+    // string to GetArgs
+    static inline type::GetArgs decodeGetArgs(const std::string& payload) {
+        struct type::GetArgs args{};
+        std::stringstream ss(payload);
+        std::string field;
+        if (!std::getline(ss, field, '\n')) return {};
+        if( field.empty()) return {};
+        args.Key = field;
+        return args;
+    }
     // string to GetReply
     static inline type::GetReply decodeGetReply(const std::string& payload) {
         struct type::GetReply reply{};
@@ -36,9 +78,10 @@ public:
 
         if(!std::getline(ss, field,'\n')) return {};
         if(field.empty()) return {};
-        reply.Err = field;
-        std::getline(ss, reply.err);
-        std::getline(ss, reply.Value);  
+        reply.err = field;
+        if(!std::getline(ss, field,'\n')) return {};
+        if(field.empty()) return {};
+        reply.Value = field;
         return reply;
     }
 };// class KVCodec

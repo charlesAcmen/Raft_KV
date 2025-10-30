@@ -11,8 +11,10 @@ public:
     //RequestVoteArgs to string
     static inline std::string encode(const type::RequestVoteArgs& args) {
         std::stringstream ss;
-        ss << args.term << "\n" << args.candidateId
-           << "\n" << args.lastLogIndex << "\n" << args.lastLogTerm;
+        ss << args.term << "\n" 
+           << args.candidateId << "\n" 
+           << args.lastLogIndex << "\n" 
+           << args.lastLogTerm << "\n";
         return ss.str();
     }
 
@@ -112,9 +114,11 @@ public:
         std::stringstream ss(payload);
         std::string field;
         if (!std::getline(ss, field, '\n')) return {};
-        if (!field.empty()) reply.term = std::stoi(field);
-        else return {};
+        if (field.empty()) return {};
+        reply.term = std::stoi(field);
+        
         if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
         reply.voteGranted = (field == "1");
         return reply;
     }
@@ -167,9 +171,6 @@ public:
 
             args.entries[i] = entry;
         }
-
-
-
         return args;
     }
 
