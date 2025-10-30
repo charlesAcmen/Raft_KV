@@ -13,26 +13,16 @@ public:
         const std::vector<rpc::type::PeerInfo>&);
     ~KVTransportUnix() override;
 
+    virtual void Start() override;
+    virtual void Stop() override;
+
     bool GetRPC(
         int,const GetArgs&,GetReply&) override;
     bool PutAppendRPC(
         int,const PutAppendArgs&,PutAppendReply&) override;
-    
-    /**
-     * @brief Register handler function for Get RPCs.
-     * 
-     * @param handler Function that receives serialized input and returns serialized output
-     */
     virtual void RegisterGetHandler(
         rpc::type::RPCHandler handler) override;
-
-    /**
-     * @brief Register handler function for PutAppend RPCs.
-     * 
-     * @param handler Function that receives serialized input and returns serialized output
-     */
     virtual void RegisterPutAppendHandler(
         rpc::type::RPCHandler handler) override;
-private:
 };
 }//namespace kv

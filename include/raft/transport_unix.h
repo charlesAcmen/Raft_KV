@@ -14,6 +14,9 @@ public:
         const std::vector<rpc::type::PeerInfo>&);
     ~RaftTransportUnix() override;
 
+    virtual void Start() override;
+    virtual void Stop() override;
+
     bool RequestVoteRPC(
         int,const type::RequestVoteArgs&,type::RequestVoteReply&) override;
     bool AppendEntriesRPC(

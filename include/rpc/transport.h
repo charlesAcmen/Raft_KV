@@ -1,10 +1,13 @@
 #pragma once
 #include "rpc/types.h"  //for PeerInfo
+#include "rpc/client.h"
+#include "rpc/server.h"
 #include <vector>       //for list of peers
 #include <unordered_map>//for map of clients
 #include <memory>       //for unique_ptr
 #include <thread>       //for server and client threads
 #include <functional>   //for encode and decode functions
+#include <spdlog/spdlog.h>
 namespace rpc{
 class RpcClient;
 class RpcServer;
@@ -19,17 +22,28 @@ protected:
         const type::PeerInfo& self,
         const std::vector<type::PeerInfo>& peers);
 
-
     void RegisterHandler(
         const std::string& rpcName,
         const rpc::type::RPCHandler& handler);
-
     template<typename Args,typename Reply>
-    void SendRPC(
-        int targetID,const std::string& rpcName, 
-        const Args&,Reply&,
-        const std::function<std::string(const Args&)>&,
-        const std::function<bool(const std::string&, Reply&)>&);
+    bool SendRPC(
+        int targetId,const std::string& rpcName, 
+        const Args& args,Reply& reply,
+        const std::function<std::string(const Args&)>& encodeFn,
+        const std::function<Reply(const std::string&)>& decodeFn){
+        auto it = clients_.find(targetId);
+        if (it == clients_.end()) {
+            spdlog::error("[TransportBase] No RPC client for peer {}", targetId);
+            return false;
+        }
+        rpc::RpcClient* client = it->second.get();//unique_ptr
+
+        //convert args to string as request
+        std::string request = encodeFn(args);
+        std::string response = client->Call(rpcName, request);
+        reply = decodeFn(response);
+        return true;
+    }
 
     // Information about self and peers
     const type::PeerInfo self_;

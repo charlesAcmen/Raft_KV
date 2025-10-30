@@ -1,7 +1,4 @@
 #include "rpc/transport.h"
-#include "rpc/client.h"
-#include "rpc/server.h"
-#include <spdlog/spdlog.h>
 namespace rpc{
 TransportBase::TransportBase(
     const type::PeerInfo& self,
@@ -54,16 +51,5 @@ void TransportBase::RegisterHandler(
     } else {
         spdlog::error("[TransportBase] RegisterHandler failed: server not initialized");
     }
-}
-
-
-//----------protected methods----------------
-template<typename Args,typename Reply>
-void TransportBase::SendRPC(
-    int targetID,const std::string& rpcName, 
-    const Args& args,Reply& reply,   
-    const std::function<std::string(const Args&)>& encodeFn,
-    const std::function<bool(const std::string&, Reply&)>& decodeFn) {
-
 }
 }// namespace rpc

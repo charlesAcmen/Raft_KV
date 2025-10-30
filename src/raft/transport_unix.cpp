@@ -15,63 +15,37 @@ RaftTransportUnix::RaftTransportUnix(
 RaftTransportUnix::~RaftTransportUnix() {
     Stop();
 }
-
-/**
- * @brief Send a RequestVote RPC to a specific peer.
- * 
- * This function only handles the communication logic — 
- * it does NOT implement any voting logic. The Raft layer
- * is responsible for preparing the RequestVoteArgs and
- * handling the returned RequestVoteReply.
- * 
- * @param target_id The peer node ID to which the RPC is sent.
- * @param args      The RequestVoteArgs structure prepared by the Raft instance.
- * @param reply     The RequestVoteReply structure to fill with the peer's response.
- * @return true     If the RPC communication succeeded (not necessarily voted true).
- * @return false    If the RPC failed due to transport errors (e.g. socket closed).
- */
+void RaftTransportUnix::Start() {
+    TransportBase::Start();
+}
+void RaftTransportUnix::Stop() {
+    TransportBase::Stop();
+}
 bool RaftTransportUnix::RequestVoteRPC(
     int targetId,const type::RequestVoteArgs& args,type::RequestVoteReply& reply) {
-    auto it = clients_.find(targetId);
-    if (it == clients_.end()) {
-        spdlog::error("[RaftTransportUnix] RequestVoteRPC No RPC client for peer {}", targetId);
-        return false;
-    }
-    rpc::RpcClient* client = it->second.get();//unique_ptr
-
-    //convert args to string as request
-    std::string request = codec::RaftCodec::encode(args);
-    std::string response = client->Call("Raft.RequestVote", request);
-    reply = codec::RaftCodec::decodeRequestVoteReply(response);
-    return true;
+    return SendRPC<type::RequestVoteArgs,type::RequestVoteReply>(
+        targetId,
+        "Raft.RequestVote",
+        args,
+        reply,
+        [](const type::RequestVoteArgs& a) {
+            return codec::RaftCodec::encode(a);
+        },
+        codec::RaftCodec::decodeRequestVoteReply
+    );
 }
-/**
- * @brief Send an AppendEntries RPC to a specific peer.
- * 
- * This function only performs network-level transmission 
- * using the underlying RPC client abstraction. It does not 
- * contain any Raft consensus or log replication logic.
- * 
- * @param target_id The peer node ID to which the RPC is sent.
- * @param args      The AppendEntriesArgs structure prepared by the Raft instance.
- * @param reply     The AppendEntriesReply structure to fill with the peer's response.
- * @return true     If the RPC communication succeeded.
- * @return false    If the RPC transmission failed.
- */
 bool RaftTransportUnix::AppendEntriesRPC(
     int targetId,const type::AppendEntriesArgs& args,type::AppendEntriesReply& reply) {
-    // spdlog::info("[RaftTransportUnix] {} Sending AppendEntriesRPC to peer {}", self_.id, targetId);
-    auto it = clients_.find(targetId);
-    if (it == clients_.end()) {
-        spdlog::error("[RaftTransportUnix] AppendEntriesRPC No RPC client for peer {}", targetId);
-        return false;
-    }
-    rpc::RpcClient* client = it->second.get();//unique_ptr
-
-    std::string request = codec::RaftCodec::encode(args);
-    std::string response = client->Call("Raft.AppendEntries", request);
-    reply = codec::RaftCodec::decodeAppendEntriesReply(response);
-    return true;
+    return SendRPC<type::AppendEntriesArgs,type::AppendEntriesReply>(
+        targetId,
+        "Raft.AppendEntries",
+        args,
+        reply,
+        [](const type::AppendEntriesArgs& a) {
+            return codec::RaftCodec::encode(a);
+        },
+        codec::RaftCodec::decodeAppendEntriesReply
+    );
 }
 
 void RaftTransportUnix::RegisterRequestVoteHandler(
