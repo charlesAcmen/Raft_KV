@@ -1,28 +1,37 @@
 #pragma once 
+#include "raft/raft.h"          // for raft::Raft
+#include "kvstore/types.h"      // for type::PutAppendArgs, type::GetArgs, etc
+#include "kvstore/transport.h"  // for IKVTransport
 #include <string>
 #include <memory>
 #include <atomic>
 #include <mutex>
-#include "raft/raft.h"
-#include "kvstore/types.h"
 namespace kv{
 class KVStateMachine; // forward declaration
 class KVServer {
-
 public:
-    KVServer(int me,std::shared_ptr<raft::Raft> raft,int maxRaftState);
-
+    KVServer(int me,
+        std::shared_ptr<IKVTransport> transport,
+        std::shared_ptr<raft::Raft> raft,
+        int maxRaftState);
+    ~KVServer();
     void StartKVServer();
     void Kill();
     bool Killed() const;
 
 
+
+private:
     void PutAppend(const type::PutAppendArgs& args,type::PutAppendReply& reply);
     void Get(const type::GetArgs& args,type::GetReply& reply);
-private:
+
     mutable std::mutex mu_;
     int me_;
-    std::atomic<int32_t> dead_{0};  // set by Kill()    
+    std::atomic<int32_t> dead_{0};  // set by Kill()   
+    
+    // used to receive rpcs from Clerk and handle them
+    std::shared_ptr<IKVTransport> transport_; 
+
     std::shared_ptr<raft::Raft> rf_;
     std::shared_ptr<KVStateMachine> kvSM_;
     int maxRaftState_{-1}; //-1 means no snapshotting
