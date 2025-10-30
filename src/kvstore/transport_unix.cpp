@@ -25,7 +25,7 @@ void KVTransportUnix::Stop() {
  * @return true if the RPC succeeded (response received), false on timeout/failure
  */
 bool KVTransportUnix::GetRPC(
-    int targetId,const GetArgs& args,GetReply& reply){
+    int targetId,const type::GetArgs& args,type::GetReply& reply){
     return SendRPC<GetArgs,GetReply>(
         targetId,"KV.Get",args,reply,
         [](const GetArgs& a)->std::string{
@@ -43,7 +43,7 @@ bool KVTransportUnix::GetRPC(
  * @return true if the RPC succeeded, false on timeout/failure
  */
 bool KVTransportUnix::PutAppendRPC(
-    int targetId,const PutAppendArgs& args,PutAppendReply& reply){
+    int targetId,const type::PutAppendArgs& args,type::PutAppendReply& reply){
     return SendRPC<PutAppendArgs,PutAppendReply>(
         targetId,"KV.PutAppend",args,reply,
         [](const PutAppendArgs& a)->std::string{

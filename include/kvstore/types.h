@@ -33,4 +33,4 @@ struct KVCommand {
     KVCommand(CommandType t, const std::string& k, const std::string& v = "")
         : type(t), key(k), value(v) {}
 };
-} // namespace kv
+} // namespace kv::codec

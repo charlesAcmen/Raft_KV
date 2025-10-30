@@ -17,8 +17,8 @@ public:
     bool Killed() const;
 
 
-    void PutAppend(const PutAppendArgs& args,PutAppendReply& reply);
-    void Get(const GetArgs& args,GetReply& reply);
+    void PutAppend(const type::PutAppendArgs& args,type::PutAppendReply& reply);
+    void Get(const type::GetArgs& args,type::GetReply& reply);
 private:
     mutable std::mutex mu_;
     int me_;

@@ -17,9 +17,9 @@ public:
     virtual void Start() = 0;
     virtual void Stop() = 0;
     virtual bool GetRPC(
-        int targetId,const GetArgs& args,GetReply& reply) = 0;
+        int targetId,const type::GetArgs& args,type::GetReply& reply) = 0;
     virtual bool PutAppendRPC(
-        int targetId,const PutAppendArgs& args,PutAppendReply& reply) = 0;
+        int targetId,const type::PutAppendArgs& args,type::PutAppendReply& reply) = 0;
     virtual void RegisterGetHandler(
         rpc::type::RPCHandler handler) = 0;
     virtual void RegisterPutAppendHandler(

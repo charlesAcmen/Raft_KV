@@ -27,11 +27,11 @@ bool KVServer::Killed() const {
 }
 
 void KVServer::PutAppend(
-    const PutAppendArgs& args,PutAppendReply& reply) {
+    const type::PutAppendArgs& args,type::PutAppendReply& reply) {
     std::lock_guard<std::mutex> lk(mu_);
 }
 void KVServer::Get(
-    const GetArgs& args,GetReply& reply) {
+    const type::GetArgs& args,type::GetReply& reply) {
     std::lock_guard<std::mutex> lk(mu_);
 }
 

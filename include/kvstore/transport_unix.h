@@ -17,9 +17,9 @@ public:
     virtual void Stop() override;
 
     bool GetRPC(
-        int,const GetArgs&,GetReply&) override;
+        int,const type::GetArgs&,type::GetReply&) override;
     bool PutAppendRPC(
-        int,const PutAppendArgs&,PutAppendReply&) override;
+        int,const type::PutAppendArgs&,type::PutAppendReply&) override;
     virtual void RegisterGetHandler(
         rpc::type::RPCHandler handler) override;
     virtual void RegisterPutAppendHandler(
