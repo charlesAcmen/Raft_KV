@@ -1,5 +1,10 @@
 #include "kvstore/clerk.h"
 namespace kv {
+Clerk::Clerk(int me,const std::vector<int>& peers,
+std::shared_ptr<IKVTransport> transport)
+    :me_(me),peers_(peers),transport_(transport){
+
+}
 std::string Clerk::Get(const std::string& key) const {
     return "";
 }

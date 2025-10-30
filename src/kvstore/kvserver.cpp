@@ -1,11 +1,13 @@
 #include "kvstore/kvserver.h"
 #include "kvstore/statemachine.h"  
+#include "kvstore/codec/kv_codec.h"
 namespace kv {
 KVServer::KVServer(int me,
+    const std::vector<int>& peers,
     std::shared_ptr<IKVTransport> transport,
     std::shared_ptr<raft::Raft> raft,
     int maxRaftState)
-    : transport_(transport), rf_(raft), kvSM_(std::make_shared<KVStateMachine>()) {
+    : me_(me),peers_(peers),transport_(transport), rf_(raft), kvSM_(std::make_shared<KVStateMachine>()) {
     
     // -----------------------
     // Register RPC handlers
@@ -45,7 +47,6 @@ KVServer::KVServer(int me,
         }
     );
     dead_.store(0);
-    me_ = me;
     maxRaftState_ = maxRaftState;
 }
 KVServer::~KVServer() {
@@ -71,12 +72,12 @@ bool KVServer::Killed() const {
 
 void KVServer::PutAppend(
     const type::PutAppendArgs& args,type::PutAppendReply& reply) {
-    std::lock_guard<std::mutex> lk(mu_);
+    
 
 }
 void KVServer::Get(
     const type::GetArgs& args,type::GetReply& reply) {
-    std::lock_guard<std::mutex> lk(mu_);
+    
 }
 
 }// namespace kv

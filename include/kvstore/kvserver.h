@@ -10,7 +10,7 @@ namespace kv{
 class KVStateMachine; // forward declaration
 class KVServer {
 public:
-    KVServer(int me,
+    KVServer(int me,const std::vector<int>&,
         std::shared_ptr<IKVTransport> transport,
         std::shared_ptr<raft::Raft> raft,
         int maxRaftState);
@@ -26,7 +26,8 @@ private:
     void Get(const type::GetArgs& args,type::GetReply& reply);
 
     mutable std::mutex mu_;
-    int me_;
+    const int me_;                      // this peer's id (index into peers_)
+    const std::vector<int> peers_;      // peer ids (including me_)
     std::atomic<int32_t> dead_{0};  // set by Kill()   
     
     // used to receive rpcs from Clerk and handle them
