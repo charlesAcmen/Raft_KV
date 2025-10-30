@@ -1,15 +1,13 @@
 #pragma once
-
 #include "raft/types.h" // for RequestVoteArgs, RequestVoteReply, AppendEntriesArgs, AppendEntriesReply
 #include "rpc/types.h"  // for PeerInfo
-#include "rpc/transport.h"  // inherit from rpc::ITransport
 #include <functional>   //for rpc handlers
 #include <string>
 namespace raft {
 // Transport abstraction used by Raft to send RPCs to peers. 
 // Keeping this abstract decouples Raft state-machine logic 
 // from the underlying RPC mechanism.
-class IRaftTransport : public rpc::ITransport {
+class IRaftTransport{
 public:
     virtual ~IRaftTransport() = default;
 
@@ -24,17 +22,16 @@ public:
     type::AppendEntriesReply& reply) = 0;
 
     virtual void RegisterRequestVoteHandler(
-        std::function<std::string(const std::string&)> handler);
+        rpc::type::RPCHandler handler);
     virtual void RegisterAppendEntriesHandler(
-        std::function<std::string(const std::string&)> handler);   
+        rpc::type::RPCHandler handler);   
 protected:
-    IRaftTransport(
-        const rpc::type::PeerInfo&,
+    IRaftTransport(const rpc::type::PeerInfo&,
         const std::vector<rpc::type::PeerInfo>&);
 
     // RPC handlers
-    std::function<std::string(const std::string&)> requestVoteHandler_;
-    std::function<std::string(const std::string&)> appendEntriesHandler_;
+    rpc::type::RPCHandler requestVoteHandler_;
+    rpc::type::RPCHandler appendEntriesHandler_;
 };
 
 

@@ -16,38 +16,6 @@ RaftTransportUnix::~RaftTransportUnix() {
     Stop();
 }
 
-// Start the transport (start RPC server and prepare clients)
-void RaftTransportUnix::Start() {
-    // Start the server in background
-    serverThread_ = std::thread([this]() { server_->Start(); });
-
-    clientThread_ = std::thread([this]() {
-        while(true){
-            bool allConnected = true;
-            for (auto& [id, client] : clients_) {
-                if(client->Connect()){
-                    // spdlog::info("[RaftTransportUnix] {} Connected to peer {}", this->self_.id, id);
-                }else{
-                    allConnected = false;
-                }
-            }
-            if(allConnected) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        }
-        spdlog::info("[RaftTransportUnix] {}:All RPC clients connected to peers",self_.id);
-    });
-}
-
-// Shutdown transport gracefully
-void RaftTransportUnix::Stop() {
-    if (server_) server_->Stop();
-    for (auto& [id, client] : clients_) {
-        client->Close();
-    }
-    if (serverThread_.joinable()) serverThread_.join();
-    if (clientThread_.joinable()) clientThread_.join();
-}
-
 /**
  * @brief Send a RequestVote RPC to a specific peer.
  * 
@@ -64,7 +32,6 @@ void RaftTransportUnix::Stop() {
  */
 bool RaftTransportUnix::RequestVoteRPC(
     int targetId,const type::RequestVoteArgs& args,type::RequestVoteReply& reply) {
-    // spdlog::info("[RaftTransportUnix] {} Sending RequestVoteRPC to peer {}", self_.id, targetId);
     auto it = clients_.find(targetId);
     if (it == clients_.end()) {
         spdlog::error("[RaftTransportUnix] RequestVoteRPC No RPC client for peer {}", targetId);

@@ -7,7 +7,7 @@ IRaftTransport::IRaftTransport(
     const std::vector<rpc::type::PeerInfo>& peers)
     : ITransport(self,peers){}
 void IRaftTransport::RegisterRequestVoteHandler(
-    std::function<std::string(const std::string&)> handler) {
+    rpc::type::RPCHandler handler) {
     requestVoteHandler_ = std::move(handler);
     if (server_) {
         server_->Register_Handler("Raft.RequestVote", requestVoteHandler_);
@@ -15,7 +15,7 @@ void IRaftTransport::RegisterRequestVoteHandler(
 }
 
 void IRaftTransport::RegisterAppendEntriesHandler(
-    std::function<std::string(const std::string&)> handler) {
+    rpc::type::RPCHandler handler) {
     appendEntriesHandler_ = std::move(handler);
     if (server_) {
         server_->Register_Handler("Raft.AppendEntries", appendEntriesHandler_);

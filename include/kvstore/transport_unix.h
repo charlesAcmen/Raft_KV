@@ -4,7 +4,9 @@
 #include <thread>       //for server thread and client thread
 namespace kv{
 // Unix-domain-socket-based transport for single-machine multi-process simulation.
-class KVTransportUnix : public IKVTransport {
+class KVTransportUnix 
+    : public TransportBase,
+      public IKVTransport,{
 public:
     explicit KVTransportUnix(
         const rpc::type::PeerInfo&,

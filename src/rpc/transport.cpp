@@ -1,8 +1,9 @@
 #include "rpc/transport.h"
 #include "rpc/client.h"
 #include "rpc/server.h"
+#include <spdlog/spdlog.h>
 namespace rpc{
-ITransport::ITransport(
+TransportBase::TransportBase(
     const type::PeerInfo& self,
     const std::vector<type::PeerInfo>& peers)
     : self_(self), peers_(peers) {
@@ -17,4 +18,33 @@ ITransport::ITransport(
     // do not start the server here, because the handlers are not registered yet
     // and node will be blocked when starting the server
 }
+void TransportBase::Start() {
+    // Start the server in background
+    serverThread_ = std::thread([this]() { server_->Start(); });
+
+    clientThread_ = std::thread([this]() {
+        while(true){
+            bool allConnected = true;
+            for (auto& [id, client] : clients_) {
+                if(client->Connect()){
+                    // spdlog::info("[TransportBase] {} Connected to peer {}", this->self_.id, id);
+                }else{
+                    allConnected = false;
+                }
+            }
+            if(allConnected) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+        spdlog::info("[TransportBase] {}:All RPC clients connected to peers",self_.id);
+    });
+}
+void TransportBase::Stop() {
+    if (server_) server_->Stop();
+    for (auto& [id, client] : clients_) {
+        client->Close();
+    }
+    if (serverThread_.joinable()) serverThread_.join();
+    if (clientThread_.joinable()) clientThread_.join();
+}
+
 }// namespace rpc

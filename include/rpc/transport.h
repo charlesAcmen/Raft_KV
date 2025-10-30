@@ -1,19 +1,20 @@
 #pragma once
-#include "rpc/types.h"
+#include "rpc/types.h"  //for PeerInfo
 #include <vector>       //for list of peers
 #include <unordered_map>//for map of clients
 #include <memory>       //for unique_ptr
+#include <thread>       //for server and client threads
 namespace rpc{
 class RpcClient;
 class RpcServer;
-class ITransport{
+class TransportBase{
 public:
-    virtual ~ITransport() = default;
+    virtual ~TransportBase() = default;
 
-    virtual void Start() = 0;
-    virtual void Stop() = 0;
+    virtual void Start();
+    virtual void Stop();
 protected:
-    ITransport(
+    TransportBase(
         const type::PeerInfo& self,
         const std::vector<type::PeerInfo>& peers);
     // Information about self and peers
@@ -24,5 +25,8 @@ protected:
     std::unique_ptr<RpcServer> server_;
     // key: peer id
     std::unordered_map<int, std::unique_ptr<RpcClient>> clients_;
+
+    std::thread serverThread_;
+    std::thread clientThread_;
 };
 }
