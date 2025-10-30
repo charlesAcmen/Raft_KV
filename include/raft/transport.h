@@ -1,16 +1,14 @@
 #pragma once
 #include "raft/types.h" // for RequestVoteArgs, RequestVoteReply, AppendEntriesArgs, AppendEntriesReply
 #include "rpc/types.h"  // for handler type
+#include "rpc/transport.h" // for rpc::ITransport
 namespace raft {
 // Transport abstraction used by Raft to send RPCs to peers. 
 // Keeping this abstract decouples Raft state-machine logic 
 // from the underlying RPC mechanism.
-class IRaftTransport{
+class IRaftTransport: public rpc::ITransport {
 public:
     virtual ~IRaftTransport() = default;
-
-    virtual void Start() = 0;
-    virtual void Stop() = 0;
 
     // Synchronously call RequestVote on `targetId`
     virtual bool RequestVoteRPC(int targetId,

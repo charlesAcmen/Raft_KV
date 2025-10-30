@@ -1,5 +1,5 @@
 #pragma once 
-#include "rpc/transport.h"
+#include "rpc/transport.h"  //for rpc::ITransport
 #include "kvstore/types.h"  //for GetArgs, GetReply, PutAppendArgs, PutAppendReply
 namespace kv{
 /**
@@ -10,16 +10,15 @@ namespace kv{
  * It inherits from rpc::ITransport, which provides Start/Stop lifecycle
  * control for the transport.
  */
-class IKVTransport{
+class IKVTransport: public rpc::ITransport{
 public:
     virtual ~IKVTransport() = default;
-
-    virtual void Start() = 0;
-    virtual void Stop() = 0;
-    virtual bool GetRPC(
-        int targetId,const type::GetArgs& args,type::GetReply& reply) = 0;
-    virtual bool PutAppendRPC(
-        int targetId,const type::PutAppendArgs& args,type::PutAppendReply& reply) = 0;
+    virtual bool GetRPC(int,
+        const type::GetArgs&,
+        type::GetReply&) = 0;
+    virtual bool PutAppendRPC(int,
+        const type::PutAppendArgs&,
+        type::PutAppendReply&) = 0;
     virtual void RegisterGetHandler(
         rpc::type::RPCHandler handler) = 0;
     virtual void RegisterPutAppendHandler(

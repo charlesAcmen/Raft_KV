@@ -16,10 +16,12 @@ public:
     virtual void Start() override;
     virtual void Stop() override;
 
-    bool GetRPC(
-        int,const type::GetArgs&,type::GetReply&) override;
-    bool PutAppendRPC(
-        int,const type::PutAppendArgs&,type::PutAppendReply&) override;
+    bool GetRPC(int,
+        const type::GetArgs&,
+        type::GetReply&) override;
+    bool PutAppendRPC(int,
+        const type::PutAppendArgs&,
+        type::PutAppendReply&) override;
     virtual void RegisterGetHandler(
         rpc::type::RPCHandler handler) override;
     virtual void RegisterPutAppendHandler(
