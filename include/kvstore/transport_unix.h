@@ -1,12 +1,11 @@
 #pragma once 
-#include "rpc/transport.h"
-#include "kvstore/transport.h"
-#include "rpc/types.h"
-namespace kv{
+#include "rpc/transport.h"  // for rpc::TransportBase
+#include "kvstore/transport.h"  // for IKVTransport
+namespace kv {
 // Unix-domain-socket-based transport for single-machine multi-process simulation.
 class KVTransportUnix 
     : public rpc::TransportBase,
-      public IKVTransport{
+      public IKVTransport {
 public:
     explicit KVTransportUnix(
         const rpc::type::PeerInfo&,

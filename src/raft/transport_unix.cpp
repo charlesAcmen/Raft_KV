@@ -25,7 +25,7 @@ bool RaftTransportUnix::RequestVoteRPC(
     int targetId,const type::RequestVoteArgs& args,type::RequestVoteReply& reply) {
     return SendRPC<type::RequestVoteArgs,type::RequestVoteReply>(
         targetId,"Raft.RequestVote",args,reply,
-        [](const type::RequestVoteArgs& a) {
+        [](const type::RequestVoteArgs& a) -> std::string{
             return codec::RaftCodec::encode(a);
         },
         codec::RaftCodec::decodeRequestVoteReply

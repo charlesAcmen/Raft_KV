@@ -16,8 +16,7 @@ namespace raft {
 class IRaftTransport;
 class Raft {
     public:
-        Raft(
-            int,const std::vector<int>&,std::shared_ptr<IRaftTransport>);
+        Raft(int,const std::vector<int>&,std::shared_ptr<IRaftTransport>);
         ~Raft();
        
         void SetApplyCallback(std::function<void(type::ApplyMsg&)> cb);
