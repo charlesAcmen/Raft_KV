@@ -1,11 +1,6 @@
 #pragma once 
 #include "rpc/transport.h"
 #include "kvstore/types.h"  //for GetArgs, GetReply, PutAppendArgs, PutAppendReply
-#include <unordered_map>//for map of clients
-#include <memory>       //for unique_ptr
-#include <functional>   //for rpc handlers
-#include <vector>       //for list of peers
-#include <string>
 namespace kv{
 /**
  * @brief Abstract transport layer for KVServer RPCs.

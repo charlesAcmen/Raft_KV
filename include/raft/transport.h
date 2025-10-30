@@ -18,6 +18,15 @@ public:
     virtual bool AppendEntriesRPC(int targetId,
     const type::AppendEntriesArgs& args,
     type::AppendEntriesReply& reply) = 0; 
+
+    virtual void RegisterRequestVoteHandler(
+        rpc::type::RPCHandler handler);
+    virtual void RegisterAppendEntriesHandler(
+        rpc::type::RPCHandler handler); 
+protected:
+    // RPC handlers
+    rpc::type::RPCHandler requestVoteHandler_;
+    rpc::type::RPCHandler appendEntriesHandler_;
 };
 
 
