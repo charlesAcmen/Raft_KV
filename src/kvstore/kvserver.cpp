@@ -48,7 +48,7 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
     dead_.store(0);
     maxRaftState_ = maxRaftState;
     spdlog::info("[KVServer] {} created.", me_);
-    spdlog::info("[KVServer] {}",maxRaftState_ == -1 ? "No snapshotting." : "Snapshotting enabled.");
+    // spdlog::info("[KVServer] {}",maxRaftState_ == -1 ? "No snapshotting." : "Snapshotting enabled.");
 }
 KVServer::~KVServer() {
     Stop();

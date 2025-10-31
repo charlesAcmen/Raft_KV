@@ -1,11 +1,17 @@
 #pragma once
-#include "kvstore/kvserver.h"
-#include "kvstore/clerk.h"
+// #include "kvstore/kvserver.h"
+// #include "kvstore/clerk.h"
+#include "raft/raft.h"
 #include <vector>
 #include <memory>               //shared_ptr
+// class raft::Raft;
 namespace kv{
+// forward declaration
+class KVServer;
+class Clerk;
 class KVCluster {
 public:
+    //number of KV servers and number of clerks
     KVCluster(int,int);
     ~KVCluster();
 
@@ -13,7 +19,11 @@ public:
     void StopAll();
     //------test utilities------
 private:
+    std::vector<std::shared_ptr<raft::Raft>> createRaftNodes(int);
+
     std::vector<std::shared_ptr<KVServer>> kvservers_;
     std::vector<std::shared_ptr<Clerk>> clerks_;
+
+    
 };// class KVCluster
 }// namespace kv

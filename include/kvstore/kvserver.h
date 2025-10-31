@@ -10,9 +10,9 @@ namespace kv{
 class KVStateMachine; // forward declaration
 class KVServer {
 public:
-    KVServer(int me,const std::vector<int>&,
-        std::shared_ptr<IKVTransport> transport,
-        std::shared_ptr<raft::Raft> raft,
+    KVServer(int,const std::vector<int>&,
+        std::shared_ptr<IKVTransport>,
+        std::shared_ptr<raft::Raft>,
         int maxRaftState);
     ~KVServer();
     void Start();
