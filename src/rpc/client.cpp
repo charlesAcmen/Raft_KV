@@ -11,12 +11,8 @@ namespace rpc{
 RpcClient::RpcClient(
     const type::PeerInfo& selfInfo,
     const type::PeerInfo& targetInfo)
-    :selfInfo_(selfInfo),targetInfo_(targetInfo){
-    initSocket();
-}
-RpcClient::~RpcClient(){
-    Close();
-}
+    :selfInfo_(selfInfo),targetInfo_(targetInfo){initSocket();}
+RpcClient::~RpcClient(){Close();}
 bool RpcClient::Connect(){
     if(connected_.load()) return true;
     //client address structure:sockaddr_un,unix,used in IPC
@@ -32,27 +28,20 @@ bool RpcClient::Connect(){
     //because the server may not be running yet
 
 
-    int attempts = 0;        
-    while (true) {
+    int attempts = 0;   
+    for (int attempts = 0; attempts < MAX_RETRIES; ++attempts) {
+        initSocket();
         // offsetof:relative offset of sun_path field to the start of struct sockaddr_un
         // +1 is for '\0' at the end
-        socklen_t len = offsetof(struct sockaddr_un, sun_path) + strlen(addr.sun_path) + 1;
-        // spdlog::info("[RpcClient] initSocket() RpcClient connecting to {}:{}", host, port);
+        socklen_t len = offsetof(sockaddr_un, sun_path) + strlen(addr.sun_path) + 1;
         if (::connect(sock_fd, (struct sockaddr*)&addr, len) == 0) {
-            // success
-            // spdlog::info("[RpcClient] initSocket() RpcClient connected to {}:{} at attempt {}", host, port, attempts + 1);
             connected_.store(true);
             return true;
-        } 
-        if (++attempts > MAX_RETRIES) {
-            // spdlog::error("[RpcClient] initSocket() RpcClient failed to connect to {}:{} after {} attempts: {}", host, port, attempts, strerror(e));
-            ::close(sock_fd);
-            // throw std::runtime_error(std::string("[RpcClient] initSocket() RpcClient::connect() failed: ") + strerror(e));
-            connected_.store(false);
-            return false;
         }
+        ::close(sock_fd);
+        sock_fd = -1;
         std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_INTERVAL_MS));
-    }
+    }     
     connected_.store(false);
     return false;
 }

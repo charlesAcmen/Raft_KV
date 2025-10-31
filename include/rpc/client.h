@@ -11,8 +11,8 @@ RPC message format is defined as:
 namespace rpc{
 class RpcClient {
     public:
-        RpcClient(const type::PeerInfo& selfInfo,
-                const type::PeerInfo& targetInfo);
+        RpcClient(
+            const type::PeerInfo&,const type::PeerInfo&);
         ~RpcClient();
         bool Connect();
         void Close();

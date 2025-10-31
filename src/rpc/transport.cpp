@@ -16,11 +16,12 @@ TransportBase::TransportBase(
     // and node will be blocked when starting the server
 }
 void TransportBase::Start() {
+    running_.store(true);
     // Start the server in background
     serverThread_ = std::thread([this]() { server_->Start(); });
 
     clientThread_ = std::thread([this]() {
-        while(true){
+        while(running_.load()){
             bool allConnected = true;
             for (auto& [id, client] : clients_) {
                 if(client->Connect()){
@@ -29,13 +30,15 @@ void TransportBase::Start() {
                     allConnected = false;
                 }
             }
-            if(allConnected) break;
+            if(allConnected || !running_.load()) break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
         spdlog::info("[TransportBase] {}:All RPC clients connected to peers",self_.id);
     });
 }
 void TransportBase::Stop() {
+    if(!running_.exchange(false)) return;//already stopped
+    running_.store(false);
     if (server_) server_->Stop();
     for (auto& [id, client] : clients_) {
         client->Close();

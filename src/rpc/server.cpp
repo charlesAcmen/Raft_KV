@@ -15,7 +15,7 @@ RpcServer::~RpcServer(){Stop();}
 void RpcServer::Register_Handler(
     const std::string& method,
     std::function<std::string(const std::string&)> handler)
-{handlers[method] = handler;}
+{handlers_[method] = handler;}
 /*
 1. Accept connections with accept().
 2. Communicate using send() and recv().
@@ -51,16 +51,17 @@ void RpcServer::Start() {
 
 void RpcServer::Stop() {
     // spdlog::info("[RpcServer] stop() RpcServer stopping...");
+    if(!running.exchange(false)) return; // already stopped
     running.store(false);
     if (server_fd >= 0) {
-        //close the server actively,to break the accept() blocking
-        //after which server will exit while loop and return 0,server process exits normally
+        // close the server actively,to break the accept() blocking
+        // after which server will exit while loop and return 0,server process exits normally
         // spdlog::info("[RpcServer] stop() Closing server socket...");
-        //parameter:int sockfd, int how
-        //how: SHUT_RD, SHUT_WR, SHUT_RDWR
-        //SHUT_RDWR:disables further send and receive operations
+        // parameter:int sockfd, int how
+        // how: SHUT_RD, SHUT_WR, SHUT_RDWR
+        // SHUT_RDWR:disables further send and receive operations
         ::shutdown(server_fd, SHUT_RDWR);
-        //decrease reference count of the socket
+        // decrease reference count of the socket
         ::close(server_fd);
         server_fd = -1;
     }
@@ -160,8 +161,8 @@ void RpcServer::handleClient(int client_fd){
 
             // === call handler ===
             std::string reply_payload;
-            if (handlers.count(method)) {
-                reply_payload = handlers[method](payload);
+            if (handlers_.count(method)) {
+                reply_payload = handlers_[method](payload);
             } else {
                 reply_payload = "ERROR: unknown method";
             }

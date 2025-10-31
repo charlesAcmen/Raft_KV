@@ -21,15 +21,15 @@ class RpcServer {
         RpcServer(const type::PeerInfo& selfInfo);
         ~RpcServer();
         //register rpc handler by method name
-        void Register_Handler(const std::string& method,std::function<std::string(const std::string&)> handler);
+        void Register_Handler(const std::string& method,type::RPCHandler handler);
         void Start();
         void Stop();
     private:
         void initSocket();
         void handleClient(int client_fd);
 
-        //return type : std::string, param type: const std::string& as payload
-        std::unordered_map<std::string, std::function<std::string(const std::string&)>> handlers;
+        //key: method name, value: handler function
+        std::unordered_map<std::string, type::RPCHandler> handlers_;
         std::vector<std::thread> clientThreads_;
         //mutex to protect clientThreads_ when adding new threads
         std::mutex threads_mtx_;

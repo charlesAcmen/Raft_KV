@@ -25,5 +25,5 @@ public:
         rpc::type::RPCHandler handler) override;
     virtual void RegisterPutAppendHandler(
         rpc::type::RPCHandler handler) override;
-};
+};//class KVTransportUnix
 }//namespace kv
