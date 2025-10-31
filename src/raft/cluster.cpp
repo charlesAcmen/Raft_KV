@@ -9,37 +9,15 @@
 #include <csignal>
 namespace raft {
 std::atomic<Cluster*> Cluster::global_instance_for_signal_{nullptr};
-
-Cluster::~Cluster() {
-    // Destructor ensures nodes are stopped and joined.
-    StopAll();
-    JoinAll();
-    nodes_.clear();
-}
-bool Cluster::SubmitCommand(const std::string& command) {
-    std::shared_ptr<Raft> leader = GetLeader();
-    if (leader == nullptr) {
-        spdlog::warn("[Cluster] No leader found, cannot submit command");
-        return false;
-    }
-    spdlog::info("[Cluster] Submitting command '{}'", command);
-    return leader->SubmitCommand(command);
-}
-
-
-void Cluster::CreateNodes(int n) {
-    StopAll(); 
-    JoinAll();
-    nodes_.clear();
+Cluster::Cluster(int numNodes){
+    //preparing peer info
     std::vector<rpc::type::PeerInfo> peers;
     std::vector<int> peerIds;
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < numNodes; ++i) {
         peers.push_back({i+1, "/tmp/raft-node-" + std::to_string(i+1) + ".sock"});
         peerIds.push_back(i+1);
     }
-
-
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < numNodes; ++i) {
         rpc::type::PeerInfo self = peers[i];
         std::shared_ptr<IRaftTransport> transport = 
             std::make_shared<RaftTransportUnix>(self, peers);
@@ -49,6 +27,20 @@ void Cluster::CreateNodes(int n) {
         nodes_.push_back(raftNode);
     }
     spdlog::info("Raft cluster with {} nodes initialized.", nodes_.size());
+}
+
+Cluster::~Cluster() {
+    StopAll();
+    JoinAll();
+}
+bool Cluster::SubmitCommand(const std::string& command) {
+    std::shared_ptr<Raft> leader = GetLeader();
+    if (leader == nullptr) {
+        spdlog::warn("[Cluster] No leader found, cannot submit command");
+        return false;
+    }
+    spdlog::info("[Cluster] Submitting command '{}'", command);
+    return leader->SubmitCommand(command);
 }
 void Cluster::WaitForLeader(int maxAttempts) {
     for (int i = 0; i < maxAttempts; ++i) {
@@ -73,7 +65,6 @@ void Cluster::StopAll() {
 void Cluster::JoinAll() {
     for (auto &n : nodes_) n->Join();
 }
-
 void Cluster::SignalHandler(int signum) {
     spdlog::info("[Cluster] Caught signal {}.", signum);
     Cluster* inst = global_instance_for_signal_.load();
@@ -93,19 +84,14 @@ void Cluster::WaitForShutdown() {
     //SIGTERM:kill
     std::signal(SIGTERM, Cluster::SignalHandler);
 #endif
-
     spdlog::info("[Cluster] Waiting for shutdown (Ctrl+C to exit) ...");
-
     std::unique_lock<std::mutex> lk(shutdown_mu_);
     // Wait until either shutdown_requested_ becomes true
     shutdown_cv_.wait(lk, [this](){ return shutdown_requested_.load(); });
-
     spdlog::info("[Cluster] Shutdown requested, stopping cluster...");
     StopAll();
     JoinAll();
 }
-
-
 //---------private methods ----------
 std::shared_ptr<Raft> Cluster::GetLeader() const {
     for (const auto& node : nodes_) {
@@ -118,5 +104,4 @@ std::shared_ptr<Raft> Cluster::GetLeader() const {
     }
     return nullptr;
 }
-
 }// namespace raft

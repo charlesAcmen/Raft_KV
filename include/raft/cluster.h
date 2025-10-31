@@ -9,14 +9,11 @@ namespace raft {
 class Raft; // forward declaration
 class Cluster {
 public:
-    Cluster() = default;
+    Cluster(int);
     ~Cluster();
 
     // Client entry point: submit a command to the cluster
     bool SubmitCommand(const std::string& command);
-    
-    // create N nodes (IDs 0..N-1) and keep them in nodes_
-    void CreateNodes(int n);
     
     void WaitForLeader(int maxAttempts = 50);
     // Start all nodes
@@ -43,5 +40,5 @@ private:
     static void SignalHandler(int signum);
     // for signal forwarding
     static std::atomic<Cluster*> global_instance_for_signal_; 
-};
+};//class cluster
 }// namespace raft

@@ -2,23 +2,15 @@
 #include <spdlog/spdlog.h>
 void initLogging(){
     // remove timestamp
-    //why does it not work?
+    // why does it not work?
     spdlog::set_pattern("[%l] %v");
 }
 int main(){
     initLogging();
 
-    raft::Cluster cluster;
-    cluster.CreateNodes(5);
-
-    // Start all nodes. They will run in background threads.
+    raft::Cluster cluster(5);
     cluster.StartAll();
-    
-    
-
     cluster.WaitForLeader();
-
-   
     cluster.SubmitCommand("SET x 1");
     cluster.SubmitCommand("SET y 2");
     cluster.SubmitCommand("GET x");
