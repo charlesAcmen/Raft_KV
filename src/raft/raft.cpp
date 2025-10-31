@@ -6,28 +6,17 @@
 #include <random>                   // for random election timeout 
 namespace raft{
 //-------------------public methods-------------------
-Raft::Raft(
-    int me,const std::vector<int>& peers,std::shared_ptr<IRaftTransport> transport)
+Raft::Raft(int me,const std::vector<int>& peers,
+    std::shared_ptr<IRaftTransport> transport)
     :me_(me), peers_(peers), transport_(transport){
     spdlog::set_pattern("[%l] %v");
-
-    
-    // -----------------------
     // Basic field initialization
-    // -----------------------
     for (int peerId : peers_) {
         if (peerId == me_) continue;
         nextIndex_[peerId] = getLastLogIndexLocked() + 1; // next log entry to send
         matchIndex_[peerId] = 0; // last known replicated index
     }   
-
-    timerFactory_ = std::make_shared<ThreadTimerFactory>();
-    persister_ = std::make_shared<Persister>();
-
-
-    // -----------------------
     // Basic invariant checks
-    // -----------------------
     // make sure the local id exists in the peer set (or at least warn).
     bool found_me = false;
     for (int p : peers_) {
@@ -37,10 +26,8 @@ Raft::Raft(
         spdlog::warn("[Raft] constructor: my id not found in peers vector,continuing", me_);
     }
 
-    // -----------------------
-    // Register RPC handlers
-    // -----------------------
-    // register RPC handlers that accept a serialized payload and return a serialized reply.
+    persister_ = std::make_shared<Persister>();
+    // Register RPC handlers that accept a serialized payload and return a serialized reply.
     // The lambdas: decode -> call local handler function -> encode reply.
     transport_->RegisterRequestVoteHandler(
         [this](const std::string& payload) -> std::string {
@@ -67,20 +54,14 @@ Raft::Raft(
         }
     );
 
-    // -----------------------
     // Initialize timers
-    // -----------------------
-
-    electionTimer_ = timerFactory_->CreateTimer([this]() {
-        this->onElectionTimeout();
-    });
-
-    heartbeatTimer_ = timerFactory_->CreateTimer([this]() {
-        this->onHeartbeatTimeout();
-    });
+    timerFactory_ = std::make_shared<ThreadTimerFactory>();
+    electionTimer_ = timerFactory_->CreateTimer([this]() {this->onElectionTimeout();});
+    heartbeatTimer_ = timerFactory_->CreateTimer([this]() {this->onHeartbeatTimeout();});
 }
 
 Raft::~Raft() {
+    //make sure stop first,join second
     Stop();
     Join();
 }
@@ -95,7 +76,6 @@ bool Raft::SubmitCommand(const std::string& command){
         spdlog::warn("[Raft] {} rejected client command '{}': not leader", me_, command);
         return false;
     }
-
     AppendLogEntryLocked(command);
     // After appending a new log entry, try to replicate it to followers
     broadcastAppendEntriesLocked();
@@ -107,7 +87,6 @@ void Raft::GetState(int32_t& currentTerm, bool& isLeader) const {
     currentTerm = currentTerm_;
     isLeader = (role_.load() == type::Role::Leader);
 }
-
 
 void Raft::Start() {
     bool expected = false;
@@ -176,9 +155,6 @@ const std::vector<type::LogEntry>& Raft::testGetLog() const{
     std::lock_guard<std::mutex> lock(mu_);
     return log_;
 }
-
-
-
 void Raft::testSetCurrentTerm(int32_t term){
     std::lock_guard<std::mutex> lock(mu_);
     currentTerm_ = term;
@@ -224,9 +200,6 @@ void Raft::run() {
     }
     // spdlog::info("[Raft] Node {} run loop exited", me_);
 }
-
-
-
 
 //--------- Election control ----------
 void Raft::startElectionLocked(){

@@ -3,9 +3,6 @@
 #include <sstream>
 #include <spdlog/spdlog.h>
 namespace raft {
-
-// ---------------- Persister ----------------
-
 void Persister::SaveRaftState(
     int32_t currentTerm, std::optional<int32_t> votedFor, const std::vector<type::LogEntry>& log) {
     std::lock_guard<std::mutex> lock(mu_);
