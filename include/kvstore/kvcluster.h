@@ -11,11 +11,7 @@ public:
 
     void StartAll();
     void StopAll();
-    void JoinAll();
-
-
     //------test utilities------
-
 private:
     std::vector<std::shared_ptr<KVServer>> kvservers_;
     std::vector<std::shared_ptr<Clerk>> clerks_;

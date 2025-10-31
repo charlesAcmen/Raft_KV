@@ -10,7 +10,7 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
     peers_(peers),
     transport_(transport), 
     rf_(raft), 
-    kvSM_(std::make_shared<KVStateMachine>()) {
+    kvSM_(std::make_shared<KVStateMachine>()){
     // Register RPC handlers that accept a serialized payload and return a serialized reply.
     // The lambdas: decode -> call local handler function -> encode reply.
     transport_->RegisterGetHandler(
@@ -51,15 +51,15 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
     spdlog::info("[KVServer] {}",maxRaftState_ == -1 ? "No snapshotting." : "Snapshotting enabled.");
 }
 KVServer::~KVServer() {
-    Kill();
     Stop();
-    Join();
 }
 void KVServer::Start() {
     rf_->Start();
     transport_->Start();
 }
 void KVServer::Stop() {
+    if(Killed()) return;
+    Kill();
     transport_->Stop();
     rf_->Shutdown();
 }
