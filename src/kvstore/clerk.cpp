@@ -1,4 +1,5 @@
 #include "kvstore/clerk.h"
+#include <spdlog/spdlog.h>
 namespace kv {
 Clerk::Clerk(int me,const std::vector<int>& peers,
 std::shared_ptr<IKVTransport> transport)
@@ -28,6 +29,6 @@ void Clerk::PutAppend(
     const std::string& key, 
     const std::string& value,
     const std::string op) { 
-    
+    spdlog::info("Clerk {} PutAppend key:{} value:{} op:{}", me_, key, value, op);
 }
 }//namespace kv

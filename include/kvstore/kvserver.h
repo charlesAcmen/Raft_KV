@@ -3,8 +3,8 @@
 #include "kvstore/types.h"      // for type::PutAppendArgs, type::GetArgs, etc
 #include "kvstore/transport.h"  // for IKVTransport
 #include <string>
-#include <memory>
-#include <atomic>
+#include <memory>       //shared_ptr
+#include <atomic>       //dead_
 #include <mutex>
 namespace kv{
 class KVStateMachine; // forward declaration
@@ -15,9 +15,8 @@ public:
         std::shared_ptr<raft::Raft> raft,
         int maxRaftState);
     ~KVServer();
-    void StartKVServer();
-    void StopKVServer();
-    void JoinKVServer();
+    void Start();
+    void Stop();
     void Kill();
     bool Killed() const;
 
@@ -32,7 +31,6 @@ private:
     
     // used to receive rpcs from Clerk and handle them
     std::shared_ptr<IKVTransport> transport_; 
-
     std::shared_ptr<raft::Raft> rf_;
     std::shared_ptr<KVStateMachine> kvSM_;
     int maxRaftState_{-1}; //-1 means no snapshotting

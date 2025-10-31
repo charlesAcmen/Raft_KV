@@ -10,7 +10,7 @@ KVCluster::~KVCluster() {
     clerks_.clear();
 }
 void KVCluster::StartAll() {
-    for (auto &svr : kvservers_) svr->StartKVServer();
+    for (auto &svr : kvservers_) svr->Start();
     for (auto &ck : clerks_) ck->Start();
 }
 void KVCluster::StopAll() {

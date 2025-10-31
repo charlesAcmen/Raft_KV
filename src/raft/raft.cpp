@@ -142,6 +142,10 @@ void Raft::Join() {
         // spdlog::info("[Raft] {} Join() - apply thread exited", me_);
     }
 }
+void Raft::Shutdown(){
+    Stop();
+    Join();
+}
 //------------------- Testing utilities -------------------
 int32_t Raft::testGetCurrentTerm() const{
     std::lock_guard<std::mutex> lock(mu_);

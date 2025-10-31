@@ -2,7 +2,7 @@
 #include "kvstore/transport.h"
 #include <string>
 #include <vector>
-#include <memory>
+#include <memory>   //shared_ptr
 namespace kv {
 class Clerk {
 public:
@@ -22,6 +22,5 @@ private:
     const int me_;                      // this peer's id (index into peers_)
     const std::vector<int> peers_;      // peer ids (including me_)
     std::shared_ptr<IKVTransport> transport_;
-};
-
+};//class Clerk
 }//namespace kv

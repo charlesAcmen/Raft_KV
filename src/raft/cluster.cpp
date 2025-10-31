@@ -89,8 +89,6 @@ void Cluster::WaitForShutdown() {
     // Wait until either shutdown_requested_ becomes true
     shutdown_cv_.wait(lk, [this](){ return shutdown_requested_.load(); });
     spdlog::info("[Cluster] Shutdown requested, stopping cluster...");
-    StopAll();
-    JoinAll();
 }
 //---------private methods ----------
 std::shared_ptr<Raft> Cluster::GetLeader() const {

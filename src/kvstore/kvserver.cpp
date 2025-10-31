@@ -3,17 +3,15 @@
 #include "kvstore/codec/kv_codec.h"
 #include <spdlog/spdlog.h>
 namespace kv {
-KVServer::KVServer(int me,
-    const std::vector<int>& peers,
+KVServer::KVServer(int me,const std::vector<int>& peers,
     std::shared_ptr<IKVTransport> transport,
-    std::shared_ptr<raft::Raft> raft,
-    int maxRaftState)
-    : me_(me),peers_(peers),transport_(transport), rf_(raft), kvSM_(std::make_shared<KVStateMachine>()) {
-    
-    // -----------------------
-    // Register RPC handlers
-    // -----------------------
-    // register RPC handlers that accept a serialized payload and return a serialized reply.
+    std::shared_ptr<raft::Raft> raft,int maxRaftState)
+    : me_(me),
+    peers_(peers),
+    transport_(transport), 
+    rf_(raft), 
+    kvSM_(std::make_shared<KVStateMachine>()) {
+    // Register RPC handlers that accept a serialized payload and return a serialized reply.
     // The lambdas: decode -> call local handler function -> encode reply.
     transport_->RegisterGetHandler(
         [this](const std::string& payload) -> std::string {
@@ -54,19 +52,16 @@ KVServer::KVServer(int me,
 }
 KVServer::~KVServer() {
     Kill();
-    StopKVServer();
-    JoinKVServer();
+    Stop();
+    Join();
 }
-void KVServer::StartKVServer() {
+void KVServer::Start() {
     rf_->Start();
     transport_->Start();
 }
-void KVServer::StopKVServer() {
+void KVServer::Stop() {
     transport_->Stop();
-    rf_->Stop();
-}
-void KVServer::JoinKVServer() {
-    rf_->Join();
+    rf_->Shutdown();
 }
 void KVServer::Kill() {
     if(Killed()) {

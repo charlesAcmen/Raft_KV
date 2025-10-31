@@ -29,6 +29,8 @@ public:
     void Stop();
     // Block until internal thread exits (join).
     void Join();
+    void Shutdown();
+
 
     //---------- Testing utilities ----------
     int32_t testGetCurrentTerm() const;
