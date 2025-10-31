@@ -20,7 +20,8 @@ target_include_directories(raft_lib PUBLIC
     ${CMAKE_SOURCE_DIR}/include
 )
 
-add_executable(craft-kv src/main.cpp)
+# add_executable(craft-kv src/main.cpp)
+add_executable(craft-kv src/lab3main.cpp)
 target_link_libraries(craft-kv PRIVATE raft_lib spdlog::spdlog)
 
 

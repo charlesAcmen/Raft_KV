@@ -54,16 +54,20 @@ KVServer::KVServer(int me,
 }
 KVServer::~KVServer() {
     Kill();
-    rf_->Stop();
-    rf_->Join();
-    transport_->Stop();
+    StopKVServer();
+    JoinKVServer();
 }
 void KVServer::StartKVServer() {
     rf_->Start();
     transport_->Start();
 }
-
-
+void KVServer::StopKVServer() {
+    transport_->Stop();
+    rf_->Stop();
+}
+void KVServer::JoinKVServer() {
+    rf_->Join();
+}
 void KVServer::Kill() {
     if(Killed()) {
         spdlog::warn("[KVServer] {} already killed.", me_);

@@ -1,4 +1,3 @@
-// cluster.hpp
 #pragma once
 #include "raft/raft.h"
 #include <vector>

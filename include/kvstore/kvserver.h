@@ -16,6 +16,8 @@ public:
         int maxRaftState);
     ~KVServer();
     void StartKVServer();
+    void StopKVServer();
+    void JoinKVServer();
     void Kill();
     bool Killed() const;
 

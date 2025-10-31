@@ -12,6 +12,9 @@ Clerk::~Clerk() {
 void Clerk::Start(){
     transport_->Start();
 }
+void Clerk::Stop(){
+    transport_->Stop();
+}
 std::string Clerk::Get(const std::string& key) const {
     return "";
 }
