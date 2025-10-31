@@ -1,42 +1,33 @@
 #pragma once
 #include "timer.h"
-#include <thread>
-#include <atomic>
+#include <thread>       //worker_
+#include <atomic>       //generation_
+#include <mutex>
 #include <condition_variable>
-
 namespace raft {
-
 class ThreadTimer : public ITimer {
-    public:
-        explicit ThreadTimer(std::function<void()>);
-        virtual ~ThreadTimer() override;
+public:
+    explicit ThreadTimer(std::function<void()>&);
+    virtual ~ThreadTimer() override;
+    void Reset(std::chrono::milliseconds duration) override;
+    void Stop() override;
+private:
+    void workerLoop();
 
-        void Reset(std::chrono::milliseconds duration) override;
+    // synchronization
+    std::mutex mu_;
+    std::condition_variable cv_;
+    std::atomic<uint64_t> generation_;
 
-        void Stop() override;
-    private:
-        void workerLoop();
-
-        // synchronization
-        std::mutex mu_;
-        std::condition_variable cv_;
-        // std::chrono::steady_clock::time_point expiry_;
-        std::atomic<uint64_t> generation_;
-
-        // state (protected by mu_)
-        bool running_{false};
-        bool stopped_{false};
-        std::chrono::milliseconds duration_{0};
-        
-        std::function<void()> callback_;
-        std::thread worker_;
-};
-
+    // state (protected by mu_)
+    bool running_{false};
+    bool stopped_{false};
+    std::thread worker_;
+};//class ThreadTimer
 // Timer factory: creates real timers that use threads.
 class ThreadTimerFactory : public ITimerFactory {
 public:
     explicit ThreadTimerFactory() = default;
     std::unique_ptr<ITimer> CreateTimer(std::function<void()> cb) override;
-};
-
+};//class ThreadTimerFactory
 } // namespace raft
