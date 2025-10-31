@@ -53,34 +53,28 @@ void RpcClient::Close(){
     }
     connected_.store(false);
 }
-std::string RpcClient::Call(
+std::optional<std::string> RpcClient::Call(
     const std::string& method, 
     const std::string& payload){
     // double checking locking pattern,to avoid multiple threads connecting simultaneously
     if(!connected_.load()){
         std::lock_guard<std::mutex> lg(conn_mtx_);
-        if(!connected_.load()){
-            bool success = Connect();
-            if(!success)
-                return "[RpcClient] call(const std::string& ,const std::string&) ERROR: not connected and connect() failed";
-        }
+        if(!connected_.load() && !Connect()) return std::nullopt;
     }
+
     //use delimitercodec
     rpc::DelimiterCodec codec;
-
     // 1. constuct request payload
     const std::string request_payload = method + "\n" + payload;
-
     // 2. encode to framed message
     std::string framed = codec.encodeRequest(request_payload);
-    
     // 3. send request
     // send parameters:connecting fd,buff,buff size,flag
     ssize_t n = send(sock_fd, framed.c_str(), framed.size(), 0);
     if (n < 0) {
-        spdlog::error("[RpcClient] call(const std::string& ,const std::string&) send() failed");
+        spdlog::error("[RpcClient] send() failed");
         connected_.store(false);
-        return "[RpcClient] call(const std::string& ,const std::string&) ERROR: send() failed";
+        return std::nullopt;
     }
     
     //wait for response
@@ -90,24 +84,22 @@ std::string RpcClient::Call(
         //block until some data is received
         ssize_t r = recv(sock_fd, tmp, sizeof(tmp), 0);
         if (r < 0) {
-            spdlog::error("[RpcClient] call(const std::string& ,const std::string&) recv() failed");
+            spdlog::error("[RpcClient] recv() failed");
             connected_.store(false);
-            return "[RpcClient] call(const std::string& ,const std::string&) ERROR: recv() failed";
+            break;
         } else if (r == 0) {
             // server closed connection
             connected_.store(false);
             ::close(sock_fd);
             break;
         }
-        buffer.append(tmp, static_cast<size_t>(r));
 
+        buffer.append(tmp, static_cast<size_t>(r));
         // try decode
-        auto resp = codec.tryDecodeResponse(buffer);
-        if (resp) {
-            return *resp; // return response payload
-        }
+        std::optional<std::string> resp = codec.tryDecodeResponse(buffer);
+        if (resp) return *resp; // return response payload
     }
-    return "[RpcClient] call(const std::string& ,const std::string&) ERROR: no response";
+    return std::nullopt;
 }
 //---------private functions---------
 void RpcClient::initSocket(){

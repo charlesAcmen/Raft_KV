@@ -39,9 +39,10 @@ protected:
 
         //convert args to string as request
         std::string request = encodeFn(args);
-        std::string response = client.Call(rpcName, request);
+        std::optional<std::string> response = client.Call(rpcName, request);
+        if(!response) return false;
         // spdlog::info("[TransportBase] RPC {} to peer {} completed", rpcName, targetId);
-        reply = decodeFn(response);
+        reply = decodeFn(*response);
         return true;
     }
 
