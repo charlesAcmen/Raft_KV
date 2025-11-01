@@ -6,5 +6,6 @@ int main(){
     cluster.StartAll();
 
     cluster.WaitForServerLeader();
+    cluster.WaitForShutdown();
     return 0;
 }

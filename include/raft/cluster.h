@@ -1,9 +1,10 @@
 #pragma once
+#include <string>
 #include <vector>
 #include <memory>               //shared_ptr
 #include <condition_variable>
 #include <atomic>               //shutdown_requested_ and global_instance_for_signal_
-
+#include <mutex>
 namespace raft {
 class Raft; // forward declaration
 class Cluster {
@@ -13,26 +14,22 @@ public:
 
     // Client entry point: submit a command to the cluster
     bool SubmitCommand(const std::string& command);
-    
     void WaitForLeader(int maxAttempts = 50);
-    // Start all nodes
-    void StartAll();
-
-    // Stop all nodes (orderly)
-    void StopAll();
-
-    // Join all node threads
-    void JoinAll();
-
     // Block until SIGINT (Ctrl+C) or StopAll called. Returns when shutting down.
     void WaitForShutdown();
-
+    // Start all nodes
+    void StartAll();
+    // Stop all nodes (orderly)
+    void StopAll();
+    // Join all node threads
+    void JoinAll();
     static std::vector<std::shared_ptr<raft::Raft>> CreateRaftNodes(int);
 private:
-
     std::shared_ptr<Raft> GetLeader() const;
 
     std::vector<std::shared_ptr<Raft>> nodes_;
+
+    //wait for shutdown
     std::mutex shutdown_mu_;
     std::condition_variable shutdown_cv_;
     std::atomic<bool> shutdown_requested_{false};

@@ -4,7 +4,11 @@
 #include "rpc/types.h"              //rpc::type::PeerInfo
 #include "kvstore/transport_unix.h"      //IKVTransport and KVTransportUnix
 #include "raft/cluster.h"        //raft::Cluster static CreateRaftNodes
+#include <spdlog/spdlog.h>
+#include <thread>       //sleep_for
+#include <csignal>      //signal
 namespace kv{
+std::atomic<KVCluster*> KVCluster::global_instance_for_signal_{nullptr};
 KVCluster::KVCluster(int numServers, int numClerks) {
     //preparing peer info
     std::vector<rpc::type::PeerInfo> peers;
@@ -40,6 +44,11 @@ KVCluster::KVCluster(int numServers, int numClerks) {
 }
 KVCluster::~KVCluster() {
     StopAll();
+    // SIG_DFL to reset signal handlers to default behavior
+    std::signal(SIGINT, SIG_DFL);
+#ifdef SIGTERM
+    std::signal(SIGTERM, SIG_DFL);
+#endif
 }
 void KVCluster::WaitForServerLeader(int maxAttempts) {
     for (int i = 0; i < maxAttempts; ++i) {
@@ -56,7 +65,21 @@ void KVCluster::WaitForServerLeader(int maxAttempts) {
     }
     spdlog::warn("[KVCluster] Timeout waiting for KV Server leader election!");
 }
-
+void KVCluster::WaitForShutdown() {
+    // Register static pointer for signal forwarding.
+    global_instance_for_signal_.store(this);
+    // Register signal handler (SIGINT for ctrl-c). POSIX signal handling.
+    std::signal(SIGINT, KVCluster::SignalHandler);
+#ifdef SIGTERM
+    //SIGTERM:kill
+    std::signal(SIGTERM, KVCluster::SignalHandler);
+#endif
+    spdlog::info("[KVCluster] Waiting for shutdown (Ctrl+C to exit) ...");
+    std::unique_lock<std::mutex> lk(shutdown_mu_);
+    // Wait until either shutdown_requested_ becomes true
+    shutdown_cv_.wait(lk, [this](){ return shutdown_requested_.load(); });
+    spdlog::info("[KVCluster] Shutdown requested, stopping cluster...");
+}
 void KVCluster::StartAll() {
     for (auto &svr : kvservers_) svr->Start();
     for (auto &ck : clerks_) ck->Start();
@@ -67,4 +90,12 @@ void KVCluster::StopAll() {
 }
 
 //------private methods------
+void KVCluster::SignalHandler(int signum) {
+    spdlog::info("[KVCluster] Caught signal {}.", signum);
+    KVCluster* inst = global_instance_for_signal_.load();
+    if (inst) {
+        inst->shutdown_requested_.store(true);
+        inst->shutdown_cv_.notify_one();
+    }
+}
 }// namespace kv

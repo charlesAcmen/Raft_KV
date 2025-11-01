@@ -54,30 +54,15 @@ void Cluster::WaitForLeader(int maxAttempts) {
     spdlog::warn("[Cluster] Timeout waiting for leader election!");
 }
 
-void Cluster::StartAll() {
-    for (auto &n : nodes_) n->Start();
-}
+void Cluster::StartAll() { for (auto &n : nodes_) n->Start();}
 
-void Cluster::StopAll() {
-    for (auto &n : nodes_) n->Stop();
-}
+void Cluster::StopAll() { for (auto &n : nodes_) n->Stop();}
 
-void Cluster::JoinAll() {
-    for (auto &n : nodes_) n->Join();
-}
-void Cluster::SignalHandler(int signum) {
-    spdlog::info("[Cluster] Caught signal {}.", signum);
-    Cluster* inst = global_instance_for_signal_.load();
-    if (inst) {
-        inst->shutdown_requested_.store(true);
-        inst->shutdown_cv_.notify_one();
-    }
-}
+void Cluster::JoinAll() { for (auto &n : nodes_) n->Join();}
 
 void Cluster::WaitForShutdown() {
     // Register static pointer for signal forwarding.
     global_instance_for_signal_.store(this);
-
     // Register signal handler (SIGINT for ctrl-c). POSIX signal handling.
     std::signal(SIGINT, Cluster::SignalHandler);
 #ifdef SIGTERM
@@ -112,6 +97,14 @@ std::vector<std::shared_ptr<raft::Raft>> Cluster::CreateRaftNodes(int numNodes) 
 }
 
 //---------private methods ----------
+void Cluster::SignalHandler(int signum) {
+    spdlog::info("[Cluster] Caught signal {}.", signum);
+    Cluster* inst = global_instance_for_signal_.load();
+    if (inst) {
+        inst->shutdown_requested_.store(true);
+        inst->shutdown_cv_.notify_one();
+    }
+}
 std::shared_ptr<Raft> Cluster::GetLeader() const {
     for (const auto& node : nodes_) {
         int32_t term;
