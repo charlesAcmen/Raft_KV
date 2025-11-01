@@ -11,6 +11,8 @@ public:
     KVCluster(int,int);
     ~KVCluster();
 
+
+    void WaitForServerLeader(int maxAttempts = 20); 
     void StartAll();
     void StopAll();
     //------test utilities------

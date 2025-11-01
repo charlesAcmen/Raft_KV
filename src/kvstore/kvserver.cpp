@@ -76,7 +76,11 @@ bool KVServer::Killed() const {
     std::lock_guard<std::mutex> lk(mu_);
     return dead_.load() != 0;
 }
-
+//---------- Testing utilities ----------
+std::shared_ptr<raft::Raft> KVServer::testGetRaftNode() const {
+    return rf_;
+}
+//----------Private RPC handlers----------
 void KVServer::PutAppend(
     const type::PutAppendArgs& args,type::PutAppendReply& reply) {
     spdlog::info("[KVServer] {} PutAppend called: Key={}, Value={}, Op={}", me_, args.Key, args.Value, args.Op);

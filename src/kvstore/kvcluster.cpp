@@ -41,6 +41,22 @@ KVCluster::KVCluster(int numServers, int numClerks) {
 KVCluster::~KVCluster() {
     StopAll();
 }
+void KVCluster::WaitForServerLeader(int maxAttempts) {
+    for (int i = 0; i < maxAttempts; ++i) {
+        for (const auto& svr : kvservers_) {
+            int32_t term;
+            bool isLeader;
+            svr->testGetRaftNode()->GetState(term, isLeader);
+            if (isLeader) {
+                spdlog::info("[KVCluster] KV Server Leader elected");
+                return;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    spdlog::warn("[KVCluster] Timeout waiting for KV Server leader election!");
+}
+
 void KVCluster::StartAll() {
     for (auto &svr : kvservers_) svr->Start();
     for (auto &ck : clerks_) ck->Start();

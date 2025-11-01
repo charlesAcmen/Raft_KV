@@ -46,12 +46,12 @@ void Cluster::WaitForLeader(int maxAttempts) {
     for (int i = 0; i < maxAttempts; ++i) {
         std::shared_ptr<Raft> leader = GetLeader();
         if (leader) {
-            spdlog::info("[Main] Leader elected");
+            spdlog::info("[Cluster] Leader elected");
             return;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
-    spdlog::warn("[Main] Timeout waiting for leader election!");
+    spdlog::warn("[Cluster] Timeout waiting for leader election!");
 }
 
 void Cluster::StartAll() {
