@@ -90,6 +90,27 @@ void Cluster::WaitForShutdown() {
     shutdown_cv_.wait(lk, [this](){ return shutdown_requested_.load(); });
     spdlog::info("[Cluster] Shutdown requested, stopping cluster...");
 }
+std::vector<std::shared_ptr<raft::Raft>> Cluster::CreateRaftNodes(int numNodes) {
+    //preparing peer info
+    std::vector<rpc::type::PeerInfo> peers;
+    std::vector<int> peerIds;
+    for (int i = 0; i < numNodes; ++i) {
+        peers.push_back({i+1, "/tmp/raft-node-" + std::to_string(i+1) + ".sock"});
+        peerIds.push_back(i+1);
+    }
+    std::vector<std::shared_ptr<raft::Raft>> nodes;
+    for (int i = 0; i < numNodes; ++i) {
+        rpc::type::PeerInfo self = peers[i];
+        std::shared_ptr<raft::IRaftTransport> transport = 
+            std::make_shared<raft::RaftTransportUnix>(self, peers);
+        // inject transport into Raft node and create node
+        std::shared_ptr<raft::Raft> raftNode = 
+            std::make_shared<raft::Raft>(self.id, peerIds,transport);        
+        nodes.push_back(raftNode);
+    }
+    return nodes;
+}
+
 //---------private methods ----------
 std::shared_ptr<Raft> Cluster::GetLeader() const {
     for (const auto& node : nodes_) {

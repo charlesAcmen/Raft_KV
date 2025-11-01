@@ -1,5 +1,4 @@
 #pragma once
-#include "raft/raft.h"
 #include <vector>
 #include <memory>               //shared_ptr
 #include <condition_variable>
@@ -28,7 +27,9 @@ public:
     // Block until SIGINT (Ctrl+C) or StopAll called. Returns when shutting down.
     void WaitForShutdown();
 
+    static std::vector<std::shared_ptr<raft::Raft>> CreateRaftNodes(int);
 private:
+
     std::shared_ptr<Raft> GetLeader() const;
 
     std::vector<std::shared_ptr<Raft>> nodes_;

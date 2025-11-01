@@ -5,7 +5,8 @@
 namespace kv {
 KVServer::KVServer(int me,const std::vector<int>& peers,
     std::shared_ptr<IKVTransport> transport,
-    std::shared_ptr<raft::Raft> raft,int maxRaftState)
+    std::shared_ptr<raft::Raft> raft,
+    int maxRaftState)
     : me_(me),
     peers_(peers),
     transport_(transport), 
