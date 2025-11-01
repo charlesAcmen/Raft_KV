@@ -33,26 +33,21 @@ void TransportBase::Start() {
             if(allConnected || !running_.load()) break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        spdlog::info("[TransportBase] {}:All RPC clients connected to peers",self_.id);
+        spdlog::info("[TransportBase] {}:All RPC clients connected to peers",self_.address);
     });
 }
 void TransportBase::Stop() {
     if(!running_.exchange(false)) return;//already stopped
     running_.store(false);
     if (server_) server_->Stop();
-    for (auto& [id, client] : clients_) {
-        client->Close();
-    }
+    for (auto& [id, client] : clients_) { client->Close();}
     if (serverThread_.joinable()) serverThread_.join();
     if (clientThread_.joinable()) clientThread_.join();
 }
 void TransportBase::RegisterHandler(
     const std::string& rpcName,
     const rpc::type::RPCHandler& handler) {
-    if (server_) {
-        server_->Register_Handler(rpcName, handler);
-    } else {
-        spdlog::error("[TransportBase] RegisterHandler failed: server not initialized");
-    }
+    if (server_) {server_->Register_Handler(rpcName, handler);} 
+    else {spdlog::error("[TransportBase] RegisterHandler failed: server not initialized");}
 }
 }// namespace rpc

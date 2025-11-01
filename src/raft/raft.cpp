@@ -101,7 +101,7 @@ void Raft::Start() {
     }
     // start communication layer
     transport_->Start();
-    spdlog::info("[Raft] {} started", me_);
+    // spdlog::info("[Raft] {} started", me_);
     thread_ = std::thread([this]() { this->run(); });
     apply_thread_ = std::thread([this] { ApplyLoop();});
     // start election timer
