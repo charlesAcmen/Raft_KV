@@ -592,7 +592,7 @@ void Raft::broadcastHeartbeatLocked(){
                 break;
             }
             else {
-                spdlog::info("[Raft] Node {} heartbeat acknowledged by node {}", me_, peer);
+                // spdlog::info("[Raft] Node {} heartbeat acknowledged by node {}", me_, peer);
             }
         } else {
             spdlog::warn("[Raft] Node {} heartbeat to {} failed", me_, peer);

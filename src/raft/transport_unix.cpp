@@ -7,20 +7,13 @@ namespace rpc{
     class DelimiterCodec;
 }
 namespace raft{
-
 RaftTransportUnix::RaftTransportUnix(
     const rpc::type::PeerInfo& self, 
     const std::vector<rpc::type::PeerInfo>& peers)
     : TransportBase(self, peers) {}
-RaftTransportUnix::~RaftTransportUnix() {
-    Stop();
-}
-void RaftTransportUnix::Start() {
-    TransportBase::Start();
-}
-void RaftTransportUnix::Stop() {
-    TransportBase::Stop();
-}
+RaftTransportUnix::~RaftTransportUnix() {Stop();}
+void RaftTransportUnix::Start() {TransportBase::Start();}
+void RaftTransportUnix::Stop() {TransportBase::Stop();}
 bool RaftTransportUnix::RequestVoteRPC(
     int targetId,const type::RequestVoteArgs& args,type::RequestVoteReply& reply) {
     return SendRPC<type::RequestVoteArgs,type::RequestVoteReply>(

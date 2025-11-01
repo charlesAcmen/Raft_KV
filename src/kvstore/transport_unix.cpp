@@ -7,15 +7,9 @@ KVTransportUnix::KVTransportUnix(
     const rpc::type::PeerInfo& self_,
     const std::vector<rpc::type::PeerInfo>& peer_)
     : TransportBase(self_, peer_) {}
-KVTransportUnix::~KVTransportUnix() {
-    Stop();
-}
-void KVTransportUnix::Start() {
-    TransportBase::Start();
-}
-void KVTransportUnix::Stop() {
-    TransportBase::Stop();
-}
+KVTransportUnix::~KVTransportUnix() {Stop();}
+void KVTransportUnix::Start() { TransportBase::Start();}
+void KVTransportUnix::Stop() { TransportBase::Stop();}
 /**
  * @brief Synchronously call Get on target KV server.
  * 
