@@ -1,4 +1,7 @@
 #include "kvstore/clerk.h"
+//type::GetArgs, type::GetReply
+//type::PutAppendArgs, type::PutAppendReply
+#include "kvstore/types.h"      
 #include <spdlog/spdlog.h>
 namespace kv {
 Clerk::Clerk(int me,const std::vector<int>& peers,
@@ -7,16 +10,23 @@ std::shared_ptr<IKVTransport> transport)
     //do not register any hander for clerk
     //clerk only makes rpc calls
 }
-Clerk::~Clerk() {
-    transport_->Stop();
-}
+Clerk::~Clerk() {transport_->Stop();}
 void Clerk::Start(){
+    if(started_) return;
+    started_ = true;
     transport_->Start();
 }
 void Clerk::Stop(){
+    if(!started_) return;
+    started_ = false;
     transport_->Stop();
 }
 std::string Clerk::Get(const std::string& key) const {
+    if(!started_) {
+        spdlog::error("[Clerk] {} Get but not started!", me_);
+        return "";
+    }
+    spdlog::info("[Clerk] {} Get key:{}", me_, key);
     return "";
 }
 void Clerk::Put(const std::string& key, const std::string& value) {
@@ -29,6 +39,10 @@ void Clerk::PutAppend(
     const std::string& key, 
     const std::string& value,
     const std::string op) { 
-    spdlog::info("Clerk {} PutAppend key:{} value:{} op:{}", me_, key, value, op);
+    if(!started_) {
+        spdlog::error("[Clerk] {} PutAppend but not started!", me_);
+        return;
+    }
+    spdlog::info("[Clerk] {} PutAppend key:{} value:{} op:{}", me_, key, value, op);
 }
 }//namespace kv

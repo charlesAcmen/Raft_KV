@@ -21,6 +21,7 @@ private:
 
     const int me_;                      // this peer's id (index into peers_)
     const std::vector<int> peers_;      // peer ids (including me_)
+    bool started_{false};
     std::shared_ptr<IKVTransport> transport_;
 };//class Clerk
 }//namespace kv
