@@ -42,6 +42,8 @@ struct PutAppendReply{
 struct GetArgs{
     std::string Key;
     // You'll have to add definitions here.
+    int ClientId;
+    int RequestId;
 };
 struct GetReply{
     Err err;

@@ -29,18 +29,20 @@ std::string Clerk::Get(const std::string& key) const {
     spdlog::info("[Clerk] {} Get key:{}", me_, key);
     
     type::GetArgs args;
+    args.Key = key;
+    args.ClientId = me_;
+    args.RequestId = requestId_++;
     type::GetReply reply;
     while(true){
         if(transport_->GetRPC(me_, args, reply)){
             if(reply.err == type::OK){
                 return reply.value;
             }else{
-                spdlog::error("[Clerk] {} Get key:{} error:{}", me_, key, reply.err);
+                spdlog::error("[Clerk] {} GetRPC key:{} error:{}", me_, key, reply.err);
                 continue;
             }
         }else{
-            spdlog::error("[Clerk] {} Get key:{} error:{}", me_, key, reply.err);
-            continue;
+            spdlog::warn("[Clerk] {} GetRPC key:{} error:{}", me_, key, reply.err);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
