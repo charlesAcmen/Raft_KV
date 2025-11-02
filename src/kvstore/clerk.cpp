@@ -40,11 +40,11 @@ std::string Clerk::Get(const std::string& key){
                 return reply.Value;
             }else if(reply.err == type::Err::ErrWrongLeader){
                 tried++;
-                spdlog::info("[Clerk] {} GetRPC key:{} error:{}", clerkId_, key, reply.err);
+                spdlog::info("[Clerk] {} GetRPC key:{} error:{}", clerkId_, key,type::ErrToString(reply.err));
                 continue;
             }
         }else{
-            spdlog::warn("[Clerk] {} GetRPC key:{} error:{}", clerkId_, key, reply.err);
+            spdlog::warn("[Clerk] {} GetRPC key:{} error:{}", clerkId_, key, type::ErrToString(reply.err));
             tried++;
             continue;
         }
