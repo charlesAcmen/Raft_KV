@@ -30,7 +30,20 @@ std::string Clerk::Get(const std::string& key) const {
     
     type::GetArgs args;
     type::GetReply reply;
-    
+    while(true){
+        if(transport_->GetRPC(me_, args, reply)){
+            if(reply.err == type::OK){
+                return reply.value;
+            }else{
+                spdlog::error("[Clerk] {} Get key:{} error:{}", me_, key, reply.err);
+                continue;
+            }
+        }else{
+            spdlog::error("[Clerk] {} Get key:{} error:{}", me_, key, reply.err);
+            continue;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
     
     return "";
 }
