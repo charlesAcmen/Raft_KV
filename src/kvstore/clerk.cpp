@@ -27,6 +27,11 @@ std::string Clerk::Get(const std::string& key) const {
         return "";
     }
     spdlog::info("[Clerk] {} Get key:{}", me_, key);
+    
+    type::GetArgs args;
+    type::GetReply reply;
+    
+    
     return "";
 }
 void Clerk::Put(const std::string& key, const std::string& value) {
