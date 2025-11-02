@@ -11,7 +11,7 @@ public:
     void Start();
     void Stop();
 
-    std::string Get(const std::string& key) const;
+    std::string Get(const std::string& key);
     void Put(const std::string& key, const std::string& value);
     void Append(const std::string& key, const std::string& arg);
 
@@ -19,8 +19,9 @@ private:
     void PutAppend(
         const std::string& key, const std::string& value, const std::string op);
 
-    int requestId_{0};
-    const int me_;                      // this peer's id (index into peers_)
+    int nextRequestId_{0};
+    int lastKnownLeader_{0};
+    const int clerkId_;                      // this peer's id (index into peers_)
     //used as ClientId
     const std::vector<int> peers_;      // peer ids (including me_)
     bool started_{false};

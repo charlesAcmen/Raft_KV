@@ -35,6 +35,8 @@ struct PutAppendArgs{
     // You'll have to add definitions here.
 	// Field names must start with capital letters,
 	// otherwise RPC will break.
+    int ClientId;
+    int RequestId;
 };
 struct PutAppendReply{
     Err err;

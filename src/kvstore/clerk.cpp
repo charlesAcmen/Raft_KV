@@ -6,7 +6,7 @@
 namespace kv {
 Clerk::Clerk(int me,const std::vector<int>& peers,
 std::shared_ptr<IKVTransport> transport)
-    :me_(me),peers_(peers),transport_(transport){
+    :clerkId_(me),peers_(peers),transport_(transport){
     //do not register any hander for clerk
     //clerk only makes rpc calls
 }
@@ -21,28 +21,32 @@ void Clerk::Stop(){
     started_ = false;
     transport_->Stop();
 }
-std::string Clerk::Get(const std::string& key) const {
+std::string Clerk::Get(const std::string& key){
     if(!started_) {
-        spdlog::error("[Clerk] {} Get but not started!", me_);
+        spdlog::error("[Clerk] {} Get but not started!", clerkId_);
         return "";
     }
-    spdlog::info("[Clerk] {} Get key:{}", me_, key);
+    spdlog::info("[Clerk] {} Get key:{}", clerkId_, key);
     
-    type::GetArgs args;
-    args.Key = key;
-    args.ClientId = me_;
-    args.RequestId = requestId_++;
-    type::GetReply reply;
+    int startServer = lastKnownLeader_;
+    int tried = 0;
     while(true){
-        if(transport_->GetRPC(me_, args, reply)){
-            if(reply.err == type::OK){
-                return reply.value;
-            }else{
-                spdlog::error("[Clerk] {} GetRPC key:{} error:{}", me_, key, reply.err);
+        int serverId = peers_[(startServer + tried) % peers_.size()];
+        type::GetArgs args{key, clerkId_, nextRequestId_};
+        type::GetReply reply;
+        if(transport_->GetRPC(serverId, args, reply)){
+            if(reply.err == type::Err::OK){
+                lastKnownLeader_ = serverId;
+                return reply.Value;
+            }else if(reply.err == type::Err::ErrWrongLeader){
+                tried++;
+                spdlog::info("[Clerk] {} GetRPC key:{} error:{}", clerkId_, key, reply.err);
                 continue;
             }
         }else{
-            spdlog::warn("[Clerk] {} GetRPC key:{} error:{}", me_, key, reply.err);
+            spdlog::warn("[Clerk] {} GetRPC key:{} error:{}", clerkId_, key, reply.err);
+            tried++;
+            continue;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -60,9 +64,9 @@ void Clerk::PutAppend(
     const std::string& value,
     const std::string op) { 
     if(!started_) {
-        spdlog::error("[Clerk] {} PutAppend but not started!", me_);
+        spdlog::error("[Clerk] {} PutAppend but not started!", clerkId_);
         return;
     }
-    spdlog::info("[Clerk] {} PutAppend key:{} value:{} op:{}", me_, key, value, op);
+    spdlog::info("[Clerk] {} PutAppend key:{} value:{} op:{}", clerkId_, key, value, op);
 }
 }//namespace kv
