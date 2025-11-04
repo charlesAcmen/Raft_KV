@@ -1,9 +1,10 @@
 #include "kvstore/statemachine.h"
 #include <spdlog/spdlog.h>
 namespace kv {
+KVStateMachine::KVStateMachine(int me):me_(me){}
 void KVStateMachine::Apply(const std::string& command) {
     std::lock_guard<std::mutex> lock(mu_);
-    spdlog::info("[KVStateMachine] Applied command: {}", command);
+    spdlog::info("[KVStateMachine] {} Applied command: {}", me_,command);
     
 }
 std::optional<std::string> KVStateMachine::Get(const std::string& key) const {

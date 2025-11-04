@@ -10,10 +10,10 @@ int main(){
     std::shared_ptr<kv::Clerk> clerk = cluster.testGetClerk(0);    
     std::string key = 
     // "Grand Theft Auto V"; 
-    "key";
+    "key1";
     std::string value = 
     // "Grand Theft Auto VI";
-    "value";
+    "value1";
     clerk->Put(key,value);
     cluster.WaitForShutdown();
     
