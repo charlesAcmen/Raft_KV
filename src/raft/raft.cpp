@@ -69,9 +69,9 @@ void Raft::SetApplyCallback(std::function<void(type::ApplyMsg&)> cb){
     std::lock_guard<std::mutex> lock(mu_);
     applyCallback_ = std::move(cb);
 }
-
 bool Raft::SubmitCommand(const std::string& command){
     std::lock_guard<std::mutex> lock(mu_);
+    // spdlog::info("[Raft] SubmitCommand {}",command);
     if (role_.load() != type::Role::Leader) {
         spdlog::warn("[Raft] {} rejected client command '{}': not leader", me_, command);
         return false;
@@ -400,6 +400,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
                 // Append all remaining entries (including current one)
                 for (size_t j = i; j < args.entries.size(); ++j) {
                     log_.push_back(args.entries[j]);
+                    // spdlog::info("[Raft] args.entries[{}] command:{}",j,args.entries[j].command);
                     spdlog::info("[Raft] Node {} appended new log entry at index {} from leader {}",
                         me_, args.prevLogIndex + 1 + j, args.leaderId);
                 }
@@ -407,6 +408,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
             }
         }else{
             log_.push_back(entry);
+            // spdlog::info("[Raft] args.entries[{}] command:{}",i,args.entries[i].command);
             spdlog::info("[Raft] Node {} appended new log entry at index {} from leader {}", me_, index, args.leaderId);
         }
     }
