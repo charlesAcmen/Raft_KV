@@ -53,7 +53,10 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
 }
 KVServer::~KVServer() { Stop();}
 void KVServer::Start() {
-    if(!Killed()) return; //already started
+    if(Killed()){
+        spdlog::warn("[KVServer] {} killed",me_);
+        return; //already started
+    }
     rf_->Start();
     transport_->Start();
 }
@@ -83,7 +86,7 @@ void KVServer::PutAppend(
     const type::PutAppendArgs& args,type::PutAppendReply& reply) {
     spdlog::info("[KVServer] {} PutAppend called: Key={}, Value={}, Op={}", me_, args.Key, args.Value, args.Op);
 
-    type::KVCommand command(args.Op, args.Key, args.Value);
+    type::KVCommand command(type::KVCommand::String2CommandType(args.Op), args.Key, args.Value);
     bool ok = rf_->SubmitCommand(command.ToString());
     if(!ok){
         reply.err = type::Err::ErrWrongLeader;

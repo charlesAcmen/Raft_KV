@@ -16,7 +16,10 @@ TransportBase::TransportBase(
     // and node will be blocked when starting the server
 }
 void TransportBase::Start() {
-    if(running_.exchange(true)) return;//already started.
+    if(running_.exchange(true)){
+        spdlog::warn("[TransportBase] {}:already started",self_.address);
+        return;//already started.
+    }
     // Start the server in background
     serverThread_ = std::thread([this]() { server_->Start(); });
 
@@ -25,10 +28,8 @@ void TransportBase::Start() {
             bool allConnected = true;
             for (auto& [id, client] : clients_) {
                 if(client->Connect()){
-                    // spdlog::info("[TransportBase] {} Connected to peer {}", this->self_.id, id);
-                }else{
-                    allConnected = false;
-                }
+                    spdlog::info("[TransportBase] {} Connected to peer {}", self_.id, id);
+                }else{allConnected = false;}
             }
             if(allConnected || !running_.load()) break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));

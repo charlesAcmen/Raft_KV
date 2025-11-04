@@ -4,6 +4,7 @@ namespace kv {
 void KVStateMachine::Apply(const std::string& command) {
     std::lock_guard<std::mutex> lock(mu_);
     spdlog::info("Applied command: {}", command);
+    
 }
 std::optional<std::string> KVStateMachine::Get(const std::string& key) const {
     std::lock_guard<std::mutex> lock(mu_);
