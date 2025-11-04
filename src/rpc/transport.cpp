@@ -16,7 +16,7 @@ TransportBase::TransportBase(
     // and node will be blocked when starting the server
 }
 void TransportBase::Start() {
-    running_.store(true);
+    if(!running_.exchange(true)) return;//already started.
     // Start the server in background
     serverThread_ = std::thread([this]() { server_->Start(); });
 
@@ -38,7 +38,6 @@ void TransportBase::Start() {
 }
 void TransportBase::Stop() {
     if(!running_.exchange(false)) return;//already stopped
-    running_.store(false);
     if (server_) server_->Stop();
     for (auto& [id, client] : clients_) { client->Close();}
     if (serverThread_.joinable()) serverThread_.join();
