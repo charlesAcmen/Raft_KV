@@ -53,12 +53,8 @@ std::string Clerk::Get(const std::string& key){
     
     return "";
 }
-void Clerk::Put(const std::string& key, const std::string& value) {
-    PutAppend(key, value, "Put");
-}
-void Clerk::Append(const std::string& key, const std::string& arg) {
-    PutAppend(key, arg, "Append");
-}
+void Clerk::Put(const std::string& key, const std::string& value) { PutAppend(key, value, "Put");}
+void Clerk::Append(const std::string& key, const std::string& arg) { PutAppend(key, arg, "Append");}
 void Clerk::PutAppend(
     const std::string& key, 
     const std::string& value,
@@ -68,7 +64,27 @@ void Clerk::PutAppend(
         return;
     }
     spdlog::info("[Clerk] {} PutAppend key:{} value:{} op:{}", clerkId_, key, value, op);
-
     
+    int startServer = lastKnownLeader_;
+    int tried = 0;
+    while(true){
+        int serverId = peers_[(startServer + tried) % peers_.size()];
+        type::PutAppendArgs args{key, value, op, clerkId_, nextRequestId_++};
+        type::PutAppendReply reply;
+        if(transport_->PutAppendRPC(serverId, args, reply)){
+            if(reply.err == type::Err::OK){
+                lastKnownLeader_ = serverId;
+            }else if(reply.err == type::Err::ErrWrongLeader){
+                tried++;
+                spdlog::info("[Clerk] {} PutAppendRPC key:{} error:{}", clerkId_, key,type::ErrToString(reply.err));
+                continue;
+            }
+        }else{
+            spdlog::warn("[Clerk] {} PutAppendRPC key:{} transport failure, server id:{}", clerkId_, key, serverId);
+            tried++;
+            continue;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 }
 }//namespace kv

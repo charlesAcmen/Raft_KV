@@ -12,5 +12,5 @@ public:
 private:
     mutable std::mutex mu_;
     std::unordered_map<std::string, std::string> store_;
-};
+};//class KVStateMachine
 }// namespace kv
