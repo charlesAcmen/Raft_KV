@@ -82,7 +82,7 @@ std::shared_ptr<raft::Raft> KVServer::testGetRaftNode() const {
 void KVServer::PutAppend(
     const type::PutAppendArgs& args,type::PutAppendReply& reply) {
     spdlog::info("[KVServer] {} PutAppend called: Key={}, Value={}, Op={}", me_, args.Key, args.Value, args.Op);
-    kvSM_->Apply();
+    kvSM_->Apply(args.Key, args.Value, args.Op);
 }
 void KVServer::Get(
     const type::GetArgs& args,type::GetReply& reply) {

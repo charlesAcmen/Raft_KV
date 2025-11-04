@@ -7,7 +7,7 @@ namespace kv {
 class KVStateMachine {
 public:
     KVStateMachine() = default;
-    void Apply(const std::string& command);
+    void Apply(const type::KVCommand& command);
     std::optional<std::string> Get(const std::string& key) const;
 private:
     mutable std::mutex mu_;
