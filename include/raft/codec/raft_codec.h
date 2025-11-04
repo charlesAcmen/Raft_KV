@@ -34,7 +34,8 @@ public:
         
         // Serialize each log entry: index term command
         for (const auto& entry : args.entries) {
-            ss << entry.index << " " << entry.term << " " << entry.command << "\n";
+            ss << entry.index << " " << entry.term << " " << entry.command.size() << "\n";
+            ss << entry.command << "\n";
         }
         return ss.str();
     }
@@ -157,19 +158,23 @@ public:
         // 7. parse each log entry: "index term command"
         for (int i = 0; i < entryCount; ++i) {
             if (!std::getline(ss, field)) return {}; // not enough lines
-            std::stringstream entrySS(field);
+            if(field.empty()) return {};
+            std::stringstream header(field);
             type::LogEntry entry;
-            std::string commandPart;
-
+            std::size_t cmdLen = 0;
             // index and term
-            if (!(entrySS >> entry.index >> entry.term)) return {}; 
+            if (!(header >> entry.index >> entry.term >> cmdLen)) return {}; 
 
+            std::string commandPart;
+            commandPart.resize(cmdLen);
             // rest of line is command
-            std::getline(entrySS, commandPart);
-            if (!commandPart.empty() && commandPart[0] == ' ') commandPart.erase(0, 1);
-            entry.command = commandPart;
-
-            args.entries[i] = entry;
+            ss.read(&commandPart[0],static_cast<std::streamsize>(cmdLen));
+            if(ss.gcount() != static_cast<std::streamsize>(cmdLen)) return {};// not enough
+            // if (!commandPart.empty() && commandPart[0] == ' ') commandPart.erase(0, 1);
+            entry.command = std::move(commandPart);
+            // consume the trailing newline after command if present
+            if (ss.peek() == '\n') ss.get();
+            args.entries[i] = std::move(entry);
         }
         return args;
     }
