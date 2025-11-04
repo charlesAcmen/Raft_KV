@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <sstream>
 namespace kv::type{
 //better than typedef
 // using Err = std::string;
@@ -53,13 +54,47 @@ struct GetReply{
 };
 
 struct KVCommand {
-    enum class CommandType {PUT,APPEND,GET};
+    enum class CommandType {PUT,APPEND,GET,INVALID};
+    inline static std::string CommandType2String(CommandType type) {
+        switch(type) {
+            case CommandType::PUT: return "Put";
+            case CommandType::APPEND: return "Append";
+            case CommandType::GET: return "Get";
+            default: return "Invalid";
+        }
+    }
+    inline static CommandType String2CommandType(const std::string& str) {
+        if (str == "Put") return CommandType::PUT;
+        if (str == "Append") return CommandType::APPEND;
+        if (str == "Get") return CommandType::GET;
+        return CommandType::INVALID;
+    }
 
     CommandType type;
     std::string key;
     std::string value;
 
-    KVCommand(CommandType t, const std::string& k, const std::string& v = "")
+    KVCommand(
+        CommandType t = CommandType::INVALID, const std::string& k = "", const std::string& v = "")
         : type(t), key(k), value(v) {}
-};
-} // namespace kv::codec
+
+    std::string ToString() const {
+        return CommandType2String(type) + "\n" + key + "\n" + value + "\n";
+    }
+    static inline KVCommand FromString(const std::string& str) {
+        struct KVCommand command{};
+        std::stringstream ss(str);
+        std::string field;
+        if (!std::getline(ss, field, '\n')) return {};
+        if( field.empty()) return {};
+        command.type = String2CommandType(field);
+        if (!std::getline(ss, field, '\n')) return {};
+        if( field.empty()) return {};
+        command.key = field;
+        if (!std::getline(ss, field, '\n')) return {};
+        if( field.empty()) return {};
+        command.value = field;
+        return command;
+    }
+};//struct KVCommand
+} // namespace kv::type
