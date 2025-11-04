@@ -71,6 +71,8 @@ void Clerk::PutAppend(
         int serverId = peers_[(startServer + tried) % peers_.size()];
         type::PutAppendArgs args{key, value, op, clerkId_, nextRequestId_++};
         type::PutAppendReply reply;
+        spdlog::info("[Clerk] {} PutAppendRPC prepared, key:{}, value:{}, op:{}, serverId:{}, nextRequestId_:{}", 
+            clerkId_, key, value, op, serverId, nextRequestId_ - 1);
         if(transport_->PutAppendRPC(serverId, args, reply)){
             if(reply.err == type::Err::OK){
                 lastKnownLeader_ = serverId;

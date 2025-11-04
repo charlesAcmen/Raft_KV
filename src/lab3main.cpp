@@ -1,4 +1,5 @@
 #include "kvstore/kvcluster.h"
+#include "kvstore/clerk.h"
 #include <spdlog/spdlog.h>
 int main(){
     // kv::KVCluster cluster(5,0);
@@ -6,6 +7,10 @@ int main(){
     cluster.StartAll();
 
     cluster.WaitForServerLeader();
+    std::shared_ptr<kv::Clerk> clerk = cluster.testGetClerk(0);    
+    std::string key = "Grand Theft Auto V"; 
+    std::string value = "Grand Theft Auto VI";
+    clerk->Put(key,value);
     cluster.WaitForShutdown();
     
     return 0;

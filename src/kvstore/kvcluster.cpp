@@ -88,6 +88,22 @@ void KVCluster::StopAll() {
     for (auto &svr : kvservers_) svr->Stop();
     for (auto &ck : clerks_) ck->Stop();
 }
+//------test utilities-------
+int KVCluster::testKVServerSize() const {
+    return static_cast<int>(kvservers_.size());
+}
+
+int KVCluster::testClerkSize() const {
+    return static_cast<int>(clerks_.size());
+}
+std::shared_ptr<Clerk> KVCluster::testGetClerk(int index) const {
+    if (index < 0 || index >= static_cast<int>(clerks_.size())) {
+        return nullptr;
+    }
+    return clerks_[index];
+}
+
+
 
 //------private methods------
 void KVCluster::SignalHandler(int signum) {

@@ -28,7 +28,7 @@ void TransportBase::Start() {
             bool allConnected = true;
             for (auto& [id, client] : clients_) {
                 if(client->Connect()){
-                    spdlog::info("[TransportBase] {} Connected to peer {}", self_.id, id);
+                    // spdlog::info("[TransportBase] {} Connected to peer {}", self_.id, id);
                 }else{allConnected = false;}
             }
             if(allConnected || !running_.load()) break;

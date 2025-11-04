@@ -18,6 +18,9 @@ public:
     void StartAll();
     void StopAll();
     //------test utilities------
+    int testKVServerSize() const;
+    int testClerkSize() const;
+    std::shared_ptr<Clerk> testGetClerk(int index) const;
 private:
     std::vector<std::shared_ptr<KVServer>> kvservers_;
     std::vector<std::shared_ptr<Clerk>> clerks_;
