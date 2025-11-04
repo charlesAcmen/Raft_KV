@@ -16,7 +16,7 @@ TransportBase::TransportBase(
     // and node will be blocked when starting the server
 }
 void TransportBase::Start() {
-    if(!running_.exchange(true)) return;//already started.
+    if(running_.exchange(true)) return;//already started.
     // Start the server in background
     serverThread_ = std::thread([this]() { server_->Start(); });
 
