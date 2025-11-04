@@ -32,7 +32,7 @@ std::string Clerk::Get(const std::string& key){
     int tried = 0;
     while(true){
         int serverId = peers_[(startServer + tried) % peers_.size()];
-        type::GetArgs args{key, clerkId_, nextRequestId_};
+        type::GetArgs args{key, clerkId_, nextRequestId_++};
         type::GetReply reply;
         if(transport_->GetRPC(serverId, args, reply)){
             if(reply.err == type::Err::OK){
@@ -44,7 +44,7 @@ std::string Clerk::Get(const std::string& key){
                 continue;
             }
         }else{
-            spdlog::warn("[Clerk] {} GetRPC key:{} error:{}", clerkId_, key, type::ErrToString(reply.err));
+            spdlog::warn("[Clerk] {} GetRPC key:{} transport failure, server id:{}", clerkId_, key, serverId);
             tried++;
             continue;
         }
@@ -68,5 +68,7 @@ void Clerk::PutAppend(
         return;
     }
     spdlog::info("[Clerk] {} PutAppend key:{} value:{} op:{}", clerkId_, key, value, op);
+
+    
 }
 }//namespace kv

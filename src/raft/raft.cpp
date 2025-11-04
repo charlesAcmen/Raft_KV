@@ -113,15 +113,15 @@ void Raft::Start() {
 }  
 
 void Raft::Stop(){
+    bool expected = true;
+    if (!running_.compare_exchange_strong(expected, false)) {
+        spdlog::warn("[Raft] {} Stop() called but Raft is not running", me_);
+        // already stopped or never started
+        return;
+    }
     spdlog::info("[Raft] {} Stopping...", me_);
     {
         std::lock_guard<std::mutex> lock(mu_);
-        bool expected = true;
-        if (!running_.compare_exchange_strong(expected, false)) {
-            spdlog::warn("[Raft] {} Stop() called but Raft is not running", me_);
-            // already stopped or never started
-            return;
-        };
         apply_cv_.notify_all();
     }
     electionTimer_->Stop(); 

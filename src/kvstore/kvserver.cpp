@@ -51,15 +51,13 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
     spdlog::info("[KVServer] {} created.", me_);
     // spdlog::info("[KVServer] {}",maxRaftState_ == -1 ? "No snapshotting." : "Snapshotting enabled.");
 }
-KVServer::~KVServer() {
-    Stop();
-}
+KVServer::~KVServer() { Stop();}
 void KVServer::Start() {
+    if(!Killed()) return; //already started
     rf_->Start();
     transport_->Start();
 }
 void KVServer::Stop() {
-    if(Killed()) return;
     Kill();
     transport_->Stop();
     rf_->Shutdown();

@@ -26,11 +26,8 @@ void ThreadTimer::Reset(std::chrono::milliseconds duration) {
 }
 void ThreadTimer::Stop(){
     // spdlog::info("[ThreadTimer] Stopping timer");
-    {
-        std::lock_guard<std::mutex> lock(mu_);
-        running_ = false;
-        // expiry_ = std::chrono::steady_clock::time_point::min();
-    }
+    std::lock_guard<std::mutex> lock(mu_);
+    running_ = false;
     ++generation_;
     cv_.notify_all();
     // spdlog::info("[ThreadTimer] Timer stopped");
