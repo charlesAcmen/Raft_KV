@@ -8,8 +8,12 @@ int main(){
 
     cluster.WaitForServerLeader();
     std::shared_ptr<kv::Clerk> clerk = cluster.testGetClerk(0);    
-    std::string key = "Grand Theft Auto V"; 
-    std::string value = "Grand Theft Auto VI";
+    std::string key = 
+    // "Grand Theft Auto V"; 
+    "key";
+    std::string value = 
+    // "Grand Theft Auto VI";
+    "value";
     clerk->Put(key,value);
     cluster.WaitForShutdown();
     

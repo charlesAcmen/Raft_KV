@@ -21,11 +21,16 @@ KVCluster::KVCluster(int numServers, int numClerks) {
     }
     for (int i = 0; i < numClerks; ++i) {
         rpc::type::PeerInfo self = peers[i];
+        std::vector<int> peerIdsForClerk;
+        for(int id: peerIds){
+            if(id != self.id) peerIdsForClerk.push_back(id);
+        }
         std::shared_ptr<IKVTransport> transport = 
             std::make_shared<KVTransportUnix>(self, peers);
         // inject transport into Clerk and create clerk
         std::shared_ptr<Clerk> clerk = 
-            std::make_shared<Clerk>(self.id, peerIds, transport);        
+        //use peerIdsForClerk，which excludes self.id
+            std::make_shared<Clerk>(self.id, peerIdsForClerk, transport);        
         clerks_.push_back(clerk);
     }
     std::vector<std::shared_ptr<raft::Raft>> raftNodes = raft::Cluster::CreateRaftNodes(numServers);
