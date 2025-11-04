@@ -11,7 +11,7 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
     peers_(peers),
     transport_(transport), 
     rf_(raft), 
-    kvSM_(std::make_shared<KVStateMachine>()){
+    kvSM_(std::make_shared<KVStateMachine>(me_)){
     // Register RPC handlers that accept a serialized payload and return a serialized reply.
     // The lambdas: decode -> call local handler function -> encode reply.
     transport_->RegisterGetHandler(
@@ -42,6 +42,9 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
     );
     
     rf_->SetApplyCallback(
+        // raft layer is only responsible for copy and broadcast 'command'
+        // in string bytes,without any ideas about what the hell is 
+        // KVCommand,Get,PutAppend
         [this](raft::type::ApplyMsg& msg) {
             kvSM_->Apply(msg.Command);
         }
