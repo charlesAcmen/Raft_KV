@@ -83,10 +83,30 @@ void KVServer::PutAppend(
     const type::PutAppendArgs& args,type::PutAppendReply& reply) {
     spdlog::info("[KVServer] {} PutAppend called: Key={}, Value={}, Op={}", me_, args.Key, args.Value, args.Op);
 
+    type::KVCommand command(args.Op, args.Key, args.Value);
+    bool ok = rf_->SubmitCommand(command.ToString());
+    if(!ok){
+        reply.err = type::Err::ErrWrongLeader;
+        return;
+    }
 }
 void KVServer::Get(
     const type::GetArgs& args,type::GetReply& reply) {
     spdlog::info("[KVServer] {} Get called: Key={}", me_, args.Key);
+    type::KVCommand command(
+        type::KVCommand::CommandType::GET, args.Key, "");
+    bool ok = rf_->SubmitCommand(command.ToString());
+    if(!ok){
+        reply.err = type::Err::ErrWrongLeader;
+    }
+    auto value = kvSM_->Get(args.Key);
+    if(value){
+        spdlog::info("[KVServer] {} Get: found Key={}, Value={}", me_, args.Key, *value);
+        reply.Value = *value;
+        reply.err = type::Err::OK;
+    }else{
+        reply.err = type::Err::ErrWrongLeader;
+    }
 }
 
 }// namespace kv
