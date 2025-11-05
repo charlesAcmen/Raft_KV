@@ -534,8 +534,8 @@ void Raft::applyLogsLocked(){
             spdlog::warn("[Raft] {} no applyCallback set",me_);
             continue;
         }
-        spdlog::info("[Raft] Node {} applied log entry at index {} with command '{}' (term={})", 
-                     me_, lastApplied_, entry.command,entry.term);
+        // spdlog::info("[Raft] Node {} applied log entry at index {} with command '{}' (term={})", 
+                    //  me_, lastApplied_, entry.command,entry.term);
     }
 }
 void Raft::deleteLogFromIndexLocked(int index){

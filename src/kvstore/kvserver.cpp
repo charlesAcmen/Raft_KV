@@ -92,10 +92,8 @@ void KVServer::PutAppend(
 
     type::KVCommand command(type::KVCommand::String2CommandType(args.Op), args.Key, args.Value);
     bool ok = rf_->SubmitCommand(command.ToString());
-    if(!ok){
-        reply.err = type::Err::ErrWrongLeader;
-        return;
-    }
+    if(!ok){reply.err = type::Err::ErrWrongLeader;}
+    else{ reply.err = type::Err::OK;}
 }
 void KVServer::Get(
     const type::GetArgs& args,type::GetReply& reply) {

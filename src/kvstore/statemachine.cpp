@@ -5,7 +5,7 @@ namespace kv {
 KVStateMachine::KVStateMachine(int me):me_(me){}
 void KVStateMachine::Apply(const std::string& command) {
     std::lock_guard<std::mutex> lock(mu_);
-    spdlog::info("[KVStateMachine] kvserver {} Applied command: {}", me_,command);
+    // spdlog::info("[KVStateMachine] kvserver {} Applied command: {}", me_,command);
     type::KVCommand kvCommand = type::KVCommand::FromString(command);
     switch (kvCommand.type){
     case type::KVCommand::CommandType::GET:

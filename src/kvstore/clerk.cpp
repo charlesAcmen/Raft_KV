@@ -80,7 +80,7 @@ void Clerk::PutAppend(
                 return;
             }else if(reply.err == type::Err::ErrWrongLeader){
                 tried++;
-                spdlog::info("[Clerk] {} PutAppendRPC key:{} error:{}", clerkId_, key,type::ErrToString(reply.err));
+                // spdlog::info("[Clerk] {} PutAppendRPC key:{} error:{}", clerkId_, key,type::ErrToString(reply.err));
                 continue;
             }
         }else{
