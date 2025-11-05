@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <sstream>
+#include <optional>
 namespace kv::type{
 //better than typedef
 // using Err = std::string;
@@ -45,8 +46,9 @@ struct PutAppendReply{
 struct GetArgs{
     std::string Key;
     // You'll have to add definitions here.
-    int ClientId;
-    int RequestId;
+    // Idempotency not required for Get
+    // int ClientId;
+    // int RequestId;
 };
 struct GetReply{
     Err err;
@@ -73,10 +75,18 @@ struct KVCommand {
     CommandType type;
     std::string key;
     std::string value;
+    //optional for Get 
+    std::optional<int> ClientId;    
+    std::optional<int> RequestId;   
 
     KVCommand(
-        CommandType t = CommandType::INVALID, const std::string& k = "", const std::string& v = "")
-        : type(t), key(k), value(v) {}
+        // CommandType t = CommandType::INVALID, const std::string& k = "", const std::string& v = "",
+        CommandType t = CommandType::INVALID,
+        const std::string& k = "",
+        const std::string& v = "",
+        std::optional<int> clientId = std::nullopt,
+        std::optional<int> requestId = std::nullopt
+    ):type(t), key(k), value(v),ClientId(clientId),RequestId(requestId){}
 
     std::string ToString() const {
         return CommandType2String(type) + "\n" + key + "\n" + value + "\n";

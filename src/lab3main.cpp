@@ -39,8 +39,7 @@ void RandomClerkOperation(std::shared_ptr<kv::Clerk> clerk) {
     }
 }
 
-void SequentialConsistencyTest(
-    std::vector<std::shared_ptr<kv::Clerk>> clerks) {
+void SequentialConsistencyTest(std::vector<std::shared_ptr<kv::Clerk>> clerks) {
 
     spdlog::info("===== SequentialConsistencyTest Begin =====");
 
@@ -103,13 +102,86 @@ void SequentialConsistencyTest(
     spdlog::info("===== SequentialConsistencyTest End =====");
 }
 
+void ConcurrentPutAppendGetTest(
+    // std::shared_ptr<KVCluster> cluster,
+    std::shared_ptr<kv::Clerk> clerk1,
+    std::shared_ptr<kv::Clerk> clerk2)
+{
+    spdlog::info("===== ConcurrentPutAppendGetTest Begin =====");
+
+    const std::string key = "key_concurrent";
+    const std::string key2 = "key_isolated";
+
+    // 1️⃣ 测试 ErrNoKey
+    {
+        std::string result = clerk1->Get(key);
+        if (result.empty())
+            spdlog::info("[Test] ✅ Correct: Get non-existing key returned empty (ErrNoKey expected)");
+        else
+            spdlog::error("[Test] ❌ Unexpected value for non-existing key: {}", result);
+    }
+
+    // 2️⃣ 并发 Put / Append 同时执行，验证 command 顺序性
+    std::thread t1([&] {
+        clerk1->Put(key, "v1");
+        spdlog::info("[Test] Clerk1 Put({}, v1)", key);
+    });
+
+    std::thread t2([&] {
+        clerk2->Append(key, "v2");
+        spdlog::info("[Test] Clerk2 Append({}, v2)", key);
+    });
+
+    t1.join();
+    t2.join();
+
+    std::string result = clerk1->Get(key);
+    spdlog::info("[Test] Get after concurrent Put+Append -> {}", result);
+    if (result == "v1v2" || result == "v2v1")
+        spdlog::info("[Test] ✅ Correct: order respected in Raft log, final value consistent");
+    else
+        spdlog::error("[Test] ❌ Inconsistent result: {}", result);
+
+    // 3️⃣ Leader 切换期间一致性测试
+    // spdlog::info("[Test] Forcing leader crash...");
+    // cluster->KillLeader();  // 你可以写个 helper，让 cluster 随机停掉当前 leader
+
+    // std::thread t3([&] {
+    //     clerk1->Append(key, "_afterCrash");
+    // });
+    // std::thread t4([&] {
+    //     clerk2->Get(key);
+    // });
+    // t3.join();
+    // t4.join();
+
+    // cluster->RecoverAll(); // 重新启动所有节点
+    // std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    // std::string final = clerk1->Get(key);
+    // spdlog::info("[Test] Final value after leader crash recovery: {}", final);
+
+    // 4️⃣ 测试 key 隔离性
+    clerk1->Put(key2, "x1");
+    clerk2->Append(key2, "x2");
+    std::string res2 = clerk1->Get(key2);
+    if (res2 == "x1x2" || res2 == "x2x1")
+        spdlog::info("[Test] ✅ Correct: Multiple keys isolated");
+    else
+        spdlog::error("[Test] ❌ Key isolation failed, got {}", res2);
+
+    spdlog::info("===== ConcurrentPutAppendGetTest End =====");
+}
 
 int main(){
     // kv::KVCluster cluster(5,0);
-    kv::KVCluster cluster(5,2);
+    int serverNum = 5;
+    int clerkNum = 2;
+    kv::KVCluster cluster(serverNum,clerkNum);
     cluster.StartAll();
 
     cluster.WaitForServerLeader();
+    //--------------------RandomOperation--------------
     // std::shared_ptr<kv::Clerk> clerk = cluster.testGetClerk(0);    
     // std::string key = 
     // // "Grand Theft Auto V"; 
@@ -122,9 +194,16 @@ int main(){
     // int operationNum = 10;
     // for (int i = 0; i < operationNum; ++i) { RandomClerkOperation(clerk);}
 
-    std::vector<std::shared_ptr<kv::Clerk>> clerks = cluster.testGetClerks();
-    SequentialConsistencyTest(clerks);
-    cluster.WaitForShutdown();
+    //--------------------Sequential--------------
+    // std::vector<std::shared_ptr<kv::Clerk>> clerks = cluster.testGetClerks();
+    // SequentialConsistencyTest(clerks);
+    // cluster.WaitForShutdown();
     
+
+
+    //--------------------Concurrent--------------
+    std::shared_ptr<kv::Clerk> clerk1 = cluster.testGetClerk(0); 
+    std::shared_ptr<kv::Clerk> clerk2 = cluster.testGetClerk(1); 
+    ConcurrentPutAppendGetTest(clerk1,clerk2);
     return 0;
 }

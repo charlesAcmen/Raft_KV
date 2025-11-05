@@ -89,11 +89,29 @@ void KVServer::PutAppend(
     const type::PutAppendArgs& args,type::PutAppendReply& reply) {
     // spdlog::info("[KVServer] {} PutAppend called: Key={}, Value={}, Op={}", 
         // me_, args.Key, args.Value, args.Op);
+    std::lock_guard<std::mutex> lk(mu_);
+    //check Idempotency
+    auto it = lastAppliedRequestId.find(args.ClientId);
+    if(it != lastAppliedRequestId.end() && args.RequestId <= it->second){
+        spdlog::info("[KVServer] {} Duplicate PutAppend detected: ClientId={}, RequestId={}, lastApplied={}", 
+            me_, args.ClientId, args.RequestId, it->second);
+        reply.err = type::Err::OK;
+        return ;
+    }
 
-    type::KVCommand command(type::KVCommand::String2CommandType(args.Op), args.Key, args.Value);
+    type::KVCommand command(
+        type::KVCommand::String2CommandType(args.Op), 
+        args.Key, 
+        args.Value,
+        args.ClientId,
+        args.RequestId
+    );
     bool ok = rf_->SubmitCommand(command.ToString());
     if(!ok){reply.err = type::Err::ErrWrongLeader;}
-    else{ reply.err = type::Err::OK;}
+    else{ 
+        reply.err = type::Err::OK;
+        lastAppliedRequestId[args.ClientId] = args.RequestId;
+    }
 }
 void KVServer::Get(
     const type::GetArgs& args,type::GetReply& reply) {
@@ -102,6 +120,7 @@ void KVServer::Get(
         type::KVCommand::CommandType::GET, args.Key, "");
     bool ok = rf_->SubmitCommand(command.ToString());
     if(!ok){
+        //for lab3,we simplify get to leader only
         reply.err = type::Err::ErrWrongLeader;
         return;
     }

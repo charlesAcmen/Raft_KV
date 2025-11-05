@@ -36,7 +36,7 @@ std::string Clerk::Get(const std::string& key){
     while(true){
         int serverIdx = (startServerIdx + tried++) % peers_.size();
         int serverId = peers_[serverIdx];
-        type::GetArgs args{key, clerkId_, nextRequestId_++};
+        type::GetArgs args{key};
         type::GetReply reply;
         if(transport_->GetRPC(serverId, args, reply)){
             if(reply.err == type::Err::OK){
