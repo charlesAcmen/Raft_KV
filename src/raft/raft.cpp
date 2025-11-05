@@ -73,7 +73,8 @@ bool Raft::SubmitCommand(const std::string& command){
     std::lock_guard<std::mutex> lock(mu_);
     // spdlog::info("[Raft] SubmitCommand {}",command);
     if (role_.load() != type::Role::Leader) {
-        spdlog::info("[Raft] {} rejected client command '{}': not leader", me_, command);
+        // spdlog::info("[Raft] {} rejected client command '{}': not leader", me_, command);
+        spdlog::info("[Raft] {} rejected clerk: not leader", me_);
         return false;
     }
     AppendLogEntryLocked(command);
@@ -401,15 +402,15 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
                 for (size_t j = i; j < args.entries.size(); ++j) {
                     log_.push_back(args.entries[j]);
                     // spdlog::info("[Raft] args.entries[{}] command:{}",j,args.entries[j].command);
-                    spdlog::info("[Raft] Node {} appended new log entry at index {} from leader {}",
-                        me_, args.prevLogIndex + 1 + j, args.leaderId);
+                    // spdlog::info("[Raft] Node {} appended new log entry at index {} from leader {}",
+                        // me_, args.prevLogIndex + 1 + j, args.leaderId);
                 }
                 break;
             }
         }else{
             log_.push_back(entry);
             // spdlog::info("[Raft] args.entries[{}] command:{}",i,args.entries[i].command);
-            spdlog::info("[Raft] Node {} appended new log entry at index {} from leader {}", me_, index, args.leaderId);
+            // spdlog::info("[Raft] Node {} appended new log entry at index {} from leader {}", me_, index, args.leaderId);
         }
     }
     // Step 6: Update commitIndex
@@ -435,8 +436,8 @@ void Raft::AppendLogEntryLocked(const std::string& command) {
 
     log_.push_back(entry);
     persistLocked();
-    spdlog::info("[Raft] Node {} appended new log entry at index {} from outside", 
-        me_, entry.index);
+    // spdlog::info("[Raft] Node {} appended new log entry at index {} from outside", 
+        // me_, entry.index);
     // spdlog::info("[Raft] Node {} appended new log entry for command '{}'", 
     //     me_, command);
 }
@@ -478,7 +479,7 @@ void Raft::updateCommitIndexLocked(){
         int majority = (peers_.size() / 2) + 1;
         if (replicatedCount >= majority) {
             commitIndex_ = N;
-            spdlog::info("[Raft] Node {} updated commitIndex to {}", me_, commitIndex_);
+            // spdlog::info("[Raft] Node {} updated commitIndex to {}", me_, commitIndex_);
             apply_cv_.notify_one(); // notify apply thread
             break;
         }

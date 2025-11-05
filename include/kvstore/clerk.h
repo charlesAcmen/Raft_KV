@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <memory>   //shared_ptr
+#include <mutex>
 namespace kv {
 class Clerk {
 public:
@@ -19,11 +20,12 @@ private:
     void PutAppend(
         const std::string& key, const std::string& value, const std::string op);
 
+    std::mutex mu_; 
     const int clerkId_;                      // this peer's id (index into peers_)
     //used as ClientId
     const std::vector<int> peers_;      // peer ids (including me_)
     int nextRequestId_{0};
-    int lastKnownLeader_{0};
+    int lastKnownLeaderIdx_{0};
     bool started_{false};
     std::shared_ptr<IKVTransport> transport_;
 };//class Clerk
