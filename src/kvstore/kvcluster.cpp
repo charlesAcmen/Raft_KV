@@ -101,6 +101,9 @@ int KVCluster::testKVServerSize() const {
 int KVCluster::testClerkSize() const {
     return static_cast<int>(clerks_.size());
 }
+std::vector<std::shared_ptr<Clerk>> KVCluster::testGetClerks() const{
+    return clerks_;
+}
 std::shared_ptr<Clerk> KVCluster::testGetClerk(int index) const {
     if (index < 0 || index >= static_cast<int>(clerks_.size())) {
         return nullptr;

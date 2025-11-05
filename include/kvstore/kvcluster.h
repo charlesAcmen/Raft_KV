@@ -20,6 +20,7 @@ public:
     //------test utilities------
     int testKVServerSize() const;
     int testClerkSize() const;
+    std::vector<std::shared_ptr<Clerk>> testGetClerks() const;
     std::shared_ptr<Clerk> testGetClerk(int index) const;
 private:
     std::vector<std::shared_ptr<KVServer>> kvservers_;
