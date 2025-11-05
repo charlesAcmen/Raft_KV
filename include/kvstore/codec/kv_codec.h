@@ -23,7 +23,9 @@ public:
         std::stringstream ss;
         ss << args.Key << "\n" 
            << args.Value << "\n" 
-           << args.Op << "\n";
+           << args.Op << "\n"
+           << args.ClientId << "\n"
+           << args.RequestId << "\n";
         return ss.str();
     }
     static inline std::string encode(const type::PutAppendReply& reply) {
@@ -48,6 +50,20 @@ public:
         if (!std::getline(ss, field, '\n')) return {}; 
         if( field.empty()) return {};
         args.Op = field; 
+        if (!std::getline(ss, field, '\n')) return {}; 
+        if( field.empty()) return {};
+        try {
+            args.ClientId = std::stoi(field);
+        } catch (...) {
+            args.ClientId = -1;
+        }
+        if (!std::getline(ss, field, '\n')) return {}; 
+        if( field.empty()) return {};
+        try {
+            args.RequestId = std::stoi(field);
+        } catch (...) {
+            args.RequestId = -1;
+        }
         return args;
     }
     // string to PutAppendReply

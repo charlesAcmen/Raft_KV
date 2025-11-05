@@ -73,10 +73,12 @@ void Clerk::PutAppend(
     
     int startServerIdx = lastKnownLeaderIdx_;
     int tried = 0;
+    //very important,do not ++ in retry loop
+    int requestId = nextRequestId_++;
     while(true){
         int serverIdx = (startServerIdx + tried++) % peers_.size();
         int serverId = peers_[serverIdx];
-        type::PutAppendArgs args{key, value, op, clerkId_, nextRequestId_++};
+        type::PutAppendArgs args{key, value, op, clerkId_, requestId};
         type::PutAppendReply reply;
         if(transport_->PutAppendRPC(serverId, args, reply)){
             if(reply.err == type::Err::OK){

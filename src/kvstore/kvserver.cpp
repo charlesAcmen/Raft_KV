@@ -47,6 +47,8 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
         // KVCommand,Get,PutAppend
         [this](raft::type::ApplyMsg& msg) {
             kvSM_->Apply(msg.Command);
+            // update after applied to state machine
+            // lastAppliedRequestId[args.ClientId] = args.RequestId;
         }
     );
     dead_.store(0);
@@ -81,9 +83,7 @@ bool KVServer::Killed() const {
     return dead_.load() != 0;
 }
 //---------- Testing utilities ----------
-std::shared_ptr<raft::Raft> KVServer::testGetRaftNode() const {
-    return rf_;
-}
+std::shared_ptr<raft::Raft> KVServer::testGetRaftNode() const { return rf_;}
 //----------Private RPC handlers----------
 void KVServer::PutAppend(
     const type::PutAppendArgs& args,type::PutAppendReply& reply) {
@@ -93,12 +93,13 @@ void KVServer::PutAppend(
     //check Idempotency
     auto it = lastAppliedRequestId.find(args.ClientId);
     if(it != lastAppliedRequestId.end() && args.RequestId <= it->second){
-        spdlog::info("[KVServer] {} Duplicate PutAppend detected: ClientId={}, RequestId={}, lastApplied={}", 
+        //duplicate checking
+        spdlog::info("[KVServer] {} Duplicate PutAppend: ClientId={}, RequestId={}, lastApplied={}", 
             me_, args.ClientId, args.RequestId, it->second);
         reply.err = type::Err::OK;
         return ;
     }
-
+    //first time request
     type::KVCommand command(
         type::KVCommand::String2CommandType(args.Op), 
         args.Key, 
@@ -110,6 +111,7 @@ void KVServer::PutAppend(
     if(!ok){reply.err = type::Err::ErrWrongLeader;}
     else{ 
         reply.err = type::Err::OK;
+        // do not update idempodency here,only do after state machine applied
         lastAppliedRequestId[args.ClientId] = args.RequestId;
     }
 }
