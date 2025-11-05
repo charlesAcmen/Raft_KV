@@ -73,7 +73,7 @@ bool Raft::SubmitCommand(const std::string& command){
     std::lock_guard<std::mutex> lock(mu_);
     // spdlog::info("[Raft] SubmitCommand {}",command);
     if (role_.load() != type::Role::Leader) {
-        spdlog::warn("[Raft] {} rejected client command '{}': not leader", me_, command);
+        spdlog::info("[Raft] {} rejected client command '{}': not leader", me_, command);
         return false;
     }
     AppendLogEntryLocked(command);
@@ -620,8 +620,8 @@ void Raft::broadcastAppendEntriesLocked(){
                 if(reply->success){
                     nextIndex_[peer] = getLastLogIndexLocked() + 1;
                     matchIndex_[peer] = nextIndex_[peer] - 1;
-                    spdlog::info("[Raft] Node {} AppendEntries success from {}, matchIndex={}, nextIndex={}", 
-                    me_, peer, matchIndex_[peer], nextIndex_[peer]);
+                    // spdlog::info("[Raft] Node {} AppendEntries success from {}, matchIndex={}, nextIndex={}", 
+                        // me_, peer, matchIndex_[peer], nextIndex_[peer]);
                     updateCommitIndexLocked();
                 } else {
                     // Decrement nextIndex_ on failure

@@ -87,7 +87,8 @@ std::shared_ptr<raft::Raft> KVServer::testGetRaftNode() const {
 //----------Private RPC handlers----------
 void KVServer::PutAppend(
     const type::PutAppendArgs& args,type::PutAppendReply& reply) {
-    spdlog::info("[KVServer] {} PutAppend called: Key={}, Value={}, Op={}", me_, args.Key, args.Value, args.Op);
+    // spdlog::info("[KVServer] {} PutAppend called: Key={}, Value={}, Op={}", 
+        // me_, args.Key, args.Value, args.Op);
 
     type::KVCommand command(type::KVCommand::String2CommandType(args.Op), args.Key, args.Value);
     bool ok = rf_->SubmitCommand(command.ToString());
