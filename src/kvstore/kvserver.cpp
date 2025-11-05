@@ -46,9 +46,16 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
         // in string bytes,without any ideas about what the hell is 
         // KVCommand,Get,PutAppend
         [this](raft::type::ApplyMsg& msg) {
-            kvSM_->Apply(msg.Command);
-            // update after applied to state machine
-            // lastAppliedRequestId[args.ClientId] = args.RequestId;
+            if(msg.CommandValid){
+                kvSM_->Apply(msg.Command);
+                // update after applied to state machine
+                type::KVCommand kvCommand = 
+                    type::KVCommand::FromString(msg.Command);
+                {
+                    std::lock_guard<std::mutex> lk(mu_);
+                    lastAppliedRequestId[kvCommand.ClientId] = kvCommand.RequestId;
+                }
+            }
         }
     );
     dead_.store(0);
@@ -112,7 +119,7 @@ void KVServer::PutAppend(
     else{ 
         reply.err = type::Err::OK;
         // do not update idempodency here,only do after state machine applied
-        lastAppliedRequestId[args.ClientId] = args.RequestId;
+        // lastAppliedRequestId[args.ClientId] = args.RequestId;
     }
 }
 void KVServer::Get(

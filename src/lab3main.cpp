@@ -14,7 +14,7 @@ void RandomClerkOperation(std::shared_ptr<kv::Clerk> clerk) {
     int op = op_dist(rng);
 
     // Generate a random key and value
-    std::uniform_int_distribution<int> key_dist(0, 1000);
+    std::uniform_int_distribution<int> key_dist(0, 100);
     int key_num = key_dist(rng);
     std::string key = "key" + std::to_string(key_num);
     std::string value = "value" + std::to_string(key_num);
@@ -105,8 +105,7 @@ void SequentialConsistencyTest(std::vector<std::shared_ptr<kv::Clerk>> clerks) {
 void ConcurrentPutAppendGetTest(
     // std::shared_ptr<KVCluster> cluster,
     std::shared_ptr<kv::Clerk> clerk1,
-    std::shared_ptr<kv::Clerk> clerk2)
-{
+    std::shared_ptr<kv::Clerk> clerk2){
     spdlog::info("===== ConcurrentPutAppendGetTest Begin =====");
 
     const std::string key = "key_concurrent";
@@ -191,8 +190,9 @@ int main(){
     // "value1";
     // clerk->Put(key,value);
 
-    // int operationNum = 10;
-    // for (int i = 0; i < operationNum; ++i) { RandomClerkOperation(clerk);}
+    std::shared_ptr<kv::Clerk> clerk = cluster.testGetClerk(0);
+    int operationNum = 10;
+    for (int i = 0; i < operationNum; ++i) { RandomClerkOperation(clerk);}
 
     //--------------------Sequential--------------
     // std::vector<std::shared_ptr<kv::Clerk>> clerks = cluster.testGetClerks();
@@ -202,8 +202,8 @@ int main(){
 
 
     //--------------------Concurrent--------------
-    std::shared_ptr<kv::Clerk> clerk1 = cluster.testGetClerk(0); 
-    std::shared_ptr<kv::Clerk> clerk2 = cluster.testGetClerk(1); 
-    ConcurrentPutAppendGetTest(clerk1,clerk2);
+    // std::shared_ptr<kv::Clerk> clerk1 = cluster.testGetClerk(0); 
+    // std::shared_ptr<kv::Clerk> clerk2 = cluster.testGetClerk(1); 
+    // ConcurrentPutAppendGetTest(clerk1,clerk2);
     return 0;
 }

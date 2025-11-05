@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 #include <sstream>
-#include <optional>
 namespace kv::type{
 //better than typedef
 // using Err = std::string;
@@ -76,20 +75,26 @@ struct KVCommand {
     std::string key;
     std::string value;
     //optional for Get 
-    std::optional<int> ClientId;    
-    std::optional<int> RequestId;   
+    int ClientId;    
+    int RequestId;   
 
     KVCommand(
         // CommandType t = CommandType::INVALID, const std::string& k = "", const std::string& v = "",
         CommandType t = CommandType::INVALID,
         const std::string& k = "",
         const std::string& v = "",
-        std::optional<int> clientId = std::nullopt,
-        std::optional<int> requestId = std::nullopt
+        int clientId = -1,
+        int requestId = -1
     ):type(t), key(k), value(v),ClientId(clientId),RequestId(requestId){}
 
     std::string ToString() const {
-        return CommandType2String(type) + "\n" + key + "\n" + value + "\n";
+        std::stringstream ss;
+        ss << CommandType2String(type)  << "\n"
+            << key << "\n"
+            << value << "\n"
+            << ClientId << "\n"
+            << RequestId << "\n";
+        return ss.str();
     }
     static inline KVCommand FromString(const std::string& str) {
         struct KVCommand command{};
@@ -104,6 +109,21 @@ struct KVCommand {
         if (!std::getline(ss, field, '\n')) return {};
         if( field.empty()) return {};
         command.value = field;
+
+        if (!std::getline(ss, field, '\n')) return {};
+        if( field.empty()) return {};
+        try {
+            command.ClientId = std::stoi(field);
+        } catch (...) {
+            command.ClientId = 0;
+        }
+        if (!std::getline(ss, field, '\n')) return {};
+        if( field.empty()) return {};
+        try {
+            command.RequestId = std::stoi(field);
+        } catch (...) {
+            command.RequestId = 0;
+        }
         return command;
     }
 };//struct KVCommand
