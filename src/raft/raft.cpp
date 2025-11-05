@@ -435,7 +435,10 @@ void Raft::AppendLogEntryLocked(const std::string& command) {
 
     log_.push_back(entry);
     persistLocked();
-    spdlog::info("[Raft] Node {} appended new log entry for command '{}'", me_, command);
+    spdlog::info("[Raft] Node {} appended new log entry at index {} from outside", 
+        me_, entry.index);
+    // spdlog::info("[Raft] Node {} appended new log entry for command '{}'", 
+    //     me_, command);
 }
 
 

@@ -103,6 +103,7 @@ void KVServer::Get(
     bool ok = rf_->SubmitCommand(command.ToString());
     if(!ok){
         reply.err = type::Err::ErrWrongLeader;
+        return;
     }
     auto value = kvSM_->Get(args.Key);
     if(value){
@@ -110,7 +111,7 @@ void KVServer::Get(
         reply.Value = *value;
         reply.err = type::Err::OK;
     }else{
-        reply.err = type::Err::ErrWrongLeader;
+        reply.err = type::Err::ErrNoKey;
     }
 }
 

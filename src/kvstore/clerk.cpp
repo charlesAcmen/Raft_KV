@@ -26,7 +26,7 @@ std::string Clerk::Get(const std::string& key){
         spdlog::error("[Clerk] {} Get but not started!", clerkId_);
         return "";
     }
-    spdlog::info("[Clerk] {} Get key:{}", clerkId_, key);
+    // spdlog::info("[Clerk] {} Get key:{}", clerkId_, key);
     
     int startServer = lastKnownLeader_;
     int tried = 0;
@@ -37,11 +37,13 @@ std::string Clerk::Get(const std::string& key){
         if(transport_->GetRPC(serverId, args, reply)){
             if(reply.err == type::Err::OK){
                 lastKnownLeader_ = serverId;
-                spdlog::info("[Clerk] {} GetRPC succeeded after {} attempts. Leader server: {}, key: {}", clerkId_, tried + 1, serverId, key);
+                spdlog::info("[Clerk] {} GetRPC succeeded after {} attempts. Leader server: {}, key: {}", 
+                    clerkId_, tried + 1, serverId, key);
                 return reply.Value;
             }else if(reply.err == type::Err::ErrWrongLeader){
                 tried++;
-                spdlog::info("[Clerk] {} GetRPC key:{} error:{}", clerkId_, key,type::ErrToString(reply.err));
+                // spdlog::info("[Clerk] {} GetRPC key:{} error:{}", 
+                // clerkId_, key,type::ErrToString(reply.err));
                 continue;
             }
         }else{
@@ -72,11 +74,13 @@ void Clerk::PutAppend(
         int serverId = peers_[(startServer + tried) % peers_.size()];
         type::PutAppendArgs args{key, value, op, clerkId_, nextRequestId_++};
         type::PutAppendReply reply;
-        spdlog::info("[Clerk] {} PutAppendRPC to kvserverId:{}, nextRequestId_:{}", 
-            clerkId_,serverId, nextRequestId_ - 1);
+        // spdlog::info("[Clerk] {} PutAppendRPC to kvserverId:{}, nextRequestId_:{}", 
+            // clerkId_,serverId, nextRequestId_ - 1);
         if(transport_->PutAppendRPC(serverId, args, reply)){
             if(reply.err == type::Err::OK){
                 lastKnownLeader_ = serverId;
+                spdlog::info("[Clerk] {} PutAppendRPC succeeded after {} attempts. Leader server: {},{},{},{}", 
+                    clerkId_, tried + 1, serverId, key, value, op);
                 return;
             }else if(reply.err == type::Err::ErrWrongLeader){
                 tried++;
