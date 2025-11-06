@@ -2,6 +2,9 @@
 #include "kvstore/statemachine.h"  
 #include "kvstore/codec/kv_codec.h"
 #include <spdlog/spdlog.h>
+#include <optional>
+#include <cstdint>  //int32_t
+
 namespace kv {
 KVServer::KVServer(int me,const std::vector<int>& peers,
     std::shared_ptr<IKVTransport> transport,
@@ -53,6 +56,8 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
                     type::KVCommand::FromString(msg.Command);
                 {
                     std::lock_guard<std::mutex> lk(mu_);
+                    spdlog::info("[KVServer] {} lastAppliedRequestId[ClientId={}] = [RequestId={}]", 
+                        me_, kvCommand.ClientId, kvCommand.RequestId);
                     lastAppliedRequestId[kvCommand.ClientId] = kvCommand.RequestId;
                 }
             }
@@ -125,15 +130,24 @@ void KVServer::PutAppend(
 void KVServer::Get(
     const type::GetArgs& args,type::GetReply& reply) {
     spdlog::info("[KVServer] {} Get called: Key={}", me_, args.Key);
-    type::KVCommand command(
-        type::KVCommand::CommandType::GET, args.Key, "");
-    bool ok = rf_->SubmitCommand(command.ToString());
-    if(!ok){
+    // type::KVCommand command(
+    //     type::KVCommand::CommandType::GET, args.);
+    // bool ok = rf_->SubmitCommand(command.ToString());
+    // if(!ok){
+    //     //for lab3,we simplify get to leader only
+    //     reply.err = type::Err::ErrWrongLeader;
+    //     return;
+    // }
+    int32_t currentTerm;
+    bool isLeader;
+    rf_->GetState(currentTerm,isLeader);
+    if(!isLeader){
         //for lab3,we simplify get to leader only
         reply.err = type::Err::ErrWrongLeader;
         return;
     }
-    auto value = kvSM_->Get(args.Key);
+    std::lock_guard<std::mutex> lk(mu_);
+    std::optional<std::string> value = kvSM_->Get(args.Key);
     if(value){
         spdlog::info("[KVServer] {} Get: found Key={}, Value={}", me_, args.Key, *value);
         reply.Value = *value;
