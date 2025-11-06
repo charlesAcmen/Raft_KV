@@ -60,6 +60,7 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
                         me_, kvCommand.ClientId, kvCommand.RequestId);
                     lastAppliedRequestId[kvCommand.ClientId] = kvCommand.RequestId;
                 }
+                maybeTakeSnapshot(msg.CommandIndex);
             }
         }
     );
@@ -93,6 +94,10 @@ void KVServer::Kill() {
 bool KVServer::Killed() const {
     std::lock_guard<std::mutex> lk(mu_);
     return dead_.load() != 0;
+}
+bool KVServer::isSnapShotEnabled() const{
+    std::lock_guard<std::mutex> lk(mu_);
+    return isSnapShotEnabledLocked();
 }
 //---------- Testing utilities ----------
 std::shared_ptr<raft::Raft> KVServer::testGetRaftNode() const { return rf_;}
@@ -155,6 +160,19 @@ void KVServer::Get(
     }else{
         reply.err = type::Err::ErrNoKey;
     }
+}
+bool KVServer::isSnapShotEnabledLocked() const{
+    return maxRaftState_ != -1;
+}
+void KVServer::maybeTakeSnapshot(int appliedIndex){
+    std::lock_guard<std::mutex> lk(mu_);
+    //1. snapshot enabled
+    if(!isSnapShotEnabledLocked()) return;
+    //2. if Raft persisted state size surpasses threshold
+    if(rf_->GetPersistSize() < maxRaftState_) return;
+
+    //3. 
+    // std::string snapshotdata = 
 }
 
 }// namespace kv

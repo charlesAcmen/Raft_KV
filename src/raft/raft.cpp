@@ -147,6 +147,11 @@ void Raft::Shutdown(){
     Stop();
     Join();
 }
+//return persisted log size in byte
+size_t Raft::GetPersistSize() const{
+    std::lock_guard<std::mutex> lock(mu_);
+    return persister_->RaftStateSize();
+}
 //------------------- Testing utilities -------------------
 int32_t Raft::testGetCurrentTerm() const{
     std::lock_guard<std::mutex> lock(mu_);

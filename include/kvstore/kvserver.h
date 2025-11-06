@@ -13,12 +13,14 @@ public:
     KVServer(int,const std::vector<int>&,
         std::shared_ptr<IKVTransport>,
         std::shared_ptr<raft::Raft>,
-        int maxRaftState);
+        int = -1);
     ~KVServer();
     void Start();
     void Stop();
     void Kill();
     bool Killed() const;
+    bool isSnapShotEnabled() const;
+
     //---------- Testing utilities ----------
     std::shared_ptr<raft::Raft> testGetRaftNode() const;
 private:
@@ -37,6 +39,13 @@ private:
     std::shared_ptr<IKVTransport> transport_; 
     std::shared_ptr<raft::Raft> rf_;
     std::shared_ptr<KVStateMachine> kvSM_;
-    int maxRaftState_{-1}; //-1 means no snapshotting
+
+    // -------------- Lab3 PartB: Snapshot / Compaction ----------------
+    int maxRaftState_{-1}; // Threshold for log size to trigger snapshot, -1 = disabled
+    int lastIncludedIndex_{0};      // Last Raft log index included in snapshot
+    int lastIncludedTerm_{0};       // Term of the last included log entry in snapshot
+
+    bool isSnapShotEnabledLocked() const;
+    void maybeTakeSnapshot(int appliedIndex);
 };
 }// namespace kv

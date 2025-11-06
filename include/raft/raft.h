@@ -31,6 +31,9 @@ public:
     void Join();
     void Shutdown();
 
+    // -------------- Lab3 PartB: Snapshot / Compaction ----------------
+    size_t GetPersistSize() const;
+
 
     //---------- Testing utilities ----------
     int32_t testGetCurrentTerm() const;
