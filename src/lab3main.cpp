@@ -197,7 +197,6 @@ int main(){
     //--------------------Sequential--------------
     // std::vector<std::shared_ptr<kv::Clerk>> clerks = cluster.testGetClerks();
     // SequentialConsistencyTest(clerks);
-    // cluster.WaitForShutdown();
     
 
 
@@ -205,5 +204,7 @@ int main(){
     // std::shared_ptr<kv::Clerk> clerk1 = cluster.testGetClerk(0); 
     // std::shared_ptr<kv::Clerk> clerk2 = cluster.testGetClerk(1); 
     // ConcurrentPutAppendGetTest(clerk1,clerk2);
+
+    cluster.WaitForShutdown();
     return 0;
 }
