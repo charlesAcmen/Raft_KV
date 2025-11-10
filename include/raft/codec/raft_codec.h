@@ -211,9 +211,15 @@ public:
         std::string field;
         if (!std::getline(ss, field, '\n')) 
             return false;
-        if (field.empty()) 
+        if (field.empty())  
             return false;
-        currentTerm = std::stoi(field);
+        try {
+            currentTerm = std::stoi(field);
+        } catch (...) {
+            spdlog::error("[Codec] Failed to parse currentTerm");
+            return false;
+        }
+            
 
         if (!std::getline(ss, field, '\n')) 
             return false;
@@ -222,13 +228,23 @@ public:
         if (field == "null") {
             votedFor.reset();
         } else {
-            votedFor = std::stoi(field);
+            try {
+                votedFor = std::stoi(field);
+            } catch (...) {
+                spdlog::error("[Codec] Failed to parse votedFor");
+                return false;
+            }
         }
 
         if (!std::getline(ss, field, '\n')) return false;
         if (field.empty()) return false;
-        int logSize = std::stoi(field);
-
+        try {
+            int logSize = std::stoi(field);
+        } catch (...) {
+            spdlog::error("[Codec] Failed to parse logSize");
+            return false;
+        }
+        if (logSize == 0) spdlog::debug("[Codec] Empty log state.");
         for (int i = 0; i < logSize; ++i) {
             if (!std::getline(ss, field)) return false; // not enough lines
             std::stringstream entrySS(field);

@@ -23,12 +23,17 @@ std::string Persister::ReadRaftState(
 void Persister::SaveStateAndSnapshot(
     int32_t currentTerm, std::optional<int32_t> votedFor,const std::vector<type::LogEntry>& logData, const std::string& snapshot) {
     std::lock_guard<std::mutex> lock(mu_);
-    raftState_ = codec::RaftCodec::encodeRaftState(currentTerm, votedFor, logData);
+    std::string newRaftState = codec::RaftCodec::encodeRaftState(currentTerm, votedFor, logData);
+    std::lock_guard<std::mutex> lock(mu_);
+    raftState_ = std::move(newRaftState);
     snapshot_ = snapshot;
 }
 
 std::string Persister::ReadSnapshot() const {
     std::lock_guard<std::mutex> lock(mu_);
+    if(snapshot_.empty()){
+        spdlog::debug("[Persister] ReadSnapshot called but snapshot is empty.");
+    }
     return snapshot_;
 }
 
