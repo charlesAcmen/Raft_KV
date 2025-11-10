@@ -24,7 +24,6 @@ void Persister::SaveStateAndSnapshot(
     int32_t currentTerm, std::optional<int32_t> votedFor,const std::vector<type::LogEntry>& logData, const std::string& snapshot) {
     std::lock_guard<std::mutex> lock(mu_);
     std::string newRaftState = codec::RaftCodec::encodeRaftState(currentTerm, votedFor, logData);
-    std::lock_guard<std::mutex> lock(mu_);
     raftState_ = std::move(newRaftState);
     snapshot_ = snapshot;
 }

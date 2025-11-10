@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <optional>
+#include <spdlog/spdlog.h>
 namespace raft::codec {
 
 class RaftCodec {
@@ -66,14 +67,12 @@ public:
         int32_t currentTerm, std::optional<int32_t> votedFor, const std::vector<type::LogEntry>& log) {
         std::stringstream ss;
         ss << currentTerm << "\n";
-        if(votedFor){
-            ss << *votedFor << "\n";
-        }else{
-            ss << "null\n";
-        }
+        ss << (votedFor ? std::to_string(*votedFor) : "-1") << "\n";
         ss << log.size() << "\n";
         for (const auto& entry : log) {
-            ss << entry.index << " " << entry.term << " " << entry.command << "\n";
+            ss << entry.index << " " << entry.term << " " << entry.command.size() << "\n";
+            //'\n' in command is supported
+            ss << entry.command << "\n";
         }
         return ss.str();
     }
@@ -209,53 +208,45 @@ public:
         logData.clear();    // ensure logData is empty before populating
         std::stringstream ss(data);
         std::string field;
-        if (!std::getline(ss, field, '\n')) 
-            return false;
-        if (field.empty())  
-            return false;
-        try {
+        try{
+            if (!std::getline(ss, field, '\n')) return false;
+            if (field.empty())  return false;
             currentTerm = std::stoi(field);
-        } catch (...) {
-            spdlog::error("[Codec] Failed to parse currentTerm");
-            return false;
-        }
+
+            if (!std::getline(ss, field, '\n')) return false;
+            if (field.empty()) return false;
+            int v = std::stoi(field);
+            if (v == -1) votedFor.reset();
+            else votedFor = v;
             
 
-        if (!std::getline(ss, field, '\n')) 
-            return false;
-        if (field.empty()) 
-            return false;
-        if (field == "null") {
-            votedFor.reset();
-        } else {
-            try {
-                votedFor = std::stoi(field);
-            } catch (...) {
-                spdlog::error("[Codec] Failed to parse votedFor");
-                return false;
-            }
-        }
-
-        if (!std::getline(ss, field, '\n')) return false;
-        if (field.empty()) return false;
-        try {
+            if (!std::getline(ss, field, '\n')) return false;
+            if (field.empty()) return false;
             int logSize = std::stoi(field);
-        } catch (...) {
-            spdlog::error("[Codec] Failed to parse logSize");
-            return false;
-        }
-        if (logSize == 0) spdlog::debug("[Codec] Empty log state.");
-        for (int i = 0; i < logSize; ++i) {
-            if (!std::getline(ss, field)) return false; // not enough lines
-            std::stringstream entrySS(field);
-            type::LogEntry entry;
-            std::string commandPart;
+            if (logSize == 0) spdlog::debug("[Codec] Empty log state.");
+            for (int i = 0; i < logSize; ++i) {
+                if (!std::getline(ss, field)) return false; // not enough lines
+                std::stringstream headerSS(field);
+                type::LogEntry entry;
+                size_t commandLen = 0;
+                if (!(headerSS >> entry.index >> entry.term >> commandLen))
+                    return false;
+                
+                //read precisely commandLen bytes
+                std::string command(commandLen, '\0');
+                ss.read(&command[0], commandLen);
 
-            if(!(entrySS >> entry.index >> entry.term)) return false;
-            std::getline(entrySS, commandPart);
-            if (!commandPart.empty() && commandPart[0] == ' ') commandPart.erase(0, 1);
-            entry.command = commandPart;
-            logData.push_back(entry);
+                //skip '\n' at the end
+                char newline;
+                ss.get(newline);
+
+                entry.command = std::move(command);
+                logData.push_back(std::move(entry));
+            }
+            return true;
+        }catch(...){
+            spdlog::error("[Codec] Failed to decode Raft state due to malformed data.");
+            return false;
         }
         return true;
     }
