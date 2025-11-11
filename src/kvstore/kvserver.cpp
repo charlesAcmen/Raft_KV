@@ -61,6 +61,14 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
                     lastAppliedRequestId[kvCommand.ClientId] = kvCommand.RequestId;
                 }
                 maybeTakeSnapshot(msg.CommandIndex);
+            }else if(msg.SnapshotValid){
+                //leader install
+                {
+                    std::lock_guard<std::mutex> lk(mu_);
+                    kvSM_->ApplySnapshot(msg.Snapshot);
+                }
+            }else{
+                spdlog::debug("[KVServer] {} ignored non-command ApplyMsg", me_);
             }
         }
     );
@@ -171,8 +179,19 @@ void KVServer::maybeTakeSnapshot(int appliedIndex){
     //2. if Raft persisted state size surpasses threshold
     if(rf_->GetPersistSize() < maxRaftState_) return;
 
-    //3. 
-    // std::string snapshotdata = 
+    // 3. Encode the current KV state into a snapshot.
+    //    This snapshot should contain all key-value pairs
+    //    and any other metadata that is required to restore the state.
+    std::string snapshotData = kvSM_->EncodeSnapShot();
+    
+    // 4. Instruct Raft to persist the snapshot and compact its log up to 'appliedIndex'.
+    //    This tells Raft that log entries ≤ appliedIndex are now safely included in the snapshot
+    //    and can be discarded to reduce storage size.
+    rf_->SnapShot(appliedIndex, snapshotData);
+
+    // 5. Optionally, log debug info for diagnosis.
+    spdlog::info("[KVServer] Took snapshot at index {}, state size = {}, threshold = {}",
+                 appliedIndex, rf_->GetPersistSize(), maxRaftState_);
 }
 
 }// namespace kv

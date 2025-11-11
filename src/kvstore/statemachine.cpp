@@ -1,6 +1,7 @@
 #include "kvstore/statemachine.h"
 #include "kvstore/types.h"  //KVCommand fromstring tostring
 #include <spdlog/spdlog.h>
+#include <sstream>
 namespace kv {
 KVStateMachine::KVStateMachine(int me):me_(me){}
 void KVStateMachine::Apply(const std::string& command) {
@@ -39,5 +40,16 @@ std::optional<std::string> KVStateMachine::Get(const std::string& key) const {
     spdlog::info("[KVStateMachine] kvserver {} Get key: {} not found", 
         me_, key);
     return std::nullopt;
+}
+std::string KVStateMachine::EncodeSnapShot() const {
+    std::stringstream ss;
+    std::lock_guard<std::mutex> lock(mu_);
+    for (const auto& [k, v] : store_) {
+        ss << k << '\n' << v << '\n';
+    }
+    return ss.str();
+}
+void KVStateMachine::ApplySnapShot(const std::string& data){
+    
 }
 }// namespace kv

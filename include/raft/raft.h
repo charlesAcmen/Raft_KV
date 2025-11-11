@@ -33,7 +33,7 @@ public:
 
     // -------------- Lab3 PartB: Snapshot / Compaction ----------------
     size_t GetPersistSize() const;
-
+    void SnapShot(int index,const std::string& snapshot);
 
     //---------- Testing utilities ----------
     int32_t testGetCurrentTerm() const;
@@ -169,6 +169,11 @@ private:
     // or nullopt if none
     std::vector<type::LogEntry> log_;         // log entries; each entry contains command for state machine,
     // and term when entry was received by leader(first index is 1)
+
+    // -------------- Lab3 PartB: Snapshot / Compaction ----------------
+    int lastIncludedIndex_{0};      // Last Raft log index included in snapshot
+    int lastIncludedTerm_{0};       // Term of the last included log entry in snapshot
+
 
     // Volatile state on all servers
     int32_t commitIndex_{0};        // index of highest log entry known to be committed

@@ -9,6 +9,10 @@ public:
     KVStateMachine(int);
     void Apply(const std::string& command);
     std::optional<std::string> Get(const std::string& key) const;
+
+    // -------------- Lab3 PartB: Snapshot / Compaction ----------------
+    std::string EncodeSnapShot() const;
+    void ApplySnapShot(const std::string& data);
 private:
     mutable std::mutex mu_;
     int me_;    //corresponding kvserver id

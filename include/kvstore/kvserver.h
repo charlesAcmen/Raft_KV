@@ -42,8 +42,6 @@ private:
 
     // -------------- Lab3 PartB: Snapshot / Compaction ----------------
     int maxRaftState_{-1}; // Threshold for log size to trigger snapshot, -1 = disabled
-    int lastIncludedIndex_{0};      // Last Raft log index included in snapshot
-    int lastIncludedTerm_{0};       // Term of the last included log entry in snapshot
 
     bool isSnapShotEnabledLocked() const;
     void maybeTakeSnapshot(int appliedIndex);
