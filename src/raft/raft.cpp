@@ -739,9 +739,7 @@ void Raft::broadcastHeartbeatLocked(){
                 spdlog::info("[Raft] Node {} stepping down to Follower due to higher term from {}", me_, peer);
                 break;
             }
-            else {
-                // spdlog::info("[Raft] Node {} heartbeat acknowledged by node {}", me_, peer);
-            }
+            else {spdlog::info("[Raft] Node {} heartbeat acknowledged by node {}", me_, peer);}
         } else {
             spdlog::warn("[Raft] Node {} heartbeat to {} failed", me_, peer);
             //TODO: handle no reply (network failure, timeout)

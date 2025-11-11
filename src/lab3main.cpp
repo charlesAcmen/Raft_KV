@@ -171,6 +171,22 @@ void ConcurrentPutAppendGetTest(
 
     spdlog::info("===== ConcurrentPutAppendGetTest End =====");
 }
+void SequentialAppendTest(
+    std::shared_ptr<kv::Clerk> clerk, int operationNum = 10000) {
+    static std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<int> key_dist(0, 100);
+
+    for (int i = 0; i < operationNum; ++i) {
+        int key_num = key_dist(rng);
+        std::string key = "key" + std::to_string(key_num);
+        std::string value = "append" + std::to_string(i); // 保证每次不同
+
+        clerk->Append(key, value);
+        spdlog::info("[main] SequentialAppendTest: Append({}, {})", key, value);
+    }
+
+    spdlog::info("[main] SequentialAppendTest finished: {} Append operations done.", operationNum);
+}
 
 int main(){
     // kv::KVCluster cluster(5,0);
@@ -191,13 +207,13 @@ int main(){
     // clerk->Put(key,value);
 
     std::shared_ptr<kv::Clerk> clerk = cluster.testGetClerk(0);
-    int operationNum = 10;
-    for (int i = 0; i < operationNum; ++i) { RandomClerkOperation(clerk);}
+    // int operationNum = 10000;
+    // for (int i = 0; i < operationNum; ++i) { RandomClerkOperation(clerk);}
 
     //--------------------Sequential--------------
     // std::vector<std::shared_ptr<kv::Clerk>> clerks = cluster.testGetClerks();
     // SequentialConsistencyTest(clerks);
-    
+    SequentialAppendTest(clerk, 10000);
 
 
     //--------------------Concurrent--------------

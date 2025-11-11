@@ -175,8 +175,8 @@ void KVServer::handleApplyMsg(raft::type::ApplyMsg& msg){
             type::KVCommand::FromString(msg.Command);
         if(kvCommand.type != type::KVCommand::CommandType::INVALID){
             std::lock_guard<std::mutex> lk(mu_);
-            spdlog::info("[KVServer] {} lastAppliedRequestId[ClientId={}] = [RequestId={}]", 
-                me_, kvCommand.ClientId, kvCommand.RequestId);
+            // spdlog::info("[KVServer] {} lastAppliedRequestId[ClientId={}] = [RequestId={}]", 
+            //     me_, kvCommand.ClientId, kvCommand.RequestId);
             lastAppliedRequestId[kvCommand.ClientId] = kvCommand.RequestId;
         }else{ spdlog::warn("[KVServer] {} received invalid command", me_);}
         maybeTakeSnapshot(msg.CommandIndex);
@@ -196,7 +196,7 @@ bool KVServer::maybeTakeSnapshot(int appliedIndex){
     std::lock_guard<std::mutex> lk(mu_);
     //1. snapshot enabled
     if(!isSnapShotEnabledLocked()){
-        spdlog::info("[KVServer] Snapshot not enabled (maxRaftState_={}), skipping snapshot", maxRaftState_);
+        // spdlog::info("[KVServer] Snapshot not enabled (maxRaftState_={}), skipping snapshot", maxRaftState_);
         return false;
     }
     //2. if Raft persisted state size surpasses threshold
