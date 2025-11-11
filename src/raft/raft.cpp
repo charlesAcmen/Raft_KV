@@ -207,6 +207,10 @@ const std::vector<type::LogEntry>& Raft::testGetLog() const{
     std::lock_guard<std::mutex> lock(mu_);
     return log_;
 }
+int Raft::testGetLastIncludedIndex() const{
+    std::lock_guard<std::mutex> lock(mu_);
+    return lastIncludedIndex_;
+}
 void Raft::testSetCurrentTerm(int32_t term){
     std::lock_guard<std::mutex> lock(mu_);
     currentTerm_ = term;

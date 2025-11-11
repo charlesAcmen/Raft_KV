@@ -68,7 +68,7 @@ void KVStateMachine::ApplySnapShot(const std::string& data){
 }
 
 
- //---------- Testing utilities ----------
+//---------- Testing utilities ----------
 void KVStateMachine::testApply(const std::string& command){
     Apply(command);
 }

@@ -40,6 +40,7 @@ public:
     std::optional<int32_t> testGetVotedFor() const;
     const std::vector<type::LogEntry>& testGetLog() const;
     
+    int testGetLastIncludedIndex() const;
     void testSetCurrentTerm(int32_t term);
     void testSetVotedFor(std::optional<int32_t> votedFor);
     void testAppendLog(const std::vector<type::LogEntry>& entries);

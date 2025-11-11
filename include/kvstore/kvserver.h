@@ -24,6 +24,8 @@ public:
     //---------- Testing utilities ----------
     std::shared_ptr<raft::Raft> testGetRaftNode() const;
     std::shared_ptr<KVStateMachine> testGetSM() const;
+    int testGetMaxRaftState() const;
+    int testGetLastIncludedIndex() const;
     void testSetMaxRaftState(int);
     bool testMaybeSnapShot(int appliedIndex);
 private:
@@ -47,6 +49,6 @@ private:
     int maxRaftState_{-1}; // Threshold for log size to trigger snapshot, -1 = disabled
 
     bool isSnapShotEnabledLocked() const;
-    void maybeTakeSnapshot(int appliedIndex);
+    bool maybeTakeSnapshot(int appliedIndex);
 };
 }// namespace kv

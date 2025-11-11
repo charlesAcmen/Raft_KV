@@ -110,8 +110,19 @@ bool KVServer::isSnapShotEnabled() const{
 //---------- Testing utilities ----------
 std::shared_ptr<raft::Raft> KVServer::testGetRaftNode() const { return rf_;}
 std::shared_ptr<KVStateMachine> KVServer::testGetSM() const{return kvSM_;}
+int KVServer::testGetMaxRaftState() const{
+    std::lock_guard<std::mutex> lk(mu_);
+    return maxRaftState_;
+}
+int KVServer::testGetLastIncludedIndex() const {
+    std::lock_guard<std::mutex> lk(mu_);
+    if (rf_) {
+        return rf_->testGetLastIncludedIndex();
+    }
+    return 0;
+}
 void KVServer::testSetMaxRaftState(int maxRaftState){
-    // std::lock_guard<std::mutex> lk(mu_);
+    std::lock_guard<std::mutex> lk(mu_);
     maxRaftState_ = maxRaftState;
 }
 bool KVServer::testMaybeSnapShot(int appliedIndex){
