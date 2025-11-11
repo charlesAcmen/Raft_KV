@@ -226,6 +226,8 @@ void Raft::testAppendLog(const std::vector<type::LogEntry>& entries){
         spdlog::info("[Raft] Node {} testAppendLog appended log entry at index {} (term={})", 
                      me_, entry.index, entry.term);
     }
+    //lab3 partB:update persister every time append
+    persistLocked();
 }
 void Raft::testSetRaftState(const std::string& state){
     std::lock_guard<std::mutex> lock(mu_);
