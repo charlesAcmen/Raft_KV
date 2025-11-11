@@ -31,6 +31,7 @@ public:
 private:
     void PutAppend(const type::PutAppendArgs& args,type::PutAppendReply& reply);
     void Get(const type::GetArgs& args,type::GetReply& reply);
+    void handleApplyMsg(raft::type::ApplyMsg& msg);
 
     mutable std::mutex mu_;
     const int me_;                      // this peer's id (index into peers_)

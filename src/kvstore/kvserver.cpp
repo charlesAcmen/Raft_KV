@@ -1,6 +1,7 @@
 #include "kvstore/kvserver.h"
 #include "kvstore/statemachine.h"  
 #include "kvstore/codec/kv_codec.h"
+// #include "kvstore/types.h"
 #include <spdlog/spdlog.h>
 #include <optional>
 #include <cstdint>  //int32_t
@@ -45,32 +46,7 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
     );
     
     rf_->SetApplyCallback(
-        // raft layer is only responsible for copy and broadcast 'command'
-        // in string bytes,without any ideas about what the hell is 
-        // KVCommand,Get,PutAppend
-        [this](raft::type::ApplyMsg& msg) {
-            if(msg.CommandValid){
-                kvSM_->Apply(msg.Command);
-                // update after applied to state machine
-                type::KVCommand kvCommand = 
-                    type::KVCommand::FromString(msg.Command);
-                {
-                    std::lock_guard<std::mutex> lk(mu_);
-                    spdlog::info("[KVServer] {} lastAppliedRequestId[ClientId={}] = [RequestId={}]", 
-                        me_, kvCommand.ClientId, kvCommand.RequestId);
-                    lastAppliedRequestId[kvCommand.ClientId] = kvCommand.RequestId;
-                }
-                maybeTakeSnapshot(msg.CommandIndex);
-            }else if(msg.SnapshotValid){
-                //leader install
-                {
-                    std::lock_guard<std::mutex> lk(mu_);
-                    kvSM_->ApplySnapShot(msg.Snapshot);
-                }
-            }else{
-                spdlog::debug("[KVServer] {} ignored non-command ApplyMsg", me_);
-            }
-        }
+        [this](raft::type::ApplyMsg& msg){ handleApplyMsg(msg); }
     );
     dead_.store(0);
     maxRaftState_ = maxRaftState;
@@ -188,9 +164,36 @@ void KVServer::Get(
         reply.err = type::Err::ErrNoKey;
     }
 }
-bool KVServer::isSnapShotEnabledLocked() const{
-    return maxRaftState_ != -1;
+// raft layer is only responsible for copy and broadcast 'command'
+// in string bytes,without any ideas about what the hell is 
+// KVCommand,Get,PutAppend
+void KVServer::handleApplyMsg(raft::type::ApplyMsg& msg){
+    if(msg.CommandValid){
+        kvSM_->Apply(msg.Command);
+        // update after applied to state machine
+        type::KVCommand kvCommand = 
+            type::KVCommand::FromString(msg.Command);
+        if(kvCommand.type != type::KVCommand::CommandType::INVALID){
+            std::lock_guard<std::mutex> lk(mu_);
+            spdlog::info("[KVServer] {} lastAppliedRequestId[ClientId={}] = [RequestId={}]", 
+                me_, kvCommand.ClientId, kvCommand.RequestId);
+            lastAppliedRequestId[kvCommand.ClientId] = kvCommand.RequestId;
+        }else{ spdlog::warn("[KVServer] {} received invalid command", me_);}
+        maybeTakeSnapshot(msg.CommandIndex);
+    }else if(msg.SnapshotValid){
+        //leader install
+        {
+            std::lock_guard<std::mutex> lk(mu_);
+            kvSM_->ApplySnapShot(msg.Snapshot);
+            // update lastIncludedIndex/Term for snapshot
+            rf_->CondInstallSnapshot(msg.SnapshotIndex, msg.SnapshotTerm, msg.Snapshot);
+        }
+    }else{
+        spdlog::debug("[KVServer] {} ignored non-command ApplyMsg", me_);
+    }
 }
+
+bool KVServer::isSnapShotEnabledLocked() const{ return maxRaftState_ != -1;}
 bool KVServer::maybeTakeSnapshot(int appliedIndex){
     std::lock_guard<std::mutex> lk(mu_);
     //1. snapshot enabled

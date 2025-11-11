@@ -33,7 +33,18 @@ public:
 
     // -------------- Lab3 PartB: Snapshot / Compaction ----------------
     size_t GetPersistSize() const;
-    void SnapShot(int index,const std::string& snapshot);
+    /**
+     * Persist a snapshot provided by the upper layer (e.g., kvStateMachine in the KVServer).
+     *
+     * @param lastIncludedIndex The last log index included in this snapshot.
+     * @param snapshot The snapshot data as a string (opaque to Raft).
+     *
+     * This function performs the following actions:
+     *  1. Updates Raft's internal lastIncludedIndex_ and lastIncludedTerm_.
+     *  2. Persists the snapshot and Raft state to stable storage.(lab2 persister)
+     *  3. Compacts the Raft log, discarding entries that are included in the snapshot.
+     */
+    void SnapShot(int lastIncludedIndex,const std::string& snapshot);
 
     //---------- Testing utilities ----------
     int32_t testGetCurrentTerm() const;

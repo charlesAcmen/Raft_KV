@@ -152,23 +152,23 @@ size_t Raft::GetPersistSize() const{
     std::lock_guard<std::mutex> lock(mu_);
     return persister_->RaftStateSize();
 }
-void Raft::SnapShot(int index,const std::string& snapshot){
+void Raft::SnapShot(int lastIncludedIndex,const std::string& snapshot){
     std::lock_guard<std::mutex> lock(mu_);
     // 1. If index is less than or equal to lastIncludedIndex,
     //    it means Raft already compacted beyond this point.
-    if (index <= lastIncludedIndex_) {
+    if (lastIncludedIndex <= lastIncludedIndex_) {
         spdlog::debug("[Raft] Snapshot ignored: index {} <= lastIncludedIndex {}",
-                      index, lastIncludedIndex_);
+                      lastIncludedIndex, lastIncludedIndex_);
         return;
     }
 
     // 2. Calculate offset of index in the log vector.
     //    Because log_ might start after initial entries due to compaction.
-    int offset = log_[0].index;
-    int rel = index - offset;   // the index in log_ of the first log to be reserved 
+    int offset = log_[0].lastIncludedIndex;
+    int rel = lastIncludedIndex - offset;   // the index in log_ of the first log to be reserved 
     if (rel < 0 || rel >= static_cast<int>(log_.size())) {
         spdlog::error("[Raft] Snapshot error: index {} out of range (log size = {})",
-                      index, log_.size());
+                      lastIncludedIndex, log_.size());
         return;
     }
 
@@ -184,7 +184,7 @@ void Raft::SnapShot(int index,const std::string& snapshot){
 
 
     // 4. Update Raft snapshot metadata.
-    lastIncludedIndex_ = index;
+    lastIncludedIndex_ = lastIncludedIndex;
     lastIncludedTerm_ = boundaryTerm;
 
     // 5. Persist new Raft state (term, vote, log) and snapshot together.
