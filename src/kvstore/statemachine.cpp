@@ -50,6 +50,20 @@ std::string KVStateMachine::EncodeSnapShot() const {
     return ss.str();
 }
 void KVStateMachine::ApplySnapShot(const std::string& data){
-    
+    std::lock_guard<std::mutex> lock(mu_);
+
+    //clear old state
+    store_.clear();
+
+    //install kv pairs from serialized data
+    std::stringstream ss(data);
+    std::string key,value;
+    while(true){
+        if(!std::getline(ss,key,'\n')) break;
+        if(!std::getline(ss,value,'\n')) break;
+        store_[key] = value;
+    }
+    spdlog::info("[KVStateMachine] snapshot installed, restored {} keys", 
+        store_.size());
 }
 }// namespace kv
