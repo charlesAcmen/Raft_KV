@@ -54,6 +54,21 @@ public:
         ss << reply.term << "\n" << (reply.success ? "1" : "0");
         return ss.str();
     }
+    static inline std::string encode(const type::InstallSnapshotArgs& args) {
+        std::stringstream ss;
+        ss << args.term << "\n"
+           << args.leaderId << "\n"
+           << args.lastIncludedIndex << "\n"
+           << args.lastIncludedTerm << "\n"
+           << args.snapshot.size() << "\n"
+           << args.snapshot <<"\n";
+        return ss.str();
+    }
+
+    static inline std::string encode(const type::InstallSnapshotReply& reply) {
+        return std::to_string(reply.term);
+    }
+
     /**
      * @brief Serialize Raft's persistent fields (term, vote, log)
      *        into a byte stream for persisting.
@@ -78,13 +93,6 @@ public:
     }
 
     //---------string to struct---------
-
-
-
-
-
-
-
     //string to RequestVoteArgs
     static inline type::RequestVoteArgs decodeRequestVoteArgs(const std::string& payload) {
         struct type::RequestVoteArgs args{};
@@ -192,7 +200,51 @@ public:
         return reply;
     }
 
+    //string to InstallSnapshotArgs
+    static inline type::InstallSnapshotArgs decodeInstallSnapshotArgs(const std::string& payload) {
+        std::stringstream ss(data);
+        type::InstallSnapshotArgs args{};
+        std::string field;
+        
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.term = std::stoi(field);
 
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.leaderId = std::stoi(field);
+
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.lastIncludedIndex = std::stoi(field);
+
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        args.lastIncludedTerm = std::stoi(field);
+
+        // Next line: snapshot size
+        if (!std::getline(ss, field, '\n')) return {};
+        if (field.empty()) return {};
+        std::size_t snapSize = static_cast<std::size_t>(std::stoll(field));
+
+        args.snapshot.resize(snapSize);
+        if (snapSize > 0) {
+            ss.read(&args.snapshot.data(), static_cast<std::streamsize>(snapSize));
+            if (ss.gcount() != static_cast<std::streamsize>(snapSize)) return {};
+            // consume the trailing newline after snapshot if present
+            if (ss.peek() == '\n') ss.get();
+        }
+
+        return args;
+    }
+
+    //string to InstallSnapshotReply
+    static inline type::InstallSnapshotReply decodeInstallSnapshotReply(const std::string& data) {
+        std::stringstream ss(data);
+        type::InstallSnapshotReply r;
+        ss >> r.term;
+        return r;
+    }
 
     /**
      * @brief Deserialize Raft's persistent fields from a byte stream.
