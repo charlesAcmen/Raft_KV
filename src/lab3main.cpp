@@ -182,7 +182,7 @@ void SequentialAppendTest(
         std::string value = "append" + std::to_string(i); // 保证每次不同
 
         clerk->Append(key, value);
-        spdlog::info("[main] SequentialAppendTest: Append({}, {})", key, value);
+        // spdlog::info("[main] SequentialAppendTest: Append({}, {})", key, value);
     }
 
     spdlog::info("[main] SequentialAppendTest finished: {} Append operations done.", operationNum);
@@ -213,7 +213,7 @@ int main(){
     //--------------------Sequential--------------
     // std::vector<std::shared_ptr<kv::Clerk>> clerks = cluster.testGetClerks();
     // SequentialConsistencyTest(clerks);
-    SequentialAppendTest(clerk, 10000);
+    SequentialAppendTest(clerk, 1000);
 
 
     //--------------------Concurrent--------------

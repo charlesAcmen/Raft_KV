@@ -14,15 +14,15 @@ void KVStateMachine::Apply(const std::string& command) {
         break;
     case type::KVCommand::CommandType::PUT:
         store_[kvCommand.key] = kvCommand.value;
-        spdlog::info("[KVStateMachine] kvserver {} store {} at {}",
-            me_,store_[kvCommand.key],kvCommand.key);
+        // spdlog::info("[KVStateMachine] kvserver {} store {} at {}",
+        //     me_,store_[kvCommand.key],kvCommand.key);
         break;
     case type::KVCommand::CommandType::APPEND:{
         std::string before = store_[kvCommand.key];
         store_[kvCommand.key] += kvCommand.value;
-        spdlog::info(
-            "[KVStateMachine] kvserver {} append before {},after {} at {}",
-                me_,before,store_[kvCommand.key],kvCommand.key);
+        // spdlog::info(
+        //     "[KVStateMachine] kvserver {} append before {},after {} at {}",
+        //         me_,before,store_[kvCommand.key],kvCommand.key);
         break;
     }
     default:
@@ -33,12 +33,12 @@ std::optional<std::string> KVStateMachine::Get(const std::string& key) const {
     std::lock_guard<std::mutex> lock(mu_);
     auto it = store_.find(key);
     if (it != store_.end()) {
-        spdlog::info("[KVStateMachine] kvserver {} Get key: {} found, value: {}", 
-            me_, key, it->second);
+        // spdlog::info("[KVStateMachine] kvserver {} Get key: {} found, value: {}", 
+            // me_, key, it->second);
         return it->second;
     }
-    spdlog::info("[KVStateMachine] kvserver {} Get key: {} not found", 
-        me_, key);
+    // spdlog::info("[KVStateMachine] kvserver {} Get key: {} not found", 
+    //     me_, key);
     return std::nullopt;
 }
 std::string KVStateMachine::EncodeSnapShot() const {
@@ -63,8 +63,8 @@ void KVStateMachine::ApplySnapShot(const std::string& data){
         if(!std::getline(ss,value,'\n')) break;
         store_[key] = value;
     }
-    spdlog::info("[KVStateMachine] snapshot installed, restored {} keys", 
-        store_.size());
+    // spdlog::info("[KVStateMachine] snapshot installed, restored {} keys", 
+    //     store_.size());
 }
 
 

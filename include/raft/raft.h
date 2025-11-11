@@ -66,8 +66,8 @@ private:
     // Heartbeat interval for leaders to send AppendEntries RPCs in milliseconds
     static constexpr std::chrono::milliseconds HEARTBEAT_INTERVAL{100};
     // Election timeout range in milliseconds (randomized per election)
-    static constexpr std::chrono::milliseconds ELECTION_TIMEOUT_MIN{10000};
-    static constexpr std::chrono::milliseconds ELECTION_TIMEOUT_MAX{20000};
+    static constexpr std::chrono::milliseconds ELECTION_TIMEOUT_MIN{1000};
+    static constexpr std::chrono::milliseconds ELECTION_TIMEOUT_MAX{2000};
 
     // Non-copyable
     Raft(const Raft&) = delete;
