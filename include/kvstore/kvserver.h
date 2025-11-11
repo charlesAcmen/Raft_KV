@@ -25,7 +25,7 @@ public:
     std::shared_ptr<raft::Raft> testGetRaftNode() const;
     std::shared_ptr<KVStateMachine> testGetSM() const;
     void testSetMaxRaftState(int);
-    void testMaybeSnapShot(int appliedIndex);
+    bool testMaybeSnapShot(int appliedIndex);
 private:
     void PutAppend(const type::PutAppendArgs& args,type::PutAppendReply& reply);
     void Get(const type::GetArgs& args,type::GetReply& reply);

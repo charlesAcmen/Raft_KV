@@ -201,6 +201,7 @@ bool KVServer::maybeTakeSnapshot(int appliedIndex){
     // 5. Optionally, log debug info for diagnosis.
     spdlog::info("[KVServer] Took snapshot at index {}, state size = {}, threshold = {}",
                  appliedIndex, rf_->GetPersistSize(), maxRaftState_);
+    return true;
 }
 
 }// namespace kv
