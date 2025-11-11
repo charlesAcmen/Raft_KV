@@ -63,4 +63,18 @@ struct AppendEntriesReply {
     int32_t term{0}; // currentTerm, for leader to update itself
     bool success{false}; // true if follower contained entry matching prevLogIndex and prevLogTerm
 };
+
+
+//InstallSnapShot RPC args
+struct InstallSnapshotArgs {
+    int32_t term{0};                // leader’s current term
+    int32_t leaderId{0};            // ID of the leader sending this RPC
+    int32_t lastIncludedIndex{0};   // the snapshot replaces all entries up through and including this index
+    int32_t lastIncludedTerm{0};    // term of lastIncludedIndex
+    std::string snapshot;           // raw snapshot data (serialized state)
+};
+//InstallSnapShot RPC reply
+struct InstallSnapshotReply {
+    int32_t term;                   // currentTerm, for leader to update itself
+};
 } // namespace  raft::type
