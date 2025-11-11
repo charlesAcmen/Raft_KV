@@ -17,7 +17,7 @@ TEST(KVServer, MaybeSnapshot) {
     // first KVServer
     std::shared_ptr<KVServer> kvserver = cluster.testGetServer(0);
 
-    kvserver->testSetMaxRaftState(50);
+    kvserver->testSetMaxRaftState(500);
 
     // -------- 2. fill KV statemachine --------
     std::shared_ptr<KVStateMachine> kvSM = kvserver->testGetSM();
@@ -67,6 +67,7 @@ TEST(KVServer, MaybeSnapshot) {
 }
 
 int main(int argc, char **argv) {
+    spdlog::set_pattern("[%l] %v");
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
