@@ -100,7 +100,7 @@ private:
 
     type::RequestVoteReply HandleRequestVote(const type::RequestVoteArgs& args);
     type::AppendEntriesReply HandleAppendEntries(const type::AppendEntriesArgs& args);
-
+    type::InstallSnapshotReply HandleInstallSnapshot(const raft::type::InstallSnapshotArgs& args);
 
     //-------------------------------------
     //--------- Helper functions ----------

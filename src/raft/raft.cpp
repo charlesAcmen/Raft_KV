@@ -217,14 +217,6 @@ bool Raft::CondInstallSnapShot(
         return false;
     }
 
-    // Update term if needed
-    if (snapshotTerm > currentTerm_) {
-        currentTerm_ = snapshotTerm;
-        votedFor_ = std::nullopt;
-        role_ = type::Role::Follower;
-        persistLocked();
-    }
-
     spdlog::info("[Raft] Node {} Installing snapshot at index {} (term={})",
                  me_, snapshotIndex, snapshotTerm);
 
@@ -426,7 +418,8 @@ void Raft::becomeLeaderLocked(){
 
 //----------- RPC handlers ------------
 // Handle a RequestVote RPC from a candidate
-type::RequestVoteReply Raft::HandleRequestVote(const type::RequestVoteArgs& args){
+type::RequestVoteReply Raft::HandleRequestVote(
+    const type::RequestVoteArgs& args){
     std::lock_guard<std::mutex> lock(mu_);
     type::RequestVoteReply reply{};
     
@@ -467,7 +460,8 @@ type::RequestVoteReply Raft::HandleRequestVote(const type::RequestVoteArgs& args
     return reply;
 }
 // Handle an AppendEntries RPC from the leader
-type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs& args){
+type::AppendEntriesReply Raft::HandleAppendEntries(
+    const type::AppendEntriesArgs& args){
     std::lock_guard<std::mutex> lock(mu_);
     type::AppendEntriesReply reply{};
     reply.term = currentTerm_;
@@ -536,6 +530,40 @@ type::AppendEntriesReply Raft::HandleAppendEntries(const type::AppendEntriesArgs
     }
     reply.success = true;
     persistLocked();
+    return reply;
+}
+
+//Handle an InstallSnapShot RPC from the leader
+type::InstallSnapshotReply Raft::HandleInstallSnapshot(
+    const raft::type::InstallSnapshotArgs& args) {
+    std::lock_guard<std::mutex> lock(mu_);
+
+    raft::type::InstallSnapshotReply reply{};
+    reply.term = currentTerm_;
+
+    // Step 1. term check
+    if (args.term < currentTerm_) {
+        spdlog::info("[Raft] Node {} rejects outdated snapshot (term={}, my term={})",
+                     me_, args.term, currentTerm_);
+        return reply;
+    }
+
+    // if args term higher than selves,update
+    if (args.term > currentTerm_) {
+        currentTerm_ = args.term;
+        votedFor_ = std::nullopt;
+        role_ = type::Role::Follower;
+        persistLocked();
+    }
+    // Step 2. reset election timer (since it's a heartbeat too)
+    resetElectionTimerLocked();
+
+    spdlog::info("[Raft] Node {} received snapshot (lastIncludedIndex={}, lastIncludedTerm={})",
+                 me_, args.lastIncludedIndex, args.lastIncludedTerm);
+
+    // call CondInstallSnapShot to decide if install at all
+    CondInstallSnapShot(
+        args.lastIncludedTerm, args.lastIncludedIndex, args.snapshot);
     return reply;
 }
 
