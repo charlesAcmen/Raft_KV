@@ -202,7 +202,7 @@ public:
 
     //string to InstallSnapshotArgs
     static inline type::InstallSnapshotArgs decodeInstallSnapshotArgs(const std::string& payload) {
-        std::stringstream ss(data);
+        std::stringstream ss(payload);
         type::InstallSnapshotArgs args{};
         std::string field;
         
@@ -225,11 +225,11 @@ public:
         // Next line: snapshot size
         if (!std::getline(ss, field, '\n')) return {};
         if (field.empty()) return {};
-        std::size_t snapSize = static_cast<std::size_t>(std::stoll(field));
+        std::size_t snapSize = std::stoi(field);
 
         args.snapshot.resize(snapSize);
         if (snapSize > 0) {
-            ss.read(&args.snapshot.data(), static_cast<std::streamsize>(snapSize));
+            ss.read(&args.snapshot[0], static_cast<std::streamsize>(snapSize));
             if (ss.gcount() != static_cast<std::streamsize>(snapSize)) return {};
             // consume the trailing newline after snapshot if present
             if (ss.peek() == '\n') ss.get();

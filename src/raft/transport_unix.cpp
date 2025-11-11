@@ -34,7 +34,16 @@ bool RaftTransportUnix::AppendEntriesRPC(
         codec::RaftCodec::decodeAppendEntriesReply
     );
 }
-
+bool RaftTransportUnix::InstallSnapShotRPC(
+    int targetId,const type::InstallSnapshotArgs& args,type::InstallSnapshotReply& reply) {
+    return SendRPC<type::InstallSnapshotArgs, type::InstallSnapshotReply>(
+        targetId,"Raft.InstallSnapshot",args,reply,
+        [](const type::InstallSnapshotArgs& a) -> std::string {
+            return codec::RaftCodec::encode(a);
+        },
+        codec::RaftCodec::decodeInstallSnapshotReply
+    );
+}
 void RaftTransportUnix::RegisterRequestVoteHandler(
     const rpc::type::RPCHandler& handler) {
     requestVoteHandler_ = std::move(handler);
@@ -44,5 +53,10 @@ void RaftTransportUnix::RegisterAppendEntriesHandler(
     const rpc::type::RPCHandler& handler) {
     appendEntriesHandler_ = std::move(handler);
     TransportBase::RegisterHandler("Raft.AppendEntries", handler);
+}
+void RaftTransportUnix::RegisterInstallSnapShotRPC(
+    const rpc::type::RPCHandler& handler) {
+    installSnapShotHandler_ = std::move(handler);
+    TransportBase::RegisterHandler("Raft.InstallSnapshot", handler);
 }
 }// namespace raft
