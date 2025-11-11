@@ -23,6 +23,7 @@ public:
 
     //---------- Testing utilities ----------
     std::shared_ptr<raft::Raft> testGetRaftNode() const;
+    void testMaybeSnapShot(int appliedIndex);
 private:
     void PutAppend(const type::PutAppendArgs& args,type::PutAppendReply& reply);
     void Get(const type::GetArgs& args,type::GetReply& reply);

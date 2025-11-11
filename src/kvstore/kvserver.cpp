@@ -65,7 +65,7 @@ KVServer::KVServer(int me,const std::vector<int>& peers,
                 //leader install
                 {
                     std::lock_guard<std::mutex> lk(mu_);
-                    kvSM_->ApplySnapshot(msg.Snapshot);
+                    kvSM_->ApplySnapShot(msg.Snapshot);
                 }
             }else{
                 spdlog::debug("[KVServer] {} ignored non-command ApplyMsg", me_);
@@ -109,6 +109,9 @@ bool KVServer::isSnapShotEnabled() const{
 }
 //---------- Testing utilities ----------
 std::shared_ptr<raft::Raft> KVServer::testGetRaftNode() const { return rf_;}
+void KVServer::testMaybeSnapShot(int appliedIndex){
+    maybeTakeSnapshot(appliedIndex);
+}
 //----------Private RPC handlers----------
 void KVServer::PutAppend(
     const type::PutAppendArgs& args,type::PutAppendReply& reply) {
