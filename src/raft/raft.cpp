@@ -9,7 +9,7 @@ namespace raft{
 Raft::Raft(int me,const std::vector<int>& peers,
     std::shared_ptr<IRaftTransport> transport)
     :me_(me), peers_(peers), transport_(transport){
-    spdlog::set_pattern("[%l] %v");
+    // spdlog::set_pattern("[%l] %v");
     // Basic field initialization
     for (int peerId : peers_) {
         if (peerId == me_) continue;
@@ -814,10 +814,7 @@ void Raft::onHeartbeatTimeout(){
         spdlog::error("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
         return;
     }
-    else{
-        broadcastHeartbeatLocked();
-        resetHeartbeatTimerLocked();
-    }
+    else{ broadcastHeartbeatLocked();}
 }
 std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peerId){
     // spdlog::info("[Raft] {} Sending heartbeat AppendEntries to peer {}.", me_,peerId);

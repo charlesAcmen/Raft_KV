@@ -83,8 +83,8 @@ void Clerk::PutAppend(
         if(transport_->PutAppendRPC(serverId, args, reply)){
             if(reply.err == type::Err::OK){
                 lastKnownLeaderIdx_ = serverIdx;
-                spdlog::info("[Clerk] {} PutAppendRPC succeeded after {} attempts. Leader server: {},{},{},{}", 
-                    clerkId_, tried, serverId, key, value, op);
+                // spdlog::info("[Clerk] {} PutAppendRPC succeeded after {} attempts. Leader server: {},{},{},{}", 
+                //     clerkId_, tried, serverId, key, value, op);
                 return;
             }else if(reply.err == type::Err::ErrWrongLeader){
                 // spdlog::info("[Clerk] {} PutAppendRPC key:{} error:{}", clerkId_, key,type::ErrToString(reply.err));

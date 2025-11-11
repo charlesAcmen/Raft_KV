@@ -195,7 +195,7 @@ int main(){
     kv::KVCluster cluster(serverNum,clerkNum);
     cluster.StartAll();
 
-    cluster.WaitForServerLeader();
+    cluster.WaitForServerLeader(200);
     //--------------------RandomOperation--------------
     // std::shared_ptr<kv::Clerk> clerk = cluster.testGetClerk(0);    
     // std::string key = 
