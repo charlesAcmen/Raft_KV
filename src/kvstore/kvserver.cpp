@@ -195,9 +195,16 @@ bool KVServer::isSnapShotEnabledLocked() const{ return maxRaftState_ != -1;}
 bool KVServer::maybeTakeSnapshot(int appliedIndex){
     std::lock_guard<std::mutex> lk(mu_);
     //1. snapshot enabled
-    if(!isSnapShotEnabledLocked()) return false;
+    if(!isSnapShotEnabledLocked()){
+        spdlog::info("[KVServer] Snapshot not enabled (maxRaftState_={}), skipping snapshot", maxRaftState_);
+        return false;
+    }
     //2. if Raft persisted state size surpasses threshold
-    if(rf_->GetPersistSize() < maxRaftState_) return false;
+    if(rf_->GetPersistSize() < maxRaftState_){
+        spdlog::info("[KVServer] Persist size {} < threshold {}, not snapshotting", 
+                      rf_->GetPersistSize(), maxRaftState_);
+        return false;
+    }
 
     // 3. Encode the current KV state into a snapshot.
     //    This snapshot should contain all key-value pairs
