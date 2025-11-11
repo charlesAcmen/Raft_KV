@@ -65,9 +65,9 @@ struct KVCommand {
         }
     }
     inline static CommandType String2CommandType(const std::string& str) {
-        if (str == "Put") return CommandType::PUT;
-        if (str == "Append") return CommandType::APPEND;
-        if (str == "Get") return CommandType::GET;
+        if (str == "Put" || str == "put") return CommandType::PUT;
+        if (str == "Append" || str == "append") return CommandType::APPEND;
+        if (str == "Get" || str == "get") return CommandType::GET;
         return CommandType::INVALID;
     }
 
