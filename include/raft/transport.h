@@ -20,13 +20,21 @@ public:
     const type::AppendEntriesArgs& args,
     type::AppendEntriesReply& reply) = 0; 
 
+    // Synchronously call Installsnapshot on `targetId`
+    virtual bool InstallSnapShotRPC(int targetId,
+    const type::InstallSnapshotArgs& args,
+    type::InstallSnapshotReply& reply) = 0;
+
     virtual void RegisterRequestVoteHandler(
         const rpc::type::RPCHandler& handler) = 0;
     virtual void RegisterAppendEntriesHandler(
+        const rpc::type::RPCHandler& handler) = 0;
+    virtual void RegisterInstallSnapShotRPC(
         const rpc::type::RPCHandler& handler) = 0;
 protected:
     // RPC handlers
     rpc::type::RPCHandler requestVoteHandler_;
     rpc::type::RPCHandler appendEntriesHandler_;
+    rpc::type::RPCHandler installSnapShotHandler_;
 };
 } // namespace raft
