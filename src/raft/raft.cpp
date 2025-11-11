@@ -207,44 +207,6 @@ void Raft::SnapShot(
     spdlog::info("[Raft] Snapshot taken at index {}, lastIncludedTerm = {},log size = {}",
                  lastIncludedIndex_, lastIncludedTerm_, log_.size());
 }
-bool Raft::CondInstallSnapShot(
-    int snapshotTerm, int snapshotIndex, const std::string& snapshot) {
-    std::lock_guard<std::mutex> lock(mu_);
-
-    // Ignore snapshot if it’s outdated or already covered by our log.
-    if (snapshotIndex <= commitIndex_) {
-        spdlog::info("[Raft] Node {} Ignore outdated snapshot at index {}", me_, snapshotIndex);
-        return false;
-    }
-
-    spdlog::info("[Raft] Node {} Installing snapshot at index {} (term={})",
-                 me_, snapshotIndex, snapshotTerm);
-
-    // Apply snapshot to state machine
-    if (applyCallback_) {
-        type::ApplyMsg msg{
-            .SnapshotValid = true,
-            .Snapshot = snapshot,
-            .SnapshotTerm = snapshotTerm,
-            .SnapshotIndex = snapshotIndex,
-        };
-        applyCallback_(msg);
-    }
-
-    // Discard the log before snapshotIndex
-    log_.clear();
-    lastIncludedIndex_ = snapshotIndex;
-    lastIncludedTerm_ = snapshotTerm;
-    commitIndex_ = snapshotIndex;
-    lastApplied_ = snapshotIndex;
-
-    // Persist the updated Raft state and snapshot
-    persister_->SaveStateAndSnapshot(
-        currentTerm_, votedFor_, log_, snapshot);
-
-    return true;
-}
-
 //------------------- Testing utilities -------------------
 int32_t Raft::testGetCurrentTerm() const{
     std::lock_guard<std::mutex> lock(mu_);
@@ -562,10 +524,47 @@ type::InstallSnapshotReply Raft::HandleInstallSnapshot(
                  me_, args.lastIncludedIndex, args.lastIncludedTerm);
 
     // call CondInstallSnapShot to decide if install at all
-    CondInstallSnapShot(
+    condInstallSnapShotLocked(
         args.lastIncludedTerm, args.lastIncludedIndex, args.snapshot);
     return reply;
 }
+bool Raft::condInstallSnapShotLocked(
+    int snapshotTerm, int snapshotIndex, const std::string& snapshot) {
+    // no lock because caller function HandleInstallSnapshot acquired lock
+    // Ignore snapshot if it’s outdated or already covered by our log.
+    if (snapshotIndex <= commitIndex_) {
+        spdlog::info("[Raft] Node {} Ignore outdated snapshot at index {}", me_, snapshotIndex);
+        return false;
+    }
+
+    spdlog::info("[Raft] Node {} Installing snapshot at index {} (term={})",
+                 me_, snapshotIndex, snapshotTerm);
+
+    // Apply snapshot to state machine
+    if (applyCallback_) {
+        type::ApplyMsg msg{
+            .SnapshotValid = true,
+            .Snapshot = snapshot,
+            .SnapshotTerm = snapshotTerm,
+            .SnapshotIndex = snapshotIndex,
+        };
+        applyCallback_(msg);
+    }
+
+    // Discard the log before snapshotIndex
+    log_.clear();
+    lastIncludedIndex_ = snapshotIndex;
+    lastIncludedTerm_ = snapshotTerm;
+    commitIndex_ = snapshotIndex;
+    lastApplied_ = snapshotIndex;
+
+    // Persist the updated Raft state and snapshot
+    persister_->SaveStateAndSnapshot(
+        currentTerm_, votedFor_, log_, snapshot);
+
+    return true;
+}
+
 
 //---------- Log management -----------
 void Raft::AppendLogEntryLocked(const std::string& command) {

@@ -46,15 +46,6 @@ public:
      */
     void SnapShot(
         int lastIncludedIndex,const std::string& snapshot);
-    // Conditionally install a snapshot, if the term and index are valid.
-    //
-    // This function is called when a snapshot message is received from the leader.
-    // It checks whether the snapshot should be accepted and installed based on
-    // Raft’s current state (term, log, commitIndex).
-    //
-    // Returns true if the snapshot was installed successfully, false otherwise.
-    bool CondInstallSnapShot(
-        int snapshotTerm, int snapshotIndex, const std::string& snapshot);
     //---------- Testing utilities ----------
     int32_t testGetCurrentTerm() const;
     std::optional<int32_t> testGetVotedFor() const;
@@ -101,6 +92,16 @@ private:
     type::RequestVoteReply HandleRequestVote(const type::RequestVoteArgs& args);
     type::AppendEntriesReply HandleAppendEntries(const type::AppendEntriesArgs& args);
     type::InstallSnapshotReply HandleInstallSnapshot(const raft::type::InstallSnapshotArgs& args);
+
+    // Conditionally install a snapshot, if the term and index are valid.
+    //
+    // This function is called when a snapshot message is received from the leader.
+    // It checks whether the snapshot should be accepted and installed based on
+    // Raft’s current state (term, log, commitIndex).
+    //
+    // Returns true if the snapshot was installed successfully, false otherwise.
+    bool condInstallSnapShotLocked(
+        int snapshotTerm, int snapshotIndex, const std::string& snapshot);
 
     //-------------------------------------
     //--------- Helper functions ----------
