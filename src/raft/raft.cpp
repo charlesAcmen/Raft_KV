@@ -53,6 +53,18 @@ Raft::Raft(int me,const std::vector<int>& peers,
             }
         }
     );
+    transport_->RegisterInstallSnapShotRPC(
+        [this](const std::string& payload) -> std::string {
+            try {
+                type::InstallSnapshotArgs args = codec::RaftCodec::decodeInstallSnapshotArgs(payload);
+                type::InstallSnapshotReply reply = this->HandleInstallSnapshot(args);
+                return codec::RaftCodec::encode(reply);
+            } catch (const std::exception& e) {
+                spdlog::error("[Raft] {} InstallSnapshot handler exception: {}", this->me_, e.what());
+                return std::string();
+            }
+        }
+    );
 
     // Initialize timers
     timerFactory_ = std::make_shared<ThreadTimerFactory>();
