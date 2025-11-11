@@ -21,10 +21,15 @@ public:
         int,const type::RequestVoteArgs&,type::RequestVoteReply&) override;
     bool AppendEntriesRPC(
         int,const type::AppendEntriesArgs&,type::AppendEntriesReply&) override;
-    
+    bool InstallSnapShotRPC(
+        int,const type::InstallSnapshotArgs& args,type::InstallSnapshotReply& reply) override;
+
+
     void RegisterRequestVoteHandler(
         const rpc::type::RPCHandler& handler) override;
     void RegisterAppendEntriesHandler(
+        const rpc::type::RPCHandler& handler) override;
+    void RegisterInstallSnapShotRPC(
         const rpc::type::RPCHandler& handler) override;
 };
 
