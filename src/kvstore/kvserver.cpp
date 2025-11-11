@@ -109,8 +109,8 @@ bool KVServer::isSnapShotEnabled() const{
 }
 //---------- Testing utilities ----------
 std::shared_ptr<raft::Raft> KVServer::testGetRaftNode() const { return rf_;}
-std::shared_ptr<KVStateMachine> testGetSM() const{return kvSM_;}
-void testSetMaxRaftState(int maxRaftState){
+std::shared_ptr<KVStateMachine> KVServer::testGetSM() const{return kvSM_;}
+void KVServer::testSetMaxRaftState(int maxRaftState){
     // std::lock_guard<std::mutex> lk(mu_);
     maxRaftState_ = maxRaftState;
 }

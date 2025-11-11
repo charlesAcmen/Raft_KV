@@ -21,10 +21,10 @@ TEST(KVServer, MaybeSnapshot) {
     std::shared_ptr<KVStateMachine> kvSM = kvserver->testGetSM();
     KVCommand cmd1(KVCommand::CommandType::PUT, "key1", "value1", 1, 1);
     KVCommand cmd2(KVCommand::CommandType::PUT, "key2", "value2", 1, 2);
-    kvSM_->testApply("key1\nvalue1\n");
-    kvSM_->testApply("key2\nvalue2\n");
+    kvSM->testApply(cmd1);
+    kvSM->testApply(cmd2);
 
-    // 模拟 Raft 已应用日志 index
+    // simulate Raft applied log index
     int appliedIndex = 2;
 
     // -------- 3. 填充 Raft 日志直到超过阈值 --------
