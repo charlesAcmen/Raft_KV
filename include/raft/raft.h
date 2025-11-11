@@ -44,8 +44,17 @@ public:
      *  2. Persists the snapshot and Raft state to stable storage.(lab2 persister)
      *  3. Compacts the Raft log, discarding entries that are included in the snapshot.
      */
-    void SnapShot(int lastIncludedIndex,const std::string& snapshot);
-
+    void SnapShot(
+        int lastIncludedIndex,const std::string& snapshot);
+    // Conditionally install a snapshot, if the term and index are valid.
+    //
+    // This function is called when a snapshot message is received from the leader.
+    // It checks whether the snapshot should be accepted and installed based on
+    // Raft’s current state (term, log, commitIndex).
+    //
+    // Returns true if the snapshot was installed successfully, false otherwise.
+    bool CondInstallSnapShot(
+        int snapshotTerm, int snapshotIndex, const std::string& snapshot);
     //---------- Testing utilities ----------
     int32_t testGetCurrentTerm() const;
     std::optional<int32_t> testGetVotedFor() const;

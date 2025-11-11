@@ -185,8 +185,6 @@ void KVServer::handleApplyMsg(raft::type::ApplyMsg& msg){
         {
             std::lock_guard<std::mutex> lk(mu_);
             kvSM_->ApplySnapShot(msg.Snapshot);
-            // update lastIncludedIndex/Term for snapshot
-            rf_->CondInstallSnapshot(msg.SnapshotIndex, msg.SnapshotTerm, msg.Snapshot);
         }
     }else{
         spdlog::debug("[KVServer] {} ignored non-command ApplyMsg", me_);

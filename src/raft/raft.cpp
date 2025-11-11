@@ -152,7 +152,8 @@ size_t Raft::GetPersistSize() const{
     std::lock_guard<std::mutex> lock(mu_);
     return persister_->RaftStateSize();
 }
-void Raft::SnapShot(int lastIncludedIndex,const std::string& snapshot){
+void Raft::SnapShot(
+    int lastIncludedIndex,const std::string& snapshot){
     std::lock_guard<std::mutex> lock(mu_);
     // 1. If index is less than or equal to lastIncludedIndex,
     //    it means Raft already compacted beyond this point.
@@ -164,7 +165,7 @@ void Raft::SnapShot(int lastIncludedIndex,const std::string& snapshot){
 
     // 2. Calculate offset of index in the log vector.
     //    Because log_ might start after initial entries due to compaction.
-    int offset = log_[0].lastIncludedIndex;
+    int offset = log_[0].index;
     int rel = lastIncludedIndex - offset;   // the index in log_ of the first log to be reserved 
     if (rel < 0 || rel >= static_cast<int>(log_.size())) {
         spdlog::error("[Raft] Snapshot error: index {} out of range (log size = {})",
@@ -194,6 +195,52 @@ void Raft::SnapShot(int lastIncludedIndex,const std::string& snapshot){
     spdlog::info("[Raft] Snapshot taken at index {}, lastIncludedTerm = {},log size = {}",
                  lastIncludedIndex_, lastIncludedTerm_, log_.size());
 }
+bool Raft::CondInstallSnapShot(
+    int snapshotTerm, int snapshotIndex, const std::string& snapshot) {
+    std::lock_guard<std::mutex> lock(mu_);
+
+    // Ignore snapshot if it’s outdated or already covered by our log.
+    if (snapshotIndex <= commitIndex_) {
+        spdlog::info("[Raft] Node {} Ignore outdated snapshot at index {}", me_, snapshotIndex);
+        return false;
+    }
+
+    // Update term if needed
+    if (snapshotTerm > currentTerm_) {
+        currentTerm_ = snapshotTerm;
+        votedFor_ = std::nullopt;
+        role_ = type::Role::Follower;
+        persistLocked();
+    }
+
+    spdlog::info("[Raft] Node {} Installing snapshot at index {} (term={})",
+                 me_, snapshotIndex, snapshotTerm);
+
+    // Apply snapshot to state machine
+    if (applyCallback_) {
+        type::ApplyMsg msg{
+            .SnapshotValid = true,
+            .Snapshot = snapshot,
+            .SnapshotTerm = snapshotTerm,
+            .SnapshotIndex = snapshotIndex,
+        };
+        applyCallback_(msg);
+    }
+
+    // Discard the log before snapshotIndex
+    log_.clear();
+    lastIncludedIndex_ = snapshotIndex;
+    lastIncludedTerm_ = snapshotTerm;
+    commitIndex_ = snapshotIndex;
+    lastApplied_ = snapshotIndex;
+
+    // Persist the updated Raft state and snapshot
+    persister_->SaveStateAndSnapshot(
+        currentTerm_, votedFor_, log_, snapshot);
+
+    return true;
+}
+
 //------------------- Testing utilities -------------------
 int32_t Raft::testGetCurrentTerm() const{
     std::lock_guard<std::mutex> lock(mu_);
