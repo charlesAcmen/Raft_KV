@@ -42,7 +42,7 @@ KVCluster::KVCluster(int numServers, int numClerks) {
             std::make_shared<KVTransportUnix>(self, std::vector<rpc::type::PeerInfo>{});
         // inject transport into KV server and create server
         std::shared_ptr<KVServer> kvserver = 
-            std::make_shared<KVServer>(self.id, peerIds, transport, raftNodes[i-numClerks], -1);        
+            std::make_shared<KVServer>(self.id, peerIds, transport, raftNodes[i-numClerks], kSnapshotThreshold);        
         kvservers_.push_back(kvserver);
     }
     spdlog::info("KVCluster with {} servers and {} clerks initialized.", kvservers_.size(), clerks_.size());

@@ -25,6 +25,8 @@ public:
     std::vector<std::shared_ptr<Clerk>> testGetClerks() const;
     std::shared_ptr<Clerk> testGetClerk(int index) const;
 private:
+    static constexpr int kSnapshotThreshold = 1024 * 1024 * 1;//1MB
+
     std::vector<std::shared_ptr<KVServer>> kvservers_;
     std::vector<std::shared_ptr<Clerk>> clerks_;
 

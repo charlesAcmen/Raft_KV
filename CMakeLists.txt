@@ -21,8 +21,8 @@ target_include_directories(kvraft_lib PUBLIC
 )
 
 # add_executable(craft-kv src/main.cpp)
-# add_executable(craft-kv src/lab3main.cpp)
-# target_link_libraries(craft-kv PRIVATE kvraft_lib spdlog::spdlog)
+add_executable(craft-kv src/lab3main.cpp)
+target_link_libraries(craft-kv PRIVATE kvraft_lib spdlog::spdlog)
 
 
 # TEST
@@ -47,7 +47,7 @@ target_include_directories(kvraft_lib PUBLIC
 # add_test(NAME RaftRestartTest COMMAND raft_test)
 
 # ##############kvserver snapshot test##############
-enable_testing()
-add_executable(kvserver_test test/kvserver_snapshot.cpp)
-target_link_libraries(kvserver_test PRIVATE kvraft_lib gtest gtest_main pthread spdlog::spdlog)
-add_test(NAME KVServerMaybeTakeTest COMMAND kvserver_test)
+# enable_testing()
+# add_executable(kvserver_test test/kvserver_snapshot.cpp)
+# target_link_libraries(kvserver_test PRIVATE kvraft_lib gtest gtest_main pthread spdlog::spdlog)
+# add_test(NAME KVServerMaybeTakeTest COMMAND kvserver_test)
