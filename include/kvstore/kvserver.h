@@ -23,6 +23,8 @@ public:
 
     //---------- Testing utilities ----------
     std::shared_ptr<raft::Raft> testGetRaftNode() const;
+    std::shared_ptr<KVStateMachine> testGetSM() const;
+    void testSetMaxRaftState(int);
     void testMaybeSnapShot(int appliedIndex);
 private:
     void PutAppend(const type::PutAppendArgs& args,type::PutAppendReply& reply);

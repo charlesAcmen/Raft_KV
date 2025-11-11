@@ -105,7 +105,7 @@ std::vector<std::shared_ptr<KVServer>> KVCluster::testGetServers() const {
     return kvservers_;
 }
 
-std::shared_ptr<KVServer> KVCluster::testGetServers(int index) const {
+std::shared_ptr<KVServer> KVCluster::testGetServer(int index) const {
     if (index < 0 || index >= static_cast<int>(kvservers_.size())) {
         return nullptr;
     }

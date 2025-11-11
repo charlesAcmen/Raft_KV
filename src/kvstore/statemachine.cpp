@@ -66,4 +66,10 @@ void KVStateMachine::ApplySnapShot(const std::string& data){
     spdlog::info("[KVStateMachine] snapshot installed, restored {} keys", 
         store_.size());
 }
+
+
+ //---------- Testing utilities ----------
+void KVStateMachine::testApply(const std::string& command){
+    Apply(command);
+}
 }// namespace kv

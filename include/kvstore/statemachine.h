@@ -13,6 +13,9 @@ public:
     // -------------- Lab3 PartB: Snapshot / Compaction ----------------
     std::string EncodeSnapShot() const;
     void ApplySnapShot(const std::string& data);
+
+    //---------- Testing utilities ----------
+    void testApply(const std::string& command);
 private:
     mutable std::mutex mu_;
     int me_;    //corresponding kvserver id

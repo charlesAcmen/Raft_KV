@@ -7,20 +7,20 @@ using namespace kv;
 TEST(KVServer, MaybeSnapshot) {
     spdlog::info("TEST: KVServer maybeTakeSnapshot");
 
-    // -------- 1. 初始化 KVCluster --------
+    // -------- 1. init KVCluster --------
     int numServers = 3;
     int numClerks  = 1;
     KVCluster cluster(numServers, numClerks);
 
-    // 取第一个 KVServer
-    auto kvserver = cluster.kvservers_[0];
+    // first KVServer
+    std::shared_ptr<KVServer> kvserver = cluster.testGetServer(0);
 
-    // 设置 maxRaftState_ 为小值，方便触发 snapshot
-    kvserver->maxRaftState_ = 50; // bytes
+    kvserver->testSetMaxRaftState(50);
 
-    // -------- 2. 填充 KV 状态机 --------
-    kvserver->kvSM_->Apply("key1\nvalue1\n");
-    kvserver->kvSM_->Apply("key2\nvalue2\n");
+    // -------- 2. fill KV statemachine --------
+    std::shared_ptr<KVStateMachine> kvSM = kvserver->testGetSM();
+    kvSM_->testApply("key1\nvalue1\n");
+    kvSM_->testApply("key2\nvalue2\n");
 
     // 模拟 Raft 已应用日志 index
     int appliedIndex = 2;

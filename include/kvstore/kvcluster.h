@@ -21,7 +21,7 @@ public:
     int testKVServerSize() const;
     int testClerkSize() const;
     std::vector<std::shared_ptr<KVServer>> testGetServers() const;
-    std::shared_ptr<KVServer> testGetServers(int index) const;
+    std::shared_ptr<KVServer> testGetServer(int index) const;
     std::vector<std::shared_ptr<Clerk>> testGetClerks() const;
     std::shared_ptr<Clerk> testGetClerk(int index) const;
 private:
