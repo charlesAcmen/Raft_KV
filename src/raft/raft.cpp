@@ -34,8 +34,8 @@ Raft::Raft(int me,const std::vector<int>& peers,
             try {
                 // spdlog::info("[Raft] {} RequestVote handler received payload: {}", this->me_, payload);
                 type::RequestVoteArgs args = codec::RaftCodec::decodeRequestVoteArgs(payload);
-                spdlog::info("[Raft] {} RequestVote handler decode success: term={}, candidateId={}, lastLogIndex={}, lastLogTerm={}",
-                             this->me_, args.term, args.candidateId, args.lastLogIndex, args.lastLogTerm);
+                // spdlog::info("[Raft] {} RequestVote handler decode success: term={}, candidateId={}, lastLogIndex={}, lastLogTerm={}",
+                            //  this->me_, args.term, args.candidateId, args.lastLogIndex, args.lastLogTerm);
                 type::RequestVoteReply reply = this->HandleRequestVote(args);
                 spdlog::info("[Raft] {} RequestVote handler processed successfully", this->me_);
                 return codec::RaftCodec::encode(reply);
@@ -95,7 +95,7 @@ bool Raft::SubmitCommand(const std::string& command){
     }
     AppendLogEntryLocked(command);
     // After appending a new log entry, try to replicate it to followers
-    broadcastAppendEntriesLocked();
+    broadcastAppendEntries();
     return true;
 }
 
@@ -277,8 +277,11 @@ void Raft::run() {
 }
 
 //--------- Election control ----------
-void Raft::startElectionLocked(){
-    spdlog::info("[Raft] Node {} starting election for term {}", me_, currentTerm_);
+void Raft::startElection(){
+    {
+        std::lock_guard<std::mutex> lock(mu_);
+        spdlog::info("[Raft] Node {} starting election for term {}", me_, currentTerm_);
+    }
 
     int votesGranted = 1; // vote for self
     int majority = (peers_.size() / 2) + 1;
@@ -286,7 +289,7 @@ void Raft::startElectionLocked(){
     // Send RequestVote RPCs to all peers
     for (const auto& peer : peers_) {
         if (peer == me_) continue; // skip self
-        std::optional<type::RequestVoteReply> reply = sendRequestVoteLocked(peer);
+        std::optional<type::RequestVoteReply> reply = sendRequestVote(peer);
         if(reply){
             if(reply->voteGranted){
                 // handle vote granted
@@ -294,7 +297,7 @@ void Raft::startElectionLocked(){
                 spdlog::info("[Raft] Node {} received vote from node {} (total votes={})", me_, peer, votesGranted);
                 // check if won majority
                 if (votesGranted >= majority && role_.load() == type::Role::Candidate) {
-                    becomeLeaderLocked(); // convert to Leader
+                    becomeLeader(); // convert to Leader
                     break; // no need to send more votes
                 }
             }
@@ -303,7 +306,7 @@ void Raft::startElectionLocked(){
                 spdlog::info("[Raft] Node {} vote denied by peer {} (peer term={})", me_, peer, reply->term);
                 // if peer's term > currentTerm_, step down
                 if (reply->term > currentTerm_) {
-                    becomeFollowerLocked(reply->term);
+                    becomeFollower(reply->term);
                     break;
                 }
             }
@@ -320,7 +323,8 @@ void Raft::startElectionLocked(){
 // Respond to RPCs from candidates and leaders
 // If election timeout elapses without receiving AppendEntries RPC from current leader 
 // or granting vote to candidate: convert to candidate
-void Raft::becomeFollowerLocked(int32_t newTerm){
+void Raft::becomeFollower(int32_t newTerm){
+    std::lock_guard<std::mutex> lock(mu_);
     if (role_.load() == type::Role::Follower && currentTerm_ == newTerm) {
         // already follower in this term
         return;
@@ -344,7 +348,8 @@ void Raft::becomeFollowerLocked(int32_t newTerm){
 // If votes received from majority of servers: become leader
 // If AppendEntries RPC received from new leader: convert to follower
 // If election timeout elapses: start new election
-void Raft::becomeCandidateLocked(){
+void Raft::becomeCandidate(){
+    std::lock_guard<std::mutex> lock(mu_);
     if (role_.load() == type::Role::Candidate) {
         return; // already candidate
     }
@@ -368,7 +373,8 @@ void Raft::becomeCandidateLocked(){
 // If AppendEntries fails because of log inconsistency: decrement nextIndex and retry
 // 4. If there exists an N such that N > commitIndex, a majority of matchIndex[i] ≥ N,
 // and log[N].term == currentTerm: set commitIndex = N
-void Raft::becomeLeaderLocked(){
+void Raft::becomeLeader(){
+    std::lock_guard<std::mutex> lock(mu_);
     if (role_.load() == type::Role::Leader) {
         return; // already leader
     }
@@ -377,7 +383,7 @@ void Raft::becomeLeaderLocked(){
     electionTimer_->Stop();
     //reset to start heartbeat timer
     resetHeartbeatTimerLocked();
-    broadcastHeartbeatLocked();   
+    broadcastHeartbeat();   
 }
 
 
@@ -404,7 +410,7 @@ type::RequestVoteReply Raft::HandleRequestVote(
     // Step 2: If the term in the request is greater than our term, update term and convert to follower
     if (args.term > currentTerm_) {
         spdlog::info("[Raft] Node {} updating term from {} to {}", me_, currentTerm_, args.term);
-        becomeFollowerLocked(args.term);
+        becomeFollower(args.term);
     }
 
     int lastTerm = getLastLogTermLocked();
@@ -446,7 +452,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(
     }
     // Step 2: If term > currentTerm, update and convert to follower
     if (args.term > currentTerm_) {
-        becomeFollowerLocked(args.term); 
+        becomeFollower(args.term); 
         spdlog::info("[Raft] Node {} updating term to {} and becomes follower", me_, currentTerm_);
     }
     // Step 3: Reset election timeout since valid leader contacted us
@@ -704,13 +710,16 @@ void Raft::deleteLogFromIndexLocked(int index){
 
 //--------- Helper functions ----------      
 // RVO ensures that returning the struct avoids any unnecessary copies.
-std::optional<type::RequestVoteReply> Raft::sendRequestVoteLocked(int peerId){
-    // spdlog::info("[Raft] {} sending RequestVote RPC to peer {}", me_, peerId);
+std::optional<type::RequestVoteReply> Raft::sendRequestVote(int peerId){
     type::RequestVoteArgs args{};
-    args.term = currentTerm_;
-    args.candidateId = me_;
-    args.lastLogIndex = getLastLogIndexLocked();
-    args.lastLogTerm = getLastLogTermLocked();
+    {
+        std::lock_guard<std::mutex> lock(mu_);
+        // spdlog::info("[Raft] {} sending RequestVote RPC to peer {}", me_, peerId);
+        args.term = currentTerm_;
+        args.candidateId = me_;
+        args.lastLogIndex = getLastLogIndexLocked();
+        args.lastLogTerm = getLastLogTermLocked();
+    }
 
     type::RequestVoteReply reply{};
     bool success = transport_->RequestVoteRPC(peerId, args,reply);
@@ -721,15 +730,18 @@ std::optional<type::RequestVoteReply> Raft::sendRequestVoteLocked(int peerId){
     }
     return reply;
 } 
-std::optional<type::AppendEntriesReply> Raft::sendAppendEntriesLocked(int peerId){
-    // spdlog::info("[Raft] {} sending AppendEntries RPC to peer {}", me_, peerId);
+std::optional<type::AppendEntriesReply> Raft::sendAppendEntries(int peerId){
     type::AppendEntriesArgs args{};
-    args.term = currentTerm_;
-    args.leaderId = me_;
-    args.prevLogIndex = getPrevLogIndexLocked(peerId);
-    args.prevLogTerm = getPrevLogTermLocked(peerId);
-    args.entries = getEntriesToSendLocked(peerId);
-    args.leaderCommit = commitIndex_;
+    {
+        std::lock_guard<std::mutex> lock(mu_);
+        // spdlog::info("[Raft] {} sending AppendEntries RPC to peer {}", me_, peerId);
+        args.term = currentTerm_;
+        args.leaderId = me_;
+        args.prevLogIndex = getPrevLogIndexLocked(peerId);
+        args.prevLogTerm = getPrevLogTermLocked(peerId);
+        args.entries = getEntriesToSendLocked(peerId);
+        args.leaderCommit = commitIndex_;
+    }
     type::AppendEntriesReply reply{};
     bool success = transport_->AppendEntriesRPC(peerId, args, reply);
 
@@ -739,16 +751,17 @@ std::optional<type::AppendEntriesReply> Raft::sendAppendEntriesLocked(int peerId
     }
     return reply;
 }
-void Raft::broadcastHeartbeatLocked(){
-    // auto t0 = std::chrono::steady_clock::now();
+void Raft::broadcastHeartbeat(){
     // spdlog::info("[Raft] Heartbeat tick enter on leader {}", me_);
     for(const auto& peer : peers_){
         if(peer == me_) continue; // skip self
         std::optional<type::AppendEntriesReply> reply = sendHeartbeatLocked(peer);
         if (reply) {
             if (reply->term > currentTerm_) {
-                becomeFollowerLocked(reply->term);
-                spdlog::info("[Raft] Node {} stepping down to Follower due to higher term from {}", me_, peer);
+                becomeFollower(reply->term);
+                spdlog::info(
+                    "[Raft] Node {} stepping down to Follower due to higher term from {}", 
+                    me_, peer);
                 break;
             }
             else {spdlog::info("[Raft] Node {} heartbeat acknowledged by node {}", me_, peer);}
@@ -757,20 +770,19 @@ void Raft::broadcastHeartbeatLocked(){
             //TODO: handle no reply (network failure, timeout)
         }
     }
-    // auto t1 = std::chrono::steady_clock::now();
-    // spdlog::info("[Raft] took {} ms at broadcastHeartbeatLocked", 
-    //     std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count());
     // spdlog::info("[Raft] Heartbeat tick exit on leader {}", me_);
 }
-void Raft::broadcastAppendEntriesLocked(){
+void Raft::broadcastAppendEntries(){
     for(const auto& peer : peers_){
         if(peer == me_) continue; // skip self
-        std::optional<type::AppendEntriesReply> reply = sendAppendEntriesLocked(peer);
+        std::optional<type::AppendEntriesReply> reply = sendAppendEntries(peer);
         if (reply) {
             //rpc reply received
             if (reply->term > currentTerm_) {
-                becomeFollowerLocked(reply->term);
-                spdlog::info("[Raft] Node {} stepping down to Follower due to higher term from {}", me_, peer);
+                becomeFollower(reply->term);
+                spdlog::info(
+                    "[Raft] Node {} stepping down to Follower due to higher term from {}", 
+                    me_, peer);
                 break;
             }
             else {
@@ -817,22 +829,21 @@ std::string Raft::readPersistedStateLocked(){
 // -------- Timer functions -----------
 // Called when the election timer times out.
 void Raft::onElectionTimeout(){
-    std::lock_guard<std::mutex> lock(mu_);
     spdlog::info("[Raft] Election timeout occurred on node {}.", me_);
-    becomeCandidateLocked();
-    startElectionLocked();
+    becomeCandidate();
+    startElection();
 }
 // Called when the heartbeat timer times out.
 void Raft::onHeartbeatTimeout(){
-    std::lock_guard<std::mutex> lock(mu_);
-    spdlog::info("[Raft] Heartbeat timeout occurred on node {}.", me_);
-    if (role_.load() != type::Role::Leader) {
-        spdlog::error("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
-        return;
+    {
+        std::lock_guard<std::mutex> lock(mu_);
+        spdlog::info("[Raft] Heartbeat timeout occurred on node {}.", me_);
+        if (role_.load() != type::Role::Leader) {
+            spdlog::error("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
+            return;
+        }
     }
-    else{ 
-        broadcastHeartbeatLocked();
-    }
+    broadcastHeartbeat();
 }
 std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peerId){
     // spdlog::info("[Raft] {} Sending heartbeat AppendEntries to peer {}.", me_,peerId);

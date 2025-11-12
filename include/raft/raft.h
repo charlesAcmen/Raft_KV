@@ -82,7 +82,7 @@ private:
     //-------------------------------------
     //--------- Election control ----------
     //-------------------------------------
-    void startElectionLocked();            // Begin new election (called on timeout)
+    void startElection();            // Begin new election (called on timeout)
 
 
     //-------------------------------------
@@ -107,13 +107,13 @@ private:
     //--------- Helper functions ----------
     //-------------------------------------
     // Send one RequestVote RPC
-    std::optional<type::RequestVoteReply> sendRequestVoteLocked(int peerId);     
+    std::optional<type::RequestVoteReply> sendRequestVote(int peerId);     
     // Send one AppendEntries RPC (heartbeat or log)
-    std::optional<type::AppendEntriesReply> sendAppendEntriesLocked(int peerId);  
+    std::optional<type::AppendEntriesReply> sendAppendEntries(int peerId);  
     // Send empty AppendEntries to all peers
-    void broadcastHeartbeatLocked(); 
+    void broadcastHeartbeat(); 
     // Send AppendEntries (with log entries) to all peers   
-    void broadcastAppendEntriesLocked();       
+    void broadcastAppendEntries();       
     // Send heartbeat to one peer 
     std::optional<type::AppendEntriesReply> sendHeartbeatLocked(int peer);
     //-------------------------------------
@@ -121,11 +121,11 @@ private:
     //-------------------------------------
 
     // Update term, clear vote, stop heartbeat timer,start election timer
-    void becomeFollowerLocked(int32_t newTerm);  
+    void becomeFollower(int32_t newTerm);  
     // Increment term, self-vote, reset election timer, start election 
-    void becomeCandidateLocked();                 
+    void becomeCandidate();                 
     // stop election timer,start heartbeat timer,broadcast heartbeats
-    void becomeLeaderLocked();                    
+    void becomeLeader();                    
 
 
     //-------------------------------------

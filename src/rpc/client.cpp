@@ -85,7 +85,7 @@ std::optional<std::string> RpcClient::Call(
     char tmp[4096];
     while (true) {
         //block until some data is received
-        spdlog::info("[RpcClient] waiting recv() ...");
+        // spdlog::info("[RpcClient] waiting recv() ...");
         ssize_t r = recv(sock_fd, tmp, sizeof(tmp), 0);
         if (r < 0) {
             spdlog::error("[RpcClient] recv() failed");
