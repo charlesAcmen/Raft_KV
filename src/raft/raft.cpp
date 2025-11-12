@@ -694,7 +694,7 @@ void Raft::deleteLogFromIndexLocked(int index){
 //--------- Helper functions ----------      
 // RVO ensures that returning the struct avoids any unnecessary copies.
 std::optional<type::RequestVoteReply> Raft::sendRequestVoteLocked(int peerId){
-    // spdlog::info("[Raft] {} sending RequestVote RPC to peer {}", me_, peerId);
+    spdlog::info("[Raft] {} sending RequestVote RPC to peer {}", me_, peerId);
     type::RequestVoteArgs args{};
     args.term = currentTerm_;
     args.candidateId = me_;
@@ -703,7 +703,7 @@ std::optional<type::RequestVoteReply> Raft::sendRequestVoteLocked(int peerId){
 
     type::RequestVoteReply reply{};
     bool success = transport_->RequestVoteRPC(peerId, args,reply);
-
+    spdlog::info("[Raft] Node {} finished RequestVote RPC call to peer {}", me_, peerId);
     if (!success) {
         spdlog::warn("[Raft] Failed to send RequestVote RPC to peer {}", peerId);
         return std::nullopt;
@@ -813,8 +813,8 @@ void Raft::onElectionTimeout(){
 }
 // Called when the heartbeat timer times out.
 void Raft::onHeartbeatTimeout(){
-    // spdlog::info("[Raft] Heartbeat timeout occurred on node {}.", me_);
     std::lock_guard<std::mutex> lock(mu_);
+    spdlog::info("[Raft] Heartbeat timeout occurred on node {}.", me_);
     // if (role_.load() != type::Role::Leader) {
     //     spdlog::error("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
     //     return;

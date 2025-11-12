@@ -82,7 +82,7 @@ void ThreadTimer::workerLoop() {
         lock.unlock();
         try {
             if (callback_) {
-                spdlog::info("[ThreadTimer] callback called");
+                // spdlog::info("[ThreadTimer] callback called");
                 callback_();
             }
         } catch (const std::exception& e) {
