@@ -92,9 +92,10 @@ void ThreadTimer::workerLoop() {
         }
         lock.lock();
 
+        //NO PLZ NO SETTING TO FALSE
         // After firing, we stop the timer and wait for next Reset to re-arm.
         // (This matches typical election-timeout semantics: after firing you wait for Reset to arm it again.)
-        running_ = false;
+        // running_ = false;
         ++generation_; // bump generation so concurrent Resets are ordered
     }
     // spdlog::info("[ThreadTimer] Worker thread exiting");

@@ -121,7 +121,7 @@ void Raft::Start() {
     // start communication layer
     transport_->Start();
     // spdlog::info("[Raft] {} started", me_);
-    thread_ = std::thread([this]() { this->run(); });
+    // thread_ = std::thread([this]() { this->run(); });
     apply_thread_ = std::thread([this] { ApplyLoop();});
     // start election timer
     // do not start heartbeat timer yet cuz only leader uses it
@@ -307,8 +307,8 @@ void Raft::startElection(){
             }
             else{
                 // handle vote denied
-                spdlog::info("[Raft] Node {} vote denied by peer {} (peer term={})", 
-                    me_, peer, reply->term);
+                // spdlog::info("[Raft] Node {} vote denied by peer {} (peer term={})", 
+                //     me_, peer, reply->term);
                 // if peer's term > currentTerm_, step down
                 if (reply->term > currentTerm_) {
                     becomeFollowerLocked(reply->term);//convert to follower,using locked version
@@ -409,9 +409,9 @@ void Raft::becomeLeaderLocked(){
 // Handle a RequestVote RPC from a candidate
 type::RequestVoteReply Raft::HandleRequestVote(
     const type::RequestVoteArgs& args){
-    spdlog::info("[Raft] {} starts to handle request vote",me_);
+    // spdlog::info("[Raft] {} starts to handle request vote",me_);
     std::lock_guard<std::mutex> lock(mu_);
-    spdlog::info("[Raft] {} acquired lock when handling request vote",me_);
+    // spdlog::info("[Raft] {} acquired lock when handling request vote",me_);
     type::RequestVoteReply reply{};
     
     // Reply's term is always our current term initially
@@ -457,7 +457,9 @@ type::RequestVoteReply Raft::HandleRequestVote(
 // Handle an AppendEntries RPC from the leader
 type::AppendEntriesReply Raft::HandleAppendEntries(
     const type::AppendEntriesArgs& args){
+    // spdlog::info("[Raft] {} starts to handle append",me_);
     std::lock_guard<std::mutex> lock(mu_);
+    // spdlog::info("[Raft] {} acquired lock when handling append",me_);
     type::AppendEntriesReply reply{};
     reply.term = currentTerm_;
 
@@ -471,7 +473,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(
     // Step 2: If term > currentTerm, update and convert to follower
     if (args.term > currentTerm_) {
         becomeFollowerLocked(args.term); 
-        spdlog::info("[Raft] Node {} updating term to {} and becomes follower", me_, currentTerm_);
+        // spdlog::info("[Raft] Node {} updating term to {} and becomes follower", me_, currentTerm_);
     }
     // Step 3: Reset election timeout since valid leader contacted us
     // Receiving valid AppendEntries acts as heartbeat → reset timeout
@@ -741,7 +743,7 @@ std::optional<type::RequestVoteReply> Raft::sendRequestVote(int peerId){
 
     type::RequestVoteReply reply{};
     bool success = transport_->RequestVoteRPC(peerId, args,reply);
-    spdlog::info("[Raft] Node {} finished RequestVote RPC call to peer {}", me_, peerId);
+    // spdlog::info("[Raft] Node {} finished RequestVote RPC call to peer {}", me_, peerId);
     if (!success) {
         spdlog::warn("[Raft] Failed to send RequestVote RPC to peer {}", peerId);
         return std::nullopt;
@@ -784,7 +786,7 @@ void Raft::broadcastHeartbeat(){
                     me_, peer);
                 break;
             }
-            else {spdlog::info("[Raft] Node {} heartbeat acknowledged by node {}", me_, peer);}
+            // else {spdlog::info("[Raft] Node {} heartbeat acknowledged by node {}", me_, peer);}
         } else {
             spdlog::warn("[Raft] Node {} heartbeat to {} failed", me_, peer);
             //TODO: handle no reply (network failure, timeout)
@@ -796,10 +798,12 @@ void Raft::broadcastAppendEntries(){
     for(const auto& peer : peers_){
         if(peer == me_) continue; // skip self
         std::optional<type::AppendEntriesReply> reply = sendAppendEntries(peer);
+        //reacquire lock after network IO
+        std::lock_guard<std::mutex> lock(mu_);
         if (reply) {
             //rpc reply received
             if (reply->term > currentTerm_) {
-                becomeFollower(reply->term);
+                becomeFollowerLocked(reply->term);
                 spdlog::info(
                     "[Raft] Node {} stepping down to Follower due to higher term from {}", 
                     me_, peer);
@@ -837,6 +841,7 @@ void Raft::resetElectionTimerLocked(){
 }
 // Start or restart heartbeat timer
 void Raft::resetHeartbeatTimerLocked(){
+    // spdlog::info("[Raft] {} heartbeat timer reset",me_);
     heartbeatTimer_->Reset(Raft::HEARTBEAT_INTERVAL);
 }
 // ----------- Persistent state management -----------
@@ -857,7 +862,7 @@ void Raft::onElectionTimeout(){
 void Raft::onHeartbeatTimeout(){
     {
         std::lock_guard<std::mutex> lock(mu_);
-        spdlog::info("[Raft] Heartbeat timeout occurred on node {}.", me_);
+        // spdlog::info("[Raft] Heartbeat timeout occurred on node {}.", me_);
         if (role_.load() != type::Role::Leader) {
             spdlog::error("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
             return;

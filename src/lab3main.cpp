@@ -208,13 +208,13 @@ int main(){
     // clerk->Put(key,value);
 
     std::shared_ptr<kv::Clerk> clerk = cluster.testGetClerk(0);
-    int operationNum = 10000;
+    int operationNum = 10;
     // for (int i = 0; i < operationNum; ++i) { RandomClerkOperation(clerk);}
 
     //--------------------Sequential--------------
     // std::vector<std::shared_ptr<kv::Clerk>> clerks = cluster.testGetClerks();
     // SequentialConsistencyTest(clerks);
-    // SequentialAppendTest(clerk, operationNum);
+    SequentialAppendTest(clerk, operationNum);
 
 
     //--------------------Concurrent--------------
