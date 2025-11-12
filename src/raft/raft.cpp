@@ -385,7 +385,9 @@ void Raft::becomeLeaderLocked(){
 // Handle a RequestVote RPC from a candidate
 type::RequestVoteReply Raft::HandleRequestVote(
     const type::RequestVoteArgs& args){
+    spdlog::info("[Raft] {} starts to handle request vote",me_);
     std::lock_guard<std::mutex> lock(mu_);
+    spdlog::info("[Raft] {} acquired lock when handling request vote",me_);
     type::RequestVoteReply reply{};
     
     // Reply's term is always our current term initially
@@ -414,7 +416,7 @@ type::RequestVoteReply Raft::HandleRequestVote(
     //have not voted this term or voted for candidate, and candidate's log is at least as up-to-date
     if ((votedFor_ == std::nullopt || votedFor_ == args.candidateId) && logOk) {
         spdlog::info("[Raft] Node {} grants vote to node {} in term {} (logOk={}, votedFor_={})",
-            me_, args.candidateId, currentrejecting voteTerm_, logOk, 
+            me_, args.candidateId, currentTerm_, logOk, 
             (votedFor_ ? std::to_string(*votedFor_) : "nullopt"));
         votedFor_ = args.candidateId;
         persistLocked();
