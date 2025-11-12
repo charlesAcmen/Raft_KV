@@ -25,8 +25,8 @@ void ThreadTimer::Reset(std::chrono::milliseconds duration) {
     ++generation_;
     // notify worker to re-evaluate (we updated generation_ and deadline_ under lock)
     cv_.notify_all();
-    spdlog::info("[ThreadTimer] Timer reset to {} ms (gen={})", 
-        duration.count(),generation_.load());
+    // spdlog::info("[ThreadTimer] Timer reset to {} ms (gen={})", 
+    //     duration.count(),generation_.load());
 }
 void ThreadTimer::Stop(){
     // spdlog::info("[ThreadTimer] Stopping timer");
@@ -58,10 +58,11 @@ void ThreadTimer::workerLoop() {
 
         // Now timer is running_. We will snapshot generation and deadline under lock
         uint64_t local_gen = generation_.load();
-        auto local_deadline = deadline_;
+        std::chrono::steady_clock::time_point local_deadline = deadline_;
 
         // Loop: wait until deadline or until a Reset/Stop changes generation_/running_/stopped_
-        // The predicate returns true if we should wake early (stop or generation changed or running turned false).
+        // The predicate returns true if we should wake early 
+        // (stop or generation changed or running turned false).
         bool woke_early = cv_.wait_until(lock, local_deadline, [this, local_gen]() {
             return stopped_ || generation_.load() != local_gen || !running_;
         });
