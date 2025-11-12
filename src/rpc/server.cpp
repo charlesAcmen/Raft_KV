@@ -138,7 +138,7 @@ void RpcServer::handleClient(int client_fd){
         //rpc is once time request-response, so only recv once
         if (n == 0) {
             // client closed normally
-            // spdlog::info("[RpcServer] start() Client closed connection");
+            spdlog::info("[RpcServer] start() Client closed connection");
             close(client_fd);
             return;
         } else if (n < 0) {
@@ -169,7 +169,7 @@ void RpcServer::handleClient(int client_fd){
 
             // === encode response ===
             std::string framed = codec.encodeResponse(reply_payload);
-            // spdlog::info("Sending RPC response: {}'", framed);
+            spdlog::info("[RpcServer] Sending RPC response: {}'", framed);
             ::send(client_fd, framed.data(), framed.size(), 0);
         }//do not close until all messages are processed
         data.clear();

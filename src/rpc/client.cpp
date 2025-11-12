@@ -56,6 +56,8 @@ void RpcClient::Close(){
 std::optional<std::string> RpcClient::Call(
     const std::string& method, 
     const std::string& payload){
+    spdlog::info("[RpcClient] Call() enter: method={}, payload={}, connected={}", 
+        method,payload,connected_.load());
     // double checking locking pattern,to avoid multiple threads connecting simultaneously
     if(!connected_.load()){
         std::lock_guard<std::mutex> lg(conn_mtx_);
@@ -68,6 +70,7 @@ std::optional<std::string> RpcClient::Call(
     const std::string request_payload = method + "\n" + payload;
     // 2. encode to framed message
     std::string framed = codec.encodeRequest(request_payload);
+    spdlog::info("[RpcClient] send() begin, framed={}", framed);
     // 3. send request
     // send parameters:connecting fd,buff,buff size,flag
     ssize_t n = send(sock_fd, framed.c_str(), framed.size(), 0);
@@ -76,12 +79,13 @@ std::optional<std::string> RpcClient::Call(
         connected_.store(false);
         return std::nullopt;
     }
-    
+    spdlog::info("[RpcClient] send() done, bytes={}", n);
     //wait for response
     std::string buffer;
     char tmp[4096];
     while (true) {
         //block until some data is received
+        spdlog::info("[RpcClient] waiting recv() ...");
         ssize_t r = recv(sock_fd, tmp, sizeof(tmp), 0);
         if (r < 0) {
             spdlog::error("[RpcClient] recv() failed");
@@ -89,16 +93,23 @@ std::optional<std::string> RpcClient::Call(
             break;
         } else if (r == 0) {
             // server closed connection
+            spdlog::warn("[RpcClient] recv() closed by peer");
             connected_.store(false);
             ::close(sock_fd);
             break;
         }
-
+        spdlog::info("[RpcClient] recv() got {} bytes", r);
         buffer.append(tmp, static_cast<size_t>(r));
         // try decode
         std::optional<std::string> resp = codec.tryDecodeResponse(buffer);
-        if (resp) return *resp; // return response payload
+        if (resp){
+            spdlog::debug("[RpcClient] decode success, total buffer size={}", buffer.size());
+            return *resp; // return response payload
+        }else{
+            spdlog::debug("[RpcClient] decode incomplete, buffer size={}", buffer.size());
+        }
     }
+    spdlog::warn("[RpcClient] exit with no response");
     return std::nullopt;
 }
 //---------private functions---------
