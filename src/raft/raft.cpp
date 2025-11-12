@@ -86,14 +86,16 @@ void Raft::SetApplyCallback(std::function<void(type::ApplyMsg&)> cb){
     applyCallback_ = std::move(cb);
 }
 bool Raft::SubmitCommand(const std::string& command){
-    std::lock_guard<std::mutex> lock(mu_);
-    // spdlog::info("[Raft] SubmitCommand {}",command);
-    if (role_.load() != type::Role::Leader) {
-        // spdlog::info("[Raft] {} rejected client command '{}': not leader", me_, command);
-        spdlog::info("[Raft] {} rejected clerk: not leader", me_);
-        return false;
+    {
+        std::lock_guard<std::mutex> lock(mu_);
+        // spdlog::info("[Raft] SubmitCommand {}",command);
+        if (role_.load() != type::Role::Leader) {
+            // spdlog::info("[Raft] {} rejected client command '{}': not leader", me_, command);
+            spdlog::info("[Raft] {} rejected clerk: not leader", me_);
+            return false;
+        }
+        AppendLogEntryLocked(command);
     }
-    AppendLogEntryLocked(command);
     // After appending a new log entry, try to replicate it to followers
     broadcastAppendEntries();
     return true;

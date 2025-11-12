@@ -214,7 +214,7 @@ int main(){
     //--------------------Sequential--------------
     // std::vector<std::shared_ptr<kv::Clerk>> clerks = cluster.testGetClerks();
     // SequentialConsistencyTest(clerks);
-    SequentialAppendTest(clerk, operationNum);
+    // SequentialAppendTest(clerk, operationNum);
 
 
     //--------------------Concurrent--------------
