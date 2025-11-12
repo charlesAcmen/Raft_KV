@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>           // std::unique_ptr
-#include <chrono>
+#include <chrono>           // duration and deadline in timer thread
 #include <functional>       // callback
 namespace raft {
 // Abstract timer interface used by Raft for election timeouts and heartbeats.

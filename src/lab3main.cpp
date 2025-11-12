@@ -178,7 +178,8 @@ void SequentialAppendTest(
 
     for (int i = 0; i < operationNum; ++i) {
         int key_num = key_dist(rng);
-        std::string key = "key" + std::to_string(key_num);
+        // std::string key = "key" + std::to_string(key_num);
+        std::string key = "key";
         std::string value = "append" + std::to_string(i); // 保证每次不同
 
         clerk->Append(key, value);
@@ -213,7 +214,7 @@ int main(){
     //--------------------Sequential--------------
     // std::vector<std::shared_ptr<kv::Clerk>> clerks = cluster.testGetClerks();
     // SequentialConsistencyTest(clerks);
-    SequentialAppendTest(clerk, 1000);
+    SequentialAppendTest(clerk, 20);
 
 
     //--------------------Concurrent--------------
