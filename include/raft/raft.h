@@ -180,7 +180,7 @@ private:
 
     // internal data protected by mu_
     mutable std::mutex mu_;
-
+    std::unique_lock<std::mutex> lock;
     
     // Raft identity and cluster
     const int me_;                      // this peer's id (index into peers_)

@@ -624,6 +624,7 @@ void Raft::ApplyLoop() {
     while (running_.load()) {
         //unique lock,cause wait for apply condition variable
         std::unique_lock<std::mutex> lock(mu_);
+        // lock.lock();
         apply_cv_.wait(lock, [&] {
             // Wake up if there are committed logs to apply or if stopping
             return lastApplied_ < commitIndex_ || !running_.load();
@@ -718,7 +719,9 @@ void Raft::applyLogsLocked(){
                 .Command = entry.command,
                 .CommandIndex = entry.index
             };
+            lock.unlock();
             applyCallback_(msg);
+            lock.lock();
         }else{
             spdlog::warn("[Raft] {} no applyCallback set",me_);
             continue;
