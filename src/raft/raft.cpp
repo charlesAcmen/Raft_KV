@@ -32,7 +32,7 @@ Raft::Raft(int me,const std::vector<int>& peers,
     transport_->RegisterRequestVoteHandler(
         [this](const std::string& payload) -> std::string {
             try {
-                spdlog::info("[Raft] {} RequestVote handler received payload: {}", this->me_, payload);
+                // spdlog::info("[Raft] {} RequestVote handler received payload: {}", this->me_, payload);
                 type::RequestVoteArgs args = codec::RaftCodec::decodeRequestVoteArgs(payload);
                 spdlog::info("[Raft] {} RequestVote handler decode success: term={}, candidateId={}, lastLogIndex={}, lastLogTerm={}",
                              this->me_, args.term, args.candidateId, args.lastLogIndex, args.lastLogTerm);
@@ -594,6 +594,7 @@ void Raft::AppendLogEntryLocked(const std::string& command) {
 
 void Raft::ApplyLoop() {
     while (running_.load()) {
+        //unique lock,cause wait for apply condition variable
         std::unique_lock<std::mutex> lock(mu_);
         apply_cv_.wait(lock, [&] {
             // Wake up if there are committed logs to apply or if stopping
@@ -825,13 +826,13 @@ void Raft::onElectionTimeout(){
 void Raft::onHeartbeatTimeout(){
     std::lock_guard<std::mutex> lock(mu_);
     spdlog::info("[Raft] Heartbeat timeout occurred on node {}.", me_);
-    // if (role_.load() != type::Role::Leader) {
-    //     spdlog::error("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
-    //     return;
-    // }
-    // else{ 
-    broadcastHeartbeatLocked();
-    // }
+    if (role_.load() != type::Role::Leader) {
+        spdlog::error("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
+        return;
+    }
+    else{ 
+        broadcastHeartbeatLocked();
+    }
 }
 std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peerId){
     // spdlog::info("[Raft] {} Sending heartbeat AppendEntries to peer {}.", me_,peerId);
