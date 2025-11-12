@@ -9,7 +9,7 @@ namespace raft{
 Raft::Raft(int me,const std::vector<int>& peers,
     std::shared_ptr<IRaftTransport> transport)
     :me_(me), peers_(peers), transport_(transport){
-    // spdlog::set_pattern("[%l] %v");
+    spdlog::set_pattern("[%l] %v");
     // Basic field initialization
     for (int peerId : peers_) {
         if (peerId == me_) continue;
@@ -32,8 +32,12 @@ Raft::Raft(int me,const std::vector<int>& peers,
     transport_->RegisterRequestVoteHandler(
         [this](const std::string& payload) -> std::string {
             try {
+                spdlog::info("[Raft] {} RequestVote handler received payload: {}", this->me_, payload);
                 type::RequestVoteArgs args = codec::RaftCodec::decodeRequestVoteArgs(payload);
+                spdlog::info("[Raft] {} RequestVote handler decode success: term={}, candidateId={}, lastLogIndex={}, lastLogTerm={}",
+                             this->me_, args.term, args.candidateId, args.lastLogIndex, args.lastLogTerm);
                 type::RequestVoteReply reply = this->HandleRequestVote(args);
+                spdlog::info("[Raft] {} RequestVote handler processed successfully", this->me_);
                 return codec::RaftCodec::encode(reply);
             } catch (const std::exception& e) {
                 spdlog::error("[Raft] {} RequestVote handler exception: {}", this->me_, e.what());
@@ -397,6 +401,7 @@ type::RequestVoteReply Raft::HandleRequestVote(
 
     // Step 2: If the term in the request is greater than our term, update term and convert to follower
     if (args.term > currentTerm_) {
+        spdlog::info("[Raft] Node {} updating term from {} to {}", me_, currentTerm_, args.term);
         becomeFollowerLocked(args.term);
     }
 
@@ -408,6 +413,9 @@ type::RequestVoteReply Raft::HandleRequestVote(
 
     //have not voted this term or voted for candidate, and candidate's log is at least as up-to-date
     if ((votedFor_ == std::nullopt || votedFor_ == args.candidateId) && logOk) {
+        spdlog::info("[Raft] Node {} grants vote to node {} in term {} (logOk={}, votedFor_={})",
+            me_, args.candidateId, currentrejecting voteTerm_, logOk, 
+            (votedFor_ ? std::to_string(*votedFor_) : "nullopt"));
         votedFor_ = args.candidateId;
         persistLocked();
         reply.voteGranted = true;
@@ -694,7 +702,7 @@ void Raft::deleteLogFromIndexLocked(int index){
 //--------- Helper functions ----------      
 // RVO ensures that returning the struct avoids any unnecessary copies.
 std::optional<type::RequestVoteReply> Raft::sendRequestVoteLocked(int peerId){
-    spdlog::info("[Raft] {} sending RequestVote RPC to peer {}", me_, peerId);
+    // spdlog::info("[Raft] {} sending RequestVote RPC to peer {}", me_, peerId);
     type::RequestVoteArgs args{};
     args.term = currentTerm_;
     args.candidateId = me_;

@@ -134,20 +134,22 @@ void RpcServer::handleClient(int client_fd){
     //flags:0 means no special options
     //:: avoids potential c library function name conflicts with member functions
     while(true){
+        spdlog::info("[RpcServer] fd={} waiting recv()", client_fd);
         ssize_t n = ::recv(client_fd, buf, sizeof(buf), 0);
         //rpc is once time request-response, so only recv once
         if (n == 0) {
             // client closed normally
-            spdlog::info("[RpcServer] start() Client closed connection");
+            spdlog::info("[RpcServer] fd={} Client closed connection", client_fd);
             close(client_fd);
             return;
         } else if (n < 0) {
             //signal interrupt, try again
             // if (errno == EINTR) continue;
-            spdlog::error("[RpcServer] start() recv failed: {}", strerror(errno));
+            spdlog::error("[RpcServer] fd={} recv failed: {}", client_fd, strerror(errno));
             close(client_fd);
             return;
         }
+        spdlog::info("[RpcServer] fd={} recv {} bytes", client_fd, n);
         data.append(buf, static_cast<size_t>(n));
         //now data should conform to the rpc message format defined in client.h
         //[methodName]\n[payload]\nEND\n
@@ -158,23 +160,29 @@ void RpcServer::handleClient(int client_fd){
             if (!req_opt) break;
             //req_opt is std::optional<RpcRequest>
             const auto& [method, payload] = *req_opt;
-
+            spdlog::info("[RpcServer] fd={} decoded RPC: method={}, payload={}"
+                ,client_fd, method, payload);
             // === call handler ===
             std::string reply_payload;
             if (handlers_.count(method)) {
                 reply_payload = handlers_[method](payload);
+                spdlog::info("[RpcServer] fd={} handler executed, reply={}"
+                    , client_fd, reply_payload);
             } else {
                 reply_payload = "ERROR: unknown method";
+                spdlog::warn("[RpcServer] fd={} unknown method {}"
+                    , client_fd, method);
             }
 
             // === encode response ===
             std::string framed = codec.encodeResponse(reply_payload);
-            spdlog::info("[RpcServer] Sending RPC response: {}'", framed);
-            ::send(client_fd, framed.data(), framed.size(), 0);
+            spdlog::info("[RpcServer] fd={} sending response: {}", client_fd, framed);
+            ssize_t sent = ::send(client_fd, framed.data(), framed.size(), 0);
+            spdlog::info("[RpcServer] fd={} sent {} bytes", client_fd, sent);
         }//do not close until all messages are processed
         data.clear();
     }
     close(client_fd);
-    // spdlog::info("[RpcServer] start() RpcServer closed connection: fd={}", client_fd);
+    spdlog::info("[RpcServer] RpcServer closed connection: fd={}", client_fd);
 }
 }//namespace rpc
