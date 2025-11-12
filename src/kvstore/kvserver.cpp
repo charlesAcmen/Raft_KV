@@ -193,7 +193,9 @@ void KVServer::handleApplyMsg(raft::type::ApplyMsg& msg){
 
 bool KVServer::isSnapShotEnabledLocked() const{ return maxRaftState_ != -1;}
 bool KVServer::maybeTakeSnapshot(int appliedIndex){
+    // spdlog::info("[KVServer] try to acquire snap lock");
     std::lock_guard<std::mutex> lk(mu_);
+    // spdlog::info("[KVServer] acquired snap lock");
     //1. snapshot enabled
     if(!isSnapShotEnabledLocked()){
         // spdlog::info("[KVServer] Snapshot not enabled (maxRaftState_={}), skipping snapshot", maxRaftState_);

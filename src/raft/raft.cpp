@@ -10,6 +10,8 @@ Raft::Raft(int me,const std::vector<int>& peers,
     std::shared_ptr<IRaftTransport> transport)
     :me_(me), peers_(peers), transport_(transport){
     spdlog::set_pattern("[%l] %v");
+    //no lock at first
+    std::unique_lock<std::mutex> lock(mu_, std::defer_lock);
     // Basic field initialization
     for (int peerId : peers_) {
         if (peerId == me_) continue;
@@ -628,7 +630,15 @@ void Raft::ApplyLoop() {
         });
         if (!running_.load()) break;
         //apply committed logs to state machine asynchronously
-        applyLogsLocked();
+        // applyLogsLocked();
+
+        auto msgs = collectApplyMsgsLocked();
+        lock.unlock();
+        for (auto& msg : msgs) {
+            if (applyCallback_) {
+                applyCallback_(msg);
+            }
+        }
     }
 }
 /*
@@ -717,6 +727,23 @@ void Raft::applyLogsLocked(){
                     //  me_, lastApplied_, entry.command,entry.term);
     }
 }
+std::vector<type::ApplyMsg> Raft::collectApplyMsgsLocked() {
+    std::vector<type::ApplyMsg> msgs;
+
+    while (lastApplied_ < commitIndex_) {
+        lastApplied_++;
+        const auto& entry = log_.at(lastApplied_ - 1);
+
+        msgs.push_back(type::ApplyMsg{
+            .CommandValid = true,
+            .Command = entry.command,
+            .CommandIndex = entry.index
+        });
+    }
+
+    return msgs;
+}
+
 void Raft::deleteLogFromIndexLocked(int index){
     if (index <= 0 || index > static_cast<int>(log_.size())) {
         spdlog::warn("[Raft] deleteLogFromIndex Invalid index {}, log size={}", index, log_.size());

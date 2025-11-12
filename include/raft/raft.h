@@ -150,6 +150,7 @@ private:
     std::vector<type::LogEntry> getEntriesToSendLocked(int peerId) const;
     // Applies committed log entries to the state machine
     void applyLogsLocked();
+    std::vector<type::ApplyMsg> collectApplyMsgsLocked();
     void deleteLogFromIndexLocked(int index);
     //-------------------------------------
     //----------- Persister ---------------
@@ -180,6 +181,7 @@ private:
     // internal data protected by mu_
     mutable std::mutex mu_;
 
+    
     // Raft identity and cluster
     const int me_;                      // this peer's id (index into peers_)
     const std::vector<int> peers_;      // peer ids (including me_)
