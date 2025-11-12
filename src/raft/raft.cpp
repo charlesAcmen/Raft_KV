@@ -627,7 +627,7 @@ void Raft::ApplyLoop() {
             return lastApplied_ < commitIndex_ || !running_.load();
         });
         if (!running_.load()) break;
-        //TODO: apply committed logs to state machine asynchronously
+        //apply committed logs to state machine asynchronously
         applyLogsLocked();
     }
 }
