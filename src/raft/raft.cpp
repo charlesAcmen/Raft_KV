@@ -37,7 +37,7 @@ Raft::Raft(int me,const std::vector<int>& peers,
                 // spdlog::info("[Raft] {} RequestVote handler decode success: term={}, candidateId={}, lastLogIndex={}, lastLogTerm={}",
                             //  this->me_, args.term, args.candidateId, args.lastLogIndex, args.lastLogTerm);
                 type::RequestVoteReply reply = this->HandleRequestVote(args);
-                spdlog::info("[Raft] {} RequestVote handler processed successfully", this->me_);
+                // spdlog::info("[Raft] {} RequestVote handler processed successfully", this->me_);
                 return codec::RaftCodec::encode(reply);
             } catch (const std::exception& e) {
                 spdlog::error("[Raft] {} RequestVote handler exception: {}", this->me_, e.what());
@@ -305,7 +305,8 @@ void Raft::startElection(){
             }
             else{
                 // handle vote denied
-                spdlog::info("[Raft] Node {} vote denied by peer {} (peer term={})", me_, peer, reply->term);
+                spdlog::info("[Raft] Node {} vote denied by peer {} (peer term={})", 
+                    me_, peer, reply->term);
                 // if peer's term > currentTerm_, step down
                 if (reply->term > currentTerm_) {
                     becomeFollowerLocked(reply->term);//convert to follower,using locked version
@@ -390,7 +391,6 @@ void Raft::becomeCandidateLocked(){
     resetElectionTimerLocked();
 }
 void Raft::becomeLeaderLocked(){
-    std::lock_guard<std::mutex> lock(mu_);
     if (role_.load() == type::Role::Leader) {
         return; // already leader
     }
@@ -409,7 +409,7 @@ type::RequestVoteReply Raft::HandleRequestVote(
     const type::RequestVoteArgs& args){
     spdlog::info("[Raft] {} starts to handle request vote",me_);
     std::lock_guard<std::mutex> lock(mu_);
-    spdlog::info("starts to handle request vote[Raft] {} acquired lock when handling request vote",me_);
+    spdlog::info("[Raft] {} acquired lock when handling request vote",me_);
     type::RequestVoteReply reply{};
     
     // Reply's term is always our current term initially
@@ -437,9 +437,9 @@ type::RequestVoteReply Raft::HandleRequestVote(
 
     //have not voted this term or voted for candidate, and candidate's log is at least as up-to-date
     if ((votedFor_ == std::nullopt || votedFor_ == args.candidateId) && logOk) {
-        spdlog::info("[Raft] Node {} grants vote to node {} in term {} (logOk={}, votedFor_={})",
-            me_, args.candidateId, currentTerm_, logOk, 
-            (votedFor_ ? std::to_string(*votedFor_) : "nullopt"));
+        // spdlog::info("[Raft] Node {} grants vote to node {} in term {} (logOk={}, votedFor_={})",
+        //     me_, args.candidateId, currentTerm_, logOk, 
+        //     (votedFor_ ? std::to_string(*votedFor_) : "nullopt"));
         votedFor_ = args.candidateId;
         persistLocked();
         reply.voteGranted = true;
@@ -468,7 +468,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(
     }
     // Step 2: If term > currentTerm, update and convert to follower
     if (args.term > currentTerm_) {
-        becomeFollower(args.term); 
+        becomeFollowerLocked(args.term); 
         spdlog::info("[Raft] Node {} updating term to {} and becomes follower", me_, currentTerm_);
     }
     // Step 3: Reset election timeout since valid leader contacted us
@@ -776,7 +776,7 @@ void Raft::broadcastHeartbeat(){
         std::lock_guard<std::mutex> lock(mu_);
         if (reply) {
             if (reply->term > currentTerm_) {
-                becomeFollower(reply->term);
+                becomeFollowerLocked(reply->term);
                 spdlog::info(
                     "[Raft] Node {} stepping down to Follower due to higher term from {}", 
                     me_, peer);
