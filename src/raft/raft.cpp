@@ -326,7 +326,6 @@ void Raft::becomeFollowerLocked(int32_t newTerm){
     spdlog::info("[Raft] Node {} becomes follower (term={})", me_, currentTerm_);
     votedFor_ = std::nullopt;
     persistLocked();
-    // stop election timer if running
     // stop heartbeat timer if running
     heartbeatTimer_->Stop();
     // reset election timer
@@ -730,6 +729,7 @@ std::optional<type::AppendEntriesReply> Raft::sendAppendEntriesLocked(int peerId
     return reply;
 }
 void Raft::broadcastHeartbeatLocked(){
+    // auto t0 = std::chrono::steady_clock::now();
     // spdlog::info("[Raft] Heartbeat tick enter on leader {}", me_);
     for(const auto& peer : peers_){
         if(peer == me_) continue; // skip self
@@ -746,6 +746,9 @@ void Raft::broadcastHeartbeatLocked(){
             //TODO: handle no reply (network failure, timeout)
         }
     }
+    // auto t1 = std::chrono::steady_clock::now();
+    // spdlog::info("[Raft] took {} ms at broadcastHeartbeatLocked", 
+    //     std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count());
     // spdlog::info("[Raft] Heartbeat tick exit on leader {}", me_);
 }
 void Raft::broadcastAppendEntriesLocked(){
@@ -812,11 +815,13 @@ void Raft::onElectionTimeout(){
 void Raft::onHeartbeatTimeout(){
     // spdlog::info("[Raft] Heartbeat timeout occurred on node {}.", me_);
     std::lock_guard<std::mutex> lock(mu_);
-    if (role_.load() != type::Role::Leader) {
-        spdlog::error("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
-        return;
-    }
-    else{ broadcastHeartbeatLocked();}
+    // if (role_.load() != type::Role::Leader) {
+    //     spdlog::error("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
+    //     return;
+    // }
+    // else{ 
+    broadcastHeartbeatLocked();
+    // }
 }
 std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peerId){
     // spdlog::info("[Raft] {} Sending heartbeat AppendEntries to peer {}.", me_,peerId);

@@ -82,7 +82,7 @@ void ThreadTimer::workerLoop() {
         lock.unlock();
         try {
             if (callback_) {
-                spdlog::info("[ThreadTimer] callback called (gen={})", local_gen);
+                spdlog::info("[ThreadTimer] callback called");
                 callback_();
             }
         } catch (const std::exception& e) {
@@ -96,50 +96,6 @@ void ThreadTimer::workerLoop() {
         // (This matches typical election-timeout semantics: after firing you wait for Reset to arm it again.)
         running_ = false;
         ++generation_; // bump generation so concurrent Resets are ordered
-
-
-
-
-        // capture generation and duration under lock (snapshot)
-        // uint64_t gen = generation_.load();
-        // auto duration = duration_;
-        // // compute deadline using steady_clock
-        // auto deadline = std::chrono::steady_clock::now() + duration;
-        // // Wait until timeout or early stop
-        // // wait until is better than wait_for to avoid issues with spurious wakeups虚假唤醒
-        // bool stoppedEarly = cv_.wait_until(lock, deadline, [this,gen]() { 
-        //     // wake if stopped OR generation changed OR running turned false
-        //     return stopped_ || generation_.load() != gen || !running_;
-        // });
-        // // spdlog::info("[ThreadTimer] Woke up from wait, stoppedEarly: {}, stopped_: {}, generation: {}, current generation: {}, running_: {}",
-        // //     stoppedEarly, stopped_, gen, generation_.load(), running_);
-        // // If predicate returned true -> either stopped or generation changed or running_ false
-        // if (stopped_) break;
-        // // If generation changed or running_ false, skip this round
-        // if (generation_.load() != gen || !running_) {
-        //     continue;
-        // }
-        // // If wait_until returned false, it means timeout reached with generation unchanged
-        // // (some libraries return false for timeout). We check "now >= deadline" to be safe:
-        // auto now = std::chrono::steady_clock::now();
-        // if (now >= deadline) {
-        //     // release lock while executing callback
-        //     lock.unlock();
-        //     try {
-        //         if (callback_){
-        //             spdlog::info("[ThreadTimer] callback called");
-        //             callback_();
-        //         }
-        //     } catch (const std::exception& e) {
-        //         spdlog::error("[ThreadTimer] Exception in callback: {}", e.what());
-        //     } catch (...) {
-        //         spdlog::error("[ThreadTimer] Unknown exception in callback");
-        //     }
-        //     lock.lock();
-        // } else {
-        //     // spurious wake but generation unchanged — continue loop
-        //     continue;
-        // }
     }
     // spdlog::info("[ThreadTimer] Worker thread exiting");
 }

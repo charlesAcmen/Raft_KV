@@ -45,7 +45,7 @@ KVCluster::KVCluster(int numServers, int numClerks) {
             std::make_shared<KVServer>(self.id, peerIds, transport, raftNodes[i-numClerks], kSnapshotThreshold);        
         kvservers_.push_back(kvserver);
     }
-    spdlog::info("KVCluster with {} servers and {} clerks initialized.", kvservers_.size(), clerks_.size());
+    // spdlog::info("KVCluster with {} servers and {} clerks initialized.", kvservers_.size(), clerks_.size());
 }
 KVCluster::~KVCluster() {
     StopAll();
