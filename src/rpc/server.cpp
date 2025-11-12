@@ -176,9 +176,9 @@ void RpcServer::handleClient(int client_fd){
 
             // === encode response ===
             std::string framed = codec.encodeResponse(reply_payload);
-            spdlog::info("[RpcServer] fd={} sending response: {}", client_fd, framed);
+            // spdlog::info("[RpcServer] fd={} sending response: {}", client_fd, framed);
             ssize_t sent = ::send(client_fd, framed.data(), framed.size(), 0);
-            spdlog::info("[RpcServer] fd={} sent {} bytes", client_fd, sent);
+            // spdlog::info("[RpcServer] fd={} sent {} bytes", client_fd, sent);
         }//do not close until all messages are processed
         data.clear();
     }

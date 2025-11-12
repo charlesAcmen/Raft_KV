@@ -290,6 +290,8 @@ void Raft::startElection(){
     for (const auto& peer : peers_) {
         if (peer == me_) continue; // skip self
         std::optional<type::RequestVoteReply> reply = sendRequestVote(peer);
+        //reacquire lock after network IO
+        std::lock_guard<std::mutex> lock(mu_);
         if(reply){
             if(reply->voteGranted){
                 // handle vote granted
@@ -297,7 +299,7 @@ void Raft::startElection(){
                 spdlog::info("[Raft] Node {} received vote from node {} (total votes={})", me_, peer, votesGranted);
                 // check if won majority
                 if (votesGranted >= majority && role_.load() == type::Role::Candidate) {
-                    becomeLeader(); // convert to Leader
+                    becomeLeaderLocked(); // convert to Leader,using locked version
                     break; // no need to send more votes
                 }
             }
@@ -306,7 +308,7 @@ void Raft::startElection(){
                 spdlog::info("[Raft] Node {} vote denied by peer {} (peer term={})", me_, peer, reply->term);
                 // if peer's term > currentTerm_, step down
                 if (reply->term > currentTerm_) {
-                    becomeFollower(reply->term);
+                    becomeFollowerLocked(reply->term);//convert to follower,using locked version
                     break;
                 }
             }
@@ -325,6 +327,41 @@ void Raft::startElection(){
 // or granting vote to candidate: convert to candidate
 void Raft::becomeFollower(int32_t newTerm){
     std::lock_guard<std::mutex> lock(mu_);
+    becomeFollowerLocked(newTerm);
+}
+// Candidate rules:
+// On conversion to candidate, start election:
+// Increment currentTerm
+// Vote for self
+// Reset election timer
+// Send RequestVote RPCs to all other servers
+// If votes received from majority of servers: become leader
+// If AppendEntries RPC received from new leader: convert to follower
+// If election timeout elapses: start new election
+void Raft::becomeCandidate(){
+    std::lock_guard<std::mutex> lock(mu_);
+    becomeCandidateLocked();
+}
+// Leader rules:
+// 1.Upon election: send initial empty AppendEntries RPCs (heartbeats) to each server;
+// repeat during idle periods to prevent election timeouts
+// 2. If command received from client: append entry to local log, 
+// respond after entry applied to state machine
+// 3. If last log index ≥ nextIndex for a follower: send AppendEntries RPC with log entries
+// starting at nextIndex
+// If successful: update nextIndex and matchIndex for follower
+// If AppendEntries fails because of log inconsistency: decrement nextIndex and retry
+// 4. If there exists an N such that N > commitIndex, a majority of matchIndex[i] ≥ N,
+// and log[N].term == currentTerm: set commitIndex = N
+void Raft::becomeLeader(){
+    {
+        std::lock_guard<std::mutex> lock(mu_);
+        becomeLeaderLocked();
+    }
+    //broad cast in non locked version
+    broadcastHeartbeat();   
+}
+void Raft::becomeFollowerLocked(int32_t newTerm){
     if (role_.load() == type::Role::Follower && currentTerm_ == newTerm) {
         // already follower in this term
         return;
@@ -339,17 +376,7 @@ void Raft::becomeFollower(int32_t newTerm){
     // reset election timer
     resetElectionTimerLocked();
 }
-// Candidate rules:
-// On conversion to candidate, start election:
-// Increment currentTerm
-// Vote for self
-// Reset election timer
-// Send RequestVote RPCs to all other servers
-// If votes received from majority of servers: become leader
-// If AppendEntries RPC received from new leader: convert to follower
-// If election timeout elapses: start new election
-void Raft::becomeCandidate(){
-    std::lock_guard<std::mutex> lock(mu_);
+void Raft::becomeCandidateLocked(){
     if (role_.load() == type::Role::Candidate) {
         return; // already candidate
     }
@@ -362,18 +389,7 @@ void Raft::becomeCandidate(){
     // reset election timer
     resetElectionTimerLocked();
 }
-// Leader rules:
-// 1.Upon election: send initial empty AppendEntries RPCs (heartbeats) to each server;
-// repeat during idle periods to prevent election timeouts
-// 2. If command received from client: append entry to local log, 
-// respond after entry applied to state machine
-// 3. If last log index ≥ nextIndex for a follower: send AppendEntries RPC with log entries
-// starting at nextIndex
-// If successful: update nextIndex and matchIndex for follower
-// If AppendEntries fails because of log inconsistency: decrement nextIndex and retry
-// 4. If there exists an N such that N > commitIndex, a majority of matchIndex[i] ≥ N,
-// and log[N].term == currentTerm: set commitIndex = N
-void Raft::becomeLeader(){
+void Raft::becomeLeaderLocked(){
     std::lock_guard<std::mutex> lock(mu_);
     if (role_.load() == type::Role::Leader) {
         return; // already leader
@@ -383,7 +399,7 @@ void Raft::becomeLeader(){
     electionTimer_->Stop();
     //reset to start heartbeat timer
     resetHeartbeatTimerLocked();
-    broadcastHeartbeat();   
+    //VERY IMPORTANT:DO NOT BROADCAST HEARTBEAT HERE
 }
 
 
@@ -393,7 +409,7 @@ type::RequestVoteReply Raft::HandleRequestVote(
     const type::RequestVoteArgs& args){
     spdlog::info("[Raft] {} starts to handle request vote",me_);
     std::lock_guard<std::mutex> lock(mu_);
-    spdlog::info("[Raft] {} acquired lock when handling request vote",me_);
+    spdlog::info("starts to handle request vote[Raft] {} acquired lock when handling request vote",me_);
     type::RequestVoteReply reply{};
     
     // Reply's term is always our current term initially
@@ -410,7 +426,7 @@ type::RequestVoteReply Raft::HandleRequestVote(
     // Step 2: If the term in the request is greater than our term, update term and convert to follower
     if (args.term > currentTerm_) {
         spdlog::info("[Raft] Node {} updating term from {} to {}", me_, currentTerm_, args.term);
-        becomeFollower(args.term);
+        becomeFollowerLocked(args.term);
     }
 
     int lastTerm = getLastLogTermLocked();
@@ -755,7 +771,9 @@ void Raft::broadcastHeartbeat(){
     // spdlog::info("[Raft] Heartbeat tick enter on leader {}", me_);
     for(const auto& peer : peers_){
         if(peer == me_) continue; // skip self
-        std::optional<type::AppendEntriesReply> reply = sendHeartbeatLocked(peer);
+        std::optional<type::AppendEntriesReply> reply = sendHeartbeat(peer);
+        //reacquire lock after network IO
+        std::lock_guard<std::mutex> lock(mu_);
         if (reply) {
             if (reply->term > currentTerm_) {
                 becomeFollower(reply->term);
@@ -845,17 +863,19 @@ void Raft::onHeartbeatTimeout(){
     }
     broadcastHeartbeat();
 }
-std::optional<type::AppendEntriesReply> Raft::sendHeartbeatLocked(int peerId){
+std::optional<type::AppendEntriesReply> Raft::sendHeartbeat(int peerId){
     // spdlog::info("[Raft] {} Sending heartbeat AppendEntries to peer {}.", me_,peerId);
     type::AppendEntriesArgs args{};
-    args.term = currentTerm_;
-    args.leaderId = me_;
-    //plz make sure correct function called god damn it lol
-    args.prevLogIndex = getPrevLogIndexLocked(peerId);
-    args.prevLogTerm = getPrevLogTermLocked(peerId);
-    args.entries = {}; // empty for heartbeat
-    args.leaderCommit = commitIndex_;
-
+    {
+        std::lock_guard<std::mutex> lock(mu_);
+        args.term = currentTerm_;
+        args.leaderId = me_;
+        //plz make sure correct function called god damn it lol
+        args.prevLogIndex = getPrevLogIndexLocked(peerId);
+        args.prevLogTerm = getPrevLogTermLocked(peerId);
+        args.entries = {}; // empty for heartbeat
+        args.leaderCommit = commitIndex_;
+    }
     // spdlog::info("[Raft] Heartbeat AppendEntries args: term={}, leaderId={}, prevLogIndex={}, prevLogTerm={}, leaderCommit={}",
     //     args.term, args.leaderId, args.prevLogIndex, args.prevLogTerm, args.leaderCommit);
 

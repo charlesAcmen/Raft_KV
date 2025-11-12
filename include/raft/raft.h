@@ -115,7 +115,7 @@ private:
     // Send AppendEntries (with log entries) to all peers   
     void broadcastAppendEntries();       
     // Send heartbeat to one peer 
-    std::optional<type::AppendEntriesReply> sendHeartbeatLocked(int peer);
+    std::optional<type::AppendEntriesReply> sendHeartbeat(int peer);
     //-------------------------------------
     //---------- Role transtions ----------
     //-------------------------------------
@@ -126,6 +126,10 @@ private:
     void becomeCandidate();                 
     // stop election timer,start heartbeat timer,broadcast heartbeats
     void becomeLeader();                    
+    void becomeFollowerLocked(int32_t newTerm); 
+    void becomeCandidateLocked();   
+    void becomeLeaderLocked();  
+
 
 
     //-------------------------------------

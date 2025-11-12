@@ -98,15 +98,15 @@ std::optional<std::string> RpcClient::Call(
             ::close(sock_fd);
             break;
         }
-        spdlog::info("[RpcClient] recv() got {} bytes", r);
+        // spdlog::info("[RpcClient] recv() got {} bytes", r);
         buffer.append(tmp, static_cast<size_t>(r));
         // try decode
         std::optional<std::string> resp = codec.tryDecodeResponse(buffer);
         if (resp){
-            spdlog::debug("[RpcClient] decode success, total buffer size={}", buffer.size());
+            // spdlog::info("[RpcClient] decode success, total buffer size={}", buffer.size());
             return *resp; // return response payload
         }else{
-            spdlog::debug("[RpcClient] decode incomplete, buffer size={}", buffer.size());
+            // spdlog::info("[RpcClient] decode incomplete, buffer size={}", buffer.size());
         }
     }
     spdlog::warn("[RpcClient] exit with no response");
