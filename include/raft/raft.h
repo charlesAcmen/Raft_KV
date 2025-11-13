@@ -114,7 +114,9 @@ private:
     // Send empty AppendEntries to all peers
     void broadcastHeartbeat(); 
     // Send AppendEntries (with log entries) to all peers   
-    void broadcastAppendEntries();       
+    void broadcastAppendEntries();
+    void handleAppendReply(
+        int,const std::optional<type::AppendEntriesReply>&);
     // Send heartbeat to one peer 
     std::optional<type::AppendEntriesReply> sendHeartbeat(int peer);
     //-------------------------------------

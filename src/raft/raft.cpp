@@ -670,7 +670,7 @@ void Raft::updateCommitIndexLocked(){
         int majority = (peers_.size() / 2) + 1;
         if (replicatedCount >= majority) {
             commitIndex_ = N;
-            // spdlog::info("[Raft] {} updated commitIndex to {}", me_, commitIndex_);
+            spdlog::info("[Raft] {} updated commitIndex to {}", me_, commitIndex_);
             apply_cv_.notify_one(); // notify apply thread
             break;
         }
@@ -833,35 +833,44 @@ void Raft::broadcastAppendEntries(){
     for(const auto& peer : peers_){
         if(peer == me_) continue; // skip self
         std::optional<type::AppendEntriesReply> reply = sendAppendEntries(peer);
-        //reacquire lock after network IO
-        std::lock_guard<std::mutex> lock(mu_);
-        if (reply) {
-            //rpc reply received
-            if (reply->term > currentTerm_) {
-                becomeFollowerLocked(reply->term);
-                spdlog::info(
-                    "[Raft] {} stepping down to Follower due to higher term from {}", 
-                    me_, peer);
+        {
+            std::lock_guard<std::mutex> lock(mu_);
+            if (role_.load() != type::Role::Leader) {
+                spdlog::info("[Raft] {} stopped AppendEntries loop (no longer leader)", me_);
                 break;
             }
-            else {
-                if(reply->success){
-                    nextIndex_[peer] = getLastLogIndexLocked() + 1;
-                    matchIndex_[peer] = nextIndex_[peer] - 1;
-                    // spdlog::info("[Raft] {} AppendEntries success from {}, matchIndex={}, nextIndex={}", 
-                        // me_, peer, matchIndex_[peer], nextIndex_[peer]);
-                    updateCommitIndexLocked();
-                } else {
-                    // Decrement nextIndex_ on failure
-                    nextIndex_[peer] = std::max(1, nextIndex_[peer] - 1);
-                    spdlog::info("[Raft] {} AppendEntries failed from {}, decrementing nextIndex to {}", 
-                        me_, peer, nextIndex_[peer]);
-                }
-            }
-        } else {
-            spdlog::warn("[Raft] {} AppendEntries to {} failed", me_, peer);
-            //TODO: handle no reply (network failure, timeout)
         }
+        handleAppendReply(peer,reply);
+    }
+}           
+void Raft::handleAppendReply(int peer,const std::optional<type::AppendEntriesReply>& reply){
+    //reacquire lock after network IO
+    std::lock_guard<std::mutex> lock(mu_);
+    if (reply) {
+        //rpc reply received
+        if (reply->term > currentTerm_) {
+            becomeFollowerLocked(reply->term);
+            spdlog::info(
+                "[Raft] {} stepping down to Follower due to higher term from {}", 
+                me_, peer);
+        }
+        else {
+            if(reply->success){
+                nextIndex_[peer] = getLastLogIndexLocked() + 1;
+                matchIndex_[peer] = nextIndex_[peer] - 1;
+                // spdlog::info("[Raft] {} AppendEntries success, matchIndex[{}] = {}, nextIndex[{}]={}", 
+                //     me_, peer, matchIndex_[peer], peer,nextIndex_[peer]);
+                updateCommitIndexLocked();
+            } else {
+                // Decrement nextIndex_ on failure
+                nextIndex_[peer] = std::max(1, nextIndex_[peer] - 1);
+                spdlog::info("[Raft] {} decre nextIndex[{}] = {}", 
+                    me_, peer, nextIndex_[peer]);
+            }
+        }
+    } else {
+        spdlog::warn("[Raft] {} AppendEntries to {} failed", me_, peer);
+        //TODO: handle no reply (network failure, timeout)
     }
 }
 void Raft::resetElectionTimerLocked(){

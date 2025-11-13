@@ -198,33 +198,35 @@ void KVServer::handleApplyMsg(raft::type::ApplyMsg& msg){
 
 bool KVServer::isSnapShotEnabledLocked() const{ return maxRaftState_ != -1;}
 bool KVServer::maybeTakeSnapshot(int appliedIndex){
-    // spdlog::info("[KVServer] try to acquire snap lock");
-    std::lock_guard<std::mutex> lk(mu_);
-    // spdlog::info("[KVServer] acquired snap lock");
-    //1. snapshot enabled
-    if(!isSnapShotEnabledLocked()){
-        // spdlog::info("[KVServer] Snapshot not enabled (maxRaftState_={}), skipping snapshot", maxRaftState_);
-        return false;
-    }
-    //2. if Raft persisted state size surpasses threshold
-    if(rf_->GetPersistSize() < maxRaftState_){
-        spdlog::info("[KVServer] Persist size {} < threshold {}, not snapshotting", 
-                      rf_->GetPersistSize(), maxRaftState_);
-        return false;
-    }
+    std::string snapshotData;
+    {
+        // spdlog::info("[KVServer] try to acquire snap lock");
+        std::lock_guard<std::mutex> lk(mu_);
+        // spdlog::info("[KVServer] acquired snap lock");
+        //1. snapshot enabled
+        if(!isSnapShotEnabledLocked()){
+            // spdlog::info("[KVServer] Snapshot not enabled (maxRaftState_={}), skipping snapshot", maxRaftState_);
+            return false;
+        }
+        //2. if Raft persisted state size surpasses threshold
+        if(rf_->GetPersistSize() < maxRaftState_){
+            spdlog::info("[KVServer] Persist size {} < threshold {}, not snapshotting", 
+                        rf_->GetPersistSize(), maxRaftState_);
+            return false;
+        }
 
-    // 3. Encode the current KV state into a snapshot.
-    //    This snapshot should contain all key-value pairs
-    //    and any other metadata that is required to restore the state.
-    std::string snapshotData = kvSM_->EncodeSnapShot();
-    spdlog::info("[KVServer] Snapshot data:\n{}", snapshotData);
+        // 3. Encode the current KV state into a snapshot.
+        //    This snapshot should contain all key-value pairs
+        //    and any other metadata that is required to restore the state.
+        snapshotData = kvSM_->EncodeSnapShot();
+        spdlog::info("[KVServer] Snapshot data:\n{}", snapshotData);
+    }
 
     // 4. Instruct Raft to persist the snapshot and compact its log up to 'appliedIndex'.
     //    This tells Raft that log entries ≤ appliedIndex are now safely included in the snapshot
     //    and can be discarded to reduce storage size.
     rf_->SnapShot(appliedIndex, snapshotData);
 
-    // 5. Optionally, log debug info for diagnosis.
     spdlog::info("[KVServer] Took snapshot at index {}, state size = {}",
                  appliedIndex, rf_->GetPersistSize());
     return true;
