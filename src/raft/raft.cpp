@@ -492,8 +492,8 @@ type::AppendEntriesReply Raft::HandleAppendEntries(
     if (args.prevLogIndex > getLastLogIndexLocked() ||
         getLogTermLocked(args.prevLogIndex) != args.prevLogTerm) {
         reply.success = false;
-        // spdlog::info("[Raft] {} rejecting AppendEntries from {}: log inconsistency at prevLogIndex {}",
-        //     me_, args.leaderId, args.prevLogIndex);
+        spdlog::info("[Raft] {} rejecting AppendEntries from {}: log inconsistency at prevLogIndex {}",
+            me_, args.leaderId, args.prevLogIndex);
         return reply;
     }
     // Step 5: Append any new entries not already in the log

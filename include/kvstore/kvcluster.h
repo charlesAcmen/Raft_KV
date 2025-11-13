@@ -26,9 +26,9 @@ public:
     std::shared_ptr<Clerk> testGetClerk(int index) const;
 private:
     static constexpr int kSnapshotThreshold = 
-        // -1;//not enabled
+        -1;//not enabled
         // 50;
-        512;
+        // 512;
         // 1024 * 1;
         // 1024 * 1024 * 1;//1MB
 
