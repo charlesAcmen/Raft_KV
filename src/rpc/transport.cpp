@@ -34,7 +34,7 @@ void TransportBase::Start() {
             if(allConnected || !running_.load()) break;
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        spdlog::info("[TransportBase] {}:All RPC clients connected to peers",self_.address);
+        // spdlog::info("[TransportBase] {}:All RPC clients connected to peers",self_.address);
     });
 }
 void TransportBase::Stop() {

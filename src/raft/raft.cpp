@@ -214,8 +214,8 @@ void Raft::SnapShot(
     persister_->SaveStateAndSnapshot(
         currentTerm_, votedFor_, log_,snapshot);
 
-    spdlog::info("[Raft] Snapshot taken at index {}, lastIncludedTerm = {},log size = {}",
-                 lastIncludedIndex_, lastIncludedTerm_, log_.size());
+    spdlog::info("[Raft] {} Snapshot taken at index {}, lastIncludedTerm = {},log size = {}",
+                me_,lastIncludedIndex_, lastIncludedTerm_, log_.size());
 }
 //------------------- Testing utilities -------------------
 int32_t Raft::testGetCurrentTerm() const{
@@ -492,8 +492,8 @@ type::AppendEntriesReply Raft::HandleAppendEntries(
     if (args.prevLogIndex > getLastLogIndexLocked() ||
         getLogTermLocked(args.prevLogIndex) != args.prevLogTerm) {
         reply.success = false;
-        spdlog::info("[Raft] {} rejecting AppendEntries from {}: log inconsistency at prevLogIndex {}",
-            me_, args.leaderId, args.prevLogIndex);
+        // spdlog::info("[Raft] {} rejecting AppendEntries from {}: log inconsistency at prevLogIndex {}",
+        //     me_, args.leaderId, args.prevLogIndex);
         return reply;
     }
     // Step 5: Append any new entries not already in the log

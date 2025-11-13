@@ -162,7 +162,7 @@ void KVServer::Get(
     std::lock_guard<std::mutex> lk(mu_);
     std::optional<std::string> value = kvSM_->Get(args.Key);
     if(value){
-        spdlog::info("[KVServer] {} Get found [{}] = {}", me_, args.Key, *value);
+        // spdlog::info("[KVServer] {} Get found [{}] = {}", me_, args.Key, *value);
         reply.Value = *value;
         reply.err = type::Err::OK;
     }else{
@@ -225,8 +225,8 @@ bool KVServer::maybeTakeSnapshot(int appliedIndex){
     rf_->SnapShot(appliedIndex, snapshotData);
 
     // 5. Optionally, log debug info for diagnosis.
-    spdlog::info("[KVServer] Took snapshot at index {}, state size = {}, threshold = {}",
-                 appliedIndex, rf_->GetPersistSize(), maxRaftState_);
+    spdlog::info("[KVServer] Took snapshot at index {}, state size = {}",
+                 appliedIndex, rf_->GetPersistSize());
     return true;
 }
 

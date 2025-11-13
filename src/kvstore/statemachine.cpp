@@ -34,12 +34,12 @@ std::optional<std::string> KVStateMachine::Get(const std::string& key) const {
     std::lock_guard<std::mutex> lock(mu_);
     auto it = store_.find(key);
     if (it != store_.end()) {
-        spdlog::info("[KVStateMachine] kvserver {} Get [{}] = {}", 
-            me_, key, it->second);
+        // spdlog::info("[KVStateMachine] kvserver {} Get [{}] = {}", 
+        //     me_, key, it->second);
         return it->second;
     }
-    spdlog::info("[KVStateMachine] kvserver {} Get key {} not found", 
-        me_, key);
+    // spdlog::info("[KVStateMachine] kvserver {} Get key {} not found", 
+    //     me_, key);
     return std::nullopt;
 }
 std::string KVStateMachine::EncodeSnapShot() const {
