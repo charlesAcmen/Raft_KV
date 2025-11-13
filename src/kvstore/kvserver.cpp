@@ -174,7 +174,11 @@ void KVServer::Get(
 // KVCommand,Get,PutAppend
 void KVServer::handleApplyMsg(raft::type::ApplyMsg& msg){
     if(msg.CommandValid){
-        kvSM_->Apply(msg.Command);
+        // 在加鎖的情況下應用狀態機，確保與 Get 操作的同步
+        {
+            std::lock_guard<std::mutex> lk(mu_);
+            kvSM_->Apply(msg.Command);
+        }
         // update after applied to state machine
         type::KVCommand kvCommand = 
             type::KVCommand::FromString(msg.Command);

@@ -10,7 +10,7 @@ void RandomClerkOperation(std::shared_ptr<kv::Clerk> clerk) {
     static std::mt19937 rng(std::random_device{}());
 
     // Randomly pick operation: 0 => Put, 1 => Append, 2 => Get
-    std::uniform_int_distribution<int> op_dist(0, 2);
+    std::uniform_int_distribution<int> op_dist(0, 2 );
     int op = op_dist(rng);
 
     // Generate a random key and value
@@ -104,7 +104,6 @@ void SequentialConsistencyTest(std::vector<std::shared_ptr<kv::Clerk>> clerks) {
 }
 
 void ConcurrentPutAppendGetTest(
-    // std::shared_ptr<KVCluster> cluster,
     std::shared_ptr<kv::Clerk> clerk1,
     std::shared_ptr<kv::Clerk> clerk2){
     spdlog::info("===== ConcurrentPutAppendGetTest Begin =====");
@@ -193,7 +192,7 @@ void SequentialAppendTest(
 int main(){
     // kv::KVCluster cluster(5,0);
     int serverNum = 5;
-    int clerkNum = 2;
+    int clerkNum = 10;
     kv::KVCluster cluster(serverNum,clerkNum);
     cluster.StartAll();
 
@@ -208,12 +207,28 @@ int main(){
     // // "Grand Theft Auto VI";
     // "value1";
     // clerk->Put(key,value);
+    
+    //--------------------one clerk random--------------
+    // std::shared_ptr<kv::Clerk> clerk = cluster.testGetClerk(0);
+    // int operationNum = 100000;
+    // for (int i = 0; i < operationNum; ++i) { 
+    //     // spdlog::info("[main] op{}",i+1);
+    //     RandomClerkOperation(clerk);
+    // }
 
-    std::shared_ptr<kv::Clerk> clerk = cluster.testGetClerk(0);
-    int operationNum = 50;
-    for (int i = 0; i < operationNum; ++i) { 
-        // spdlog::info("[main] op{}",i+1);
-        RandomClerkOperation(clerk);
+    //--------------------multiple clerks random--------------
+    std::vector<std::shared_ptr<kv::Clerk>>  clerks = cluster.testGetClerks();
+    std::vector<std::thread> threads;
+    const int operationsPerThread = 500; // 每个线程执行的操作数
+    for (auto& clerk : clerks) {
+        threads.emplace_back([clerk, operationsPerThread]() {
+            for (int i = 0; i < operationsPerThread; ++i) {
+                RandomClerkOperation(clerk);
+            }
+        });
+    }
+    for (auto& th : threads) {
+        th.join();
     }
 
     //--------------------Sequential--------------

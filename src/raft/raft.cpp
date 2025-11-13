@@ -670,7 +670,7 @@ void Raft::updateCommitIndexLocked(){
         int majority = (peers_.size() / 2) + 1;
         if (replicatedCount >= majority) {
             commitIndex_ = N;
-            spdlog::info("[Raft] {} updated commitIndex to {}", me_, commitIndex_);
+            // spdlog::info("[Raft] {} updated commitIndex to {}", me_, commitIndex_);
             apply_cv_.notify_one(); // notify apply thread
             break;
         }

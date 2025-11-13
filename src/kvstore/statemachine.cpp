@@ -9,25 +9,25 @@ void KVStateMachine::Apply(const std::string& command) {
     // spdlog::info("[KVStateMachine] {} Applied command: {}", me_,command);
     type::KVCommand kvCommand = type::KVCommand::FromString(command);
     switch (kvCommand.type){
-    case type::KVCommand::CommandType::GET:
-        //usually no-op for state machine
-        break;
-    case type::KVCommand::CommandType::PUT:
-        store_[kvCommand.key] = kvCommand.value;
-        spdlog::info("[KVStateMachine] {} [{}] = {}",
-            me_,kvCommand.key,store_[kvCommand.key]);
-        break;
-    case type::KVCommand::CommandType::APPEND:{
-        std::string before = store_[kvCommand.key];
-        store_[kvCommand.key] += kvCommand.value;
-        // spdlog::info("[KVStateMachine] kvserver {} append before {},after {} at {}",
-        //         me_,before,store_[kvCommand.key],kvCommand.key);
-        spdlog::info("[KVStateMachine] {} [{}] = {}",
-            me_,kvCommand.key,store_[kvCommand.key]);
-        break;
-    }
-    default:
-        break;
+        case type::KVCommand::CommandType::GET:
+            //usually no-op for state machine
+            break;
+        case type::KVCommand::CommandType::PUT:
+            store_[kvCommand.key] = kvCommand.value;
+            spdlog::info("[KVStateMachine] {} [{}] = {}",
+                me_,kvCommand.key,store_[kvCommand.key]);
+            break;
+        case type::KVCommand::CommandType::APPEND:{
+            // std::string before = store_[kvCommand.key];
+            store_[kvCommand.key] += kvCommand.value;
+            // spdlog::info("[KVStateMachine] kvserver {} append before {},after {} at {}",
+            //         me_,before,store_[kvCommand.key],kvCommand.key);
+            spdlog::info("[KVStateMachine] {} [{}] = {}",
+                me_,kvCommand.key,store_[kvCommand.key]);
+            break;
+        }
+        default:
+            break;
     }
 }
 std::optional<std::string> KVStateMachine::Get(const std::string& key) const {
