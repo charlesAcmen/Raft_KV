@@ -29,49 +29,6 @@ Raft::Raft(int me,const std::vector<int>& peers,
     }
 
     persister_ = std::make_shared<Persister>();
-    // Register RPC handlers that accept a serialized payload and return a serialized reply.
-    // The lambdas: decode -> call local handler function -> encode reply.
-    transport_->RegisterRequestVoteHandler(
-        [this](const std::string& payload) -> std::string {
-            try {
-                // spdlog::info("[Raft] {} RequestVote handler received payload: {}", this->me_, payload);
-                type::RequestVoteArgs args = codec::RaftCodec::decodeRequestVoteArgs(payload);
-                // spdlog::info("[Raft] {} RequestVote handler decode success: term={}, candidateId={}, lastLogIndex={}, lastLogTerm={}",
-                            //  this->me_, args.term, args.candidateId, args.lastLogIndex, args.lastLogTerm);
-                type::RequestVoteReply reply = this->HandleRequestVote(args);
-                // spdlog::info("[Raft] {} RequestVote handler processed successfully", this->me_);
-                return codec::RaftCodec::encode(reply);
-            } catch (const std::exception& e) {
-                spdlog::error("[Raft] {} RequestVote handler exception: {}", this->me_, e.what());
-                return std::string();
-            }
-        }
-    );
-    transport_->RegisterAppendEntriesHandler(
-        [this](const std::string& payload) -> std::string {
-            try {
-                type::AppendEntriesArgs args = codec::RaftCodec::decodeAppendEntriesArgs(payload);
-                type::AppendEntriesReply reply = this->HandleAppendEntries(args);
-                return codec::RaftCodec::encode(reply);
-            } catch (const std::exception& e) {
-                spdlog::error("[Raft] {} AppendEntries handler exception: {}", this->me_, e.what());
-                return std::string();
-            }
-        }
-    );
-    transport_->RegisterInstallSnapShotRPC(
-        [this](const std::string& payload) -> std::string {
-            try {
-                type::InstallSnapshotArgs args = codec::RaftCodec::decodeInstallSnapshotArgs(payload);
-                type::InstallSnapshotReply reply = this->HandleInstallSnapshot(args);
-                return codec::RaftCodec::encode(reply);
-            } catch (const std::exception& e) {
-                spdlog::error("[Raft] {} InstallSnapshot handler exception: {}", this->me_, e.what());
-                return std::string();
-            }
-        }
-    );
-
     // Initialize timers
     timerFactory_ = std::make_shared<ThreadTimerFactory>();
     electionTimer_ = timerFactory_->CreateTimer([this]() {this->onElectionTimeout();});
@@ -120,6 +77,48 @@ void Raft::Start() {
         // already started
         return;
     }
+    // Register RPC handlers that accept a serialized payload and return a serialized reply.
+    // The lambdas: decode -> call local handler function -> encode reply.
+    transport_->RegisterRequestVoteHandler(
+        [this](const std::string& payload) -> std::string {
+            try {
+                // spdlog::info("[Raft] {} RequestVote handler received payload: {}", this->me_, payload);
+                type::RequestVoteArgs args = codec::RaftCodec::decodeRequestVoteArgs(payload);
+                // spdlog::info("[Raft] {} RequestVote handler decode success: term={}, candidateId={}, lastLogIndex={}, lastLogTerm={}",
+                            //  this->me_, args.term, args.candidateId, args.lastLogIndex, args.lastLogTerm);
+                type::RequestVoteReply reply = this->HandleRequestVote(args);
+                // spdlog::info("[Raft] {} RequestVote handler processed successfully", this->me_);
+                return codec::RaftCodec::encode(reply);
+            } catch (const std::exception& e) {
+                spdlog::error("[Raft] {} RequestVote handler exception: {}", this->me_, e.what());
+                return std::string();
+            }
+        }
+    );
+    transport_->RegisterAppendEntriesHandler(
+        [this](const std::string& payload) -> std::string {
+            try {
+                type::AppendEntriesArgs args = codec::RaftCodec::decodeAppendEntriesArgs(payload);
+                type::AppendEntriesReply reply = this->HandleAppendEntries(args);
+                return codec::RaftCodec::encode(reply);
+            } catch (const std::exception& e) {
+                spdlog::error("[Raft] {} AppendEntries handler exception: {}", this->me_, e.what());
+                return std::string();
+            }
+        }
+    );
+    transport_->RegisterInstallSnapShotRPC(
+        [this](const std::string& payload) -> std::string {
+            try {
+                type::InstallSnapshotArgs args = codec::RaftCodec::decodeInstallSnapshotArgs(payload);
+                type::InstallSnapshotReply reply = this->HandleInstallSnapshot(args);
+                return codec::RaftCodec::encode(reply);
+            } catch (const std::exception& e) {
+                spdlog::error("[Raft] {} InstallSnapshot handler exception: {}", this->me_, e.what());
+                return std::string();
+            }
+        }
+    );
     // start communication layer
     transport_->Start();
     // spdlog::info("[Raft] {} started", me_);
@@ -244,7 +243,7 @@ void Raft::testAppendLog(const std::vector<type::LogEntry>& entries){
     std::lock_guard<std::mutex> lock(mu_);
     for (const auto& entry : entries) {
         log_.push_back(entry);
-        spdlog::info("[Raft] Node {} testAppendLog appended log entry at index {} (term={})", 
+        spdlog::info("[Raft] {} testAppendLog appended log entry at index {} (term={})", 
                      me_, entry.index, entry.term);
     }
     //lab3 partB:update persister every time append
@@ -277,14 +276,14 @@ void Raft::run() {
         // ==========================
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-    // spdlog::info("[Raft] Node {} run loop exited", me_);
+    // spdlog::info("[Raft] {} run loop exited", me_);
 }
 
 //--------- Election control ----------
 void Raft::startElection(){
     {
         std::lock_guard<std::mutex> lock(mu_);
-        spdlog::info("[Raft] Node {} starting election for term {}", me_, currentTerm_);
+        spdlog::info("[Raft] {} starting election for term {}", me_, currentTerm_);
     }
 
     int votesGranted = 1; // vote for self
@@ -300,7 +299,7 @@ void Raft::startElection(){
             if(reply->voteGranted){
                 // handle vote granted
                 votesGranted++;
-                spdlog::info("[Raft] Node {} received vote from node {} (total votes={})", me_, peer, votesGranted);
+                spdlog::info("[Raft] {} received vote from {} (total votes={})", me_, peer, votesGranted);
                 // check if won majority
                 if (votesGranted >= majority && role_.load() == type::Role::Candidate) {
                     becomeLeaderLocked(); // convert to Leader,using locked version
@@ -309,7 +308,7 @@ void Raft::startElection(){
             }
             else{
                 // handle vote denied
-                // spdlog::info("[Raft] Node {} vote denied by peer {} (peer term={})", 
+                // spdlog::info("[Raft] {} vote denied by peer {} (peer term={})", 
                 //     me_, peer, reply->term);
                 // if peer's term > currentTerm_, step down
                 if (reply->term > currentTerm_) {
@@ -318,7 +317,7 @@ void Raft::startElection(){
                 }
             }
         }else{
-            spdlog::warn("[Raft] Node {} failed to get reply from peer {}", me_, peer);
+            spdlog::warn("[Raft] {} failed to get reply from peer {}", me_, peer);
             //TODO: handle no reply (network failure, timeout)
         }
     }
@@ -373,7 +372,7 @@ void Raft::becomeFollowerLocked(int32_t newTerm){
     }
     currentTerm_ = newTerm;
     role_.store(type::Role::Follower);
-    spdlog::info("[Raft] Node {} becomes follower (term={})", me_, currentTerm_);
+    spdlog::info("[Raft] {} becomes follower (term={})", me_, currentTerm_);
     votedFor_ = std::nullopt;
     persistLocked();
     // stop heartbeat timer if running
@@ -388,7 +387,7 @@ void Raft::becomeCandidateLocked(){
     // Increment current term and convert to candidate
     currentTerm_++;
     role_.store(type::Role::Candidate);
-    spdlog::info("[Raft] Node {} becomes candidate (term={})", me_, currentTerm_);
+    spdlog::info("[Raft] {} becomes candidate (term={})", me_, currentTerm_);
     votedFor_ = me_;
     persistLocked();
     // reset election timer
@@ -429,7 +428,7 @@ type::RequestVoteReply Raft::HandleRequestVote(
 
     // Step 2: If the term in the request is greater than our term, update term and convert to follower
     if (args.term > currentTerm_) {
-        spdlog::info("[Raft] Node {} updating term from {} to {}", me_, currentTerm_, args.term);
+        spdlog::info("[Raft] {} updating term from {} to {}", me_, currentTerm_, args.term);
         becomeFollowerLocked(args.term);
     }
 
@@ -441,17 +440,17 @@ type::RequestVoteReply Raft::HandleRequestVote(
 
     //have not voted this term or voted for candidate, and candidate's log is at least as up-to-date
     if ((votedFor_ == std::nullopt || votedFor_ == args.candidateId) && logOk) {
-        // spdlog::info("[Raft] Node {} grants vote to node {} in term {} (logOk={}, votedFor_={})",
+        // spdlog::info("[Raft] {} grants vote to  {} in term {} (logOk={}, votedFor_={})",
         //     me_, args.candidateId, currentTerm_, logOk, 
         //     (votedFor_ ? std::to_string(*votedFor_) : "nullopt"));
         votedFor_ = args.candidateId;
         persistLocked();
         reply.voteGranted = true;
         resetElectionTimerLocked(); // reset follower timer
-        spdlog::info("[Raft] Node {} voted for node {} in term {}", me_, args.candidateId, currentTerm_);
+        spdlog::info("[Raft] {} voted for {} in term {}", me_, args.candidateId, currentTerm_);
     } else {
         reply.voteGranted = false;
-        spdlog::info("[Raft] Node {} rejecting vote for node {} in term {}", me_, args.candidateId, currentTerm_);
+        spdlog::info("[Raft] {} rejecting vote for {} in term {}", me_, args.candidateId, currentTerm_);
     }
 
     return reply;
@@ -475,7 +474,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(
     // Step 2: If term > currentTerm, update and convert to follower
     if (args.term > currentTerm_) {
         becomeFollowerLocked(args.term); 
-        // spdlog::info("[Raft] Node {} updating term to {} and becomes follower", me_, currentTerm_);
+        // spdlog::info("[Raft] {} updating term to {} and becomes follower", me_, currentTerm_);
     }
     // Step 3: Reset election timeout since valid leader contacted us
     // Receiving valid AppendEntries acts as heartbeat → reset timeout
@@ -507,7 +506,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(
                 for (size_t j = i; j < args.entries.size(); ++j) {
                     log_.push_back(args.entries[j]);
                     // spdlog::info("[Raft] args.entries[{}] command:{}",j,args.entries[j].command);
-                    // spdlog::info("[Raft] Node {} appended new log entry at index {} from leader {}",
+                    // spdlog::info("[Raft] {} appended new log entry at index {} from leader {}",
                         // me_, args.prevLogIndex + 1 + j, args.leaderId);
                 }
                 break;
@@ -515,7 +514,7 @@ type::AppendEntriesReply Raft::HandleAppendEntries(
         }else{
             log_.push_back(entry);
             // spdlog::info("[Raft] args.entries[{}] command:{}",i,args.entries[i].command);
-            // spdlog::info("[Raft] Node {} appended new log entry at index {} from leader {}", me_, index, args.leaderId);
+            // spdlog::info("[Raft] {} appended new log entry at index {} from leader {}", me_, index, args.leaderId);
         }
     }
     // Step 6: Update commitIndex
@@ -542,7 +541,7 @@ type::InstallSnapshotReply Raft::HandleInstallSnapshot(
 
     // Step 1. term check
     if (args.term < currentTerm_) {
-        spdlog::info("[Raft] Node {} rejects outdated snapshot (term={}, my term={})",
+        spdlog::info("[Raft] {} rejects outdated snapshot (term={}, my term={})",
                      me_, args.term, currentTerm_);
         return reply;
     }
@@ -557,7 +556,7 @@ type::InstallSnapshotReply Raft::HandleInstallSnapshot(
     // Step 2. reset election timer (since it's a heartbeat too)
     resetElectionTimerLocked();
 
-    spdlog::info("[Raft] Node {} received snapshot (lastIncludedIndex={}, lastIncludedTerm={})",
+    spdlog::info("[Raft] {} received snapshot (lastIncludedIndex={}, lastIncludedTerm={})",
                  me_, args.lastIncludedIndex, args.lastIncludedTerm);
 
     // call CondInstallSnapShot to decide if install at all
@@ -570,11 +569,11 @@ bool Raft::condInstallSnapShotLocked(
     // no lock because caller function HandleInstallSnapshot acquired lock
     // Ignore snapshot if it’s outdated or already covered by our log.
     if (snapshotIndex <= commitIndex_) {
-        spdlog::info("[Raft] Node {} Ignore outdated snapshot at index {}", me_, snapshotIndex);
+        spdlog::info("[Raft] {} Ignore outdated snapshot at index {}", me_, snapshotIndex);
         return false;
     }
 
-    spdlog::info("[Raft] Node {} Installing snapshot at index {} (term={})",
+    spdlog::info("[Raft] {} Installing snapshot at index {} (term={})",
                  me_, snapshotIndex, snapshotTerm);
 
     // Apply snapshot to state machine
@@ -612,9 +611,9 @@ void Raft::AppendLogEntryLocked(const std::string& command) {
 
     log_.push_back(entry);
     persistLocked();
-    // spdlog::info("[Raft] Node {} appended new log entry at index {} from outside", 
+    // spdlog::info("[Raft] {} appended new log entry at index {} from outside", 
         // me_, entry.index);
-    // spdlog::info("[Raft] Node {} appended new log entry for command '{}'", 
+    // spdlog::info("[Raft] {} appended new log entry for command '{}'", 
     //     me_, command);
 }
 
@@ -665,7 +664,7 @@ void Raft::updateCommitIndexLocked(){
         int majority = (peers_.size() / 2) + 1;
         if (replicatedCount >= majority) {
             commitIndex_ = N;
-            // spdlog::info("[Raft] Node {} updated commitIndex to {}", me_, commitIndex_);
+            // spdlog::info("[Raft] {} updated commitIndex to {}", me_, commitIndex_);
             apply_cv_.notify_one(); // notify apply thread
             break;
         }
@@ -726,7 +725,7 @@ void Raft::applyLogsLocked(){
             spdlog::warn("[Raft] {} no applyCallback set",me_);
             continue;
         }
-        // spdlog::info("[Raft] Node {} applied log entry at index {} with command '{}' (term={})", 
+        // spdlog::info("[Raft] {} applied log entry at index {} with command '{}' (term={})", 
                     //  me_, lastApplied_, entry.command,entry.term);
     }
 }
@@ -773,7 +772,7 @@ std::optional<type::RequestVoteReply> Raft::sendRequestVote(int peerId){
 
     type::RequestVoteReply reply{};
     bool success = transport_->RequestVoteRPC(peerId, args,reply);
-    // spdlog::info("[Raft] Node {} finished RequestVote RPC call to peer {}", me_, peerId);
+    // spdlog::info("[Raft] {} finished RequestVote RPC call to peer {}", me_, peerId);
     if (!success) {
         spdlog::warn("[Raft] Failed to send RequestVote RPC to peer {}", peerId);
         return std::nullopt;
@@ -812,13 +811,13 @@ void Raft::broadcastHeartbeat(){
             if (reply->term > currentTerm_) {
                 becomeFollowerLocked(reply->term);
                 spdlog::info(
-                    "[Raft] Node {} stepping down to Follower due to higher term from {}", 
+                    "[Raft] {} stepping down to Follower due to higher term from {}", 
                     me_, peer);
                 break;
             }
-            // else {spdlog::info("[Raft] Node {} heartbeat acknowledged by node {}", me_, peer);}
+            // else {spdlog::info("[Raft] {} heartbeat ack by {}", me_, peer);}
         } else {
-            spdlog::warn("[Raft] Node {} heartbeat to {} failed", me_, peer);
+            spdlog::warn("[Raft] {} heartbeat to {} failed", me_, peer);
             //TODO: handle no reply (network failure, timeout)
         }
     }
@@ -835,7 +834,7 @@ void Raft::broadcastAppendEntries(){
             if (reply->term > currentTerm_) {
                 becomeFollowerLocked(reply->term);
                 spdlog::info(
-                    "[Raft] Node {} stepping down to Follower due to higher term from {}", 
+                    "[Raft] {} stepping down to Follower due to higher term from {}", 
                     me_, peer);
                 break;
             }
@@ -843,18 +842,18 @@ void Raft::broadcastAppendEntries(){
                 if(reply->success){
                     nextIndex_[peer] = getLastLogIndexLocked() + 1;
                     matchIndex_[peer] = nextIndex_[peer] - 1;
-                    // spdlog::info("[Raft] Node {} AppendEntries success from {}, matchIndex={}, nextIndex={}", 
+                    // spdlog::info("[Raft] {} AppendEntries success from {}, matchIndex={}, nextIndex={}", 
                         // me_, peer, matchIndex_[peer], nextIndex_[peer]);
                     updateCommitIndexLocked();
                 } else {
                     // Decrement nextIndex_ on failure
                     nextIndex_[peer] = std::max(1, nextIndex_[peer] - 1);
-                    spdlog::info("[Raft] Node {} AppendEntries failed from {}, decrementing nextIndex to {}", 
+                    spdlog::info("[Raft] {} AppendEntries failed from {}, decrementing nextIndex to {}", 
                         me_, peer, nextIndex_[peer]);
                 }
             }
         } else {
-            spdlog::warn("[Raft] Node {} AppendEntries to {} failed", me_, peer);
+            spdlog::warn("[Raft] {} AppendEntries to {} failed", me_, peer);
             //TODO: handle no reply (network failure, timeout)
         }
     }
@@ -884,7 +883,7 @@ std::string Raft::readPersistedStateLocked(){
 // -------- Timer functions -----------
 // Called when the election timer times out.
 void Raft::onElectionTimeout(){
-    spdlog::info("[Raft] Election timeout occurred on node {}.", me_);
+    spdlog::info("[Raft] Election timeout occurred on {}.", me_);
     becomeCandidate();
     startElection();
 }
@@ -892,9 +891,9 @@ void Raft::onElectionTimeout(){
 void Raft::onHeartbeatTimeout(){
     {
         std::lock_guard<std::mutex> lock(mu_);
-        // spdlog::info("[Raft] Heartbeat timeout occurred on node {}.", me_);
+        // spdlog::info("[Raft] Heartbeat timeout occurred on {}.", me_);
         if (role_.load() != type::Role::Leader) {
-            spdlog::error("[Raft] Heartbeat timeout, but node {} is not the leader.", me_);
+            spdlog::error("[Raft] Heartbeat timeout, but {} is not the leader.", me_);
             return;
         }
     }

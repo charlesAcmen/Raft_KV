@@ -16,21 +16,22 @@ void RandomClerkOperation(std::shared_ptr<kv::Clerk> clerk) {
     // Generate a random key and value
     std::uniform_int_distribution<int> key_dist(0, 100);
     int key_num = key_dist(rng);
-    std::string key = "key" + std::to_string(key_num);
-    std::string value = "value" + std::to_string(key_num);
+    // std::string key = "key" + std::to_string(key_num);
+    std::string key = "key";
+    std::string value = std::to_string(key_num);
 
     switch (op) {
         case 0:
             clerk->Put(key, value);
-            spdlog::info("[main] RandomClerkOperation: Put({}, {})", key, value);
+            spdlog::info("[main] Put({}, {})", key, value);
             break;
         case 1:
             clerk->Append(key, value);
-            spdlog::info("[main] RandomClerkOperation: Append({}, {})", key, value);
+            spdlog::info("[main] Append({}, {})", key, value);
             break;
         case 2: {
             std::string result = clerk->Get(key);
-            spdlog::info("[main] RandomClerkOperation: Get({}) -> {}", key, result);
+            spdlog::info("[main] Get({}) -> {}", key, result);
             break;
         }
         default:

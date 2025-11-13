@@ -41,8 +41,8 @@ std::string Clerk::Get(const std::string& key){
         if(transport_->GetRPC(serverId, args, reply)){
             if(reply.err == type::Err::OK){
                 lastKnownLeaderIdx_ = serverIdx;
-                spdlog::info("[Clerk] {} GetRPC succeeded after {} attempts. Leader server: {}, key: {}", 
-                    clerkId_, tried, serverId, key);
+                // spdlog::info("[Clerk] {} GetRPC succeeded after {} attempts. Leader server: {}, key: {}", 
+                //     clerkId_, tried, serverId, key);
                 return reply.Value;
             }else if(reply.err == type::Err::ErrWrongLeader){
                 // spdlog::info("[Clerk] {} GetRPC key:{} error:{}", 

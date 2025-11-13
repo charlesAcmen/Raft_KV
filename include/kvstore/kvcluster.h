@@ -26,8 +26,8 @@ public:
     std::shared_ptr<Clerk> testGetClerk(int index) const;
 private:
     static constexpr int kSnapshotThreshold = 
-        -1;//not enabled
-        // 50;
+        // -1;//not enabled
+        50;
         // 1024 * 1024 * 1;//1MB
 
     std::vector<std::shared_ptr<KVServer>> kvservers_;
