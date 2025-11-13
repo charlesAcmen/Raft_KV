@@ -211,7 +211,7 @@ int main(){
 
     std::shared_ptr<kv::Clerk> clerk = cluster.testGetClerk(0);
     int operationNum = 100;
-    for (int i = 0; i < operationNum; ++i) { RandomClerkOperation(clerk);}
+    // for (int i = 0; i < operationNum; ++i) { RandomClerkOperation(clerk);}
 
     //--------------------Sequential--------------
     // std::vector<std::shared_ptr<kv::Clerk>> clerks = cluster.testGetClerks();

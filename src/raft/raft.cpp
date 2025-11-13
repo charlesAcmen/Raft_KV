@@ -290,6 +290,7 @@ void Raft::startElection(){
     }
 
     int votesGranted = 1; // vote for self
+    int voteDenied = 0;
     int majority = (peers_.size() / 2) + 1;
 
     // Send RequestVote RPCs to all peers
@@ -311,10 +312,12 @@ void Raft::startElection(){
             }
             else{
                 // handle vote denied
+                voteDenied++;
                 // spdlog::info("[Raft] {} vote denied by peer {} (peer term={})", 
                 //     me_, peer, reply->term);
                 // if peer's term > currentTerm_, step down
-                if (reply->term > currentTerm_) {
+                if ((voteDenied >= majority && role_.load() == type::Role::Candidate)
+                || reply->term > currentTerm_) {
                     becomeFollowerLocked(reply->term);//convert to follower,using locked version
                     break;
                 }
