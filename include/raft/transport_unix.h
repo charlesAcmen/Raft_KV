@@ -7,15 +7,15 @@ namespace raft {
 // Unix-domain-socket-based transport for single-machine multi-process simulation.
 class RaftTransportUnix 
     : public rpc::TransportBase,
-      public IRaftTransport {
+      public IRaftTransport{
 public:
     explicit RaftTransportUnix(
         const rpc::type::PeerInfo&,
         const std::vector<rpc::type::PeerInfo>&);
     ~RaftTransportUnix() override;
 
-    virtual void Start() override;
-    virtual void Stop() override;
+    // virtual void Start() override;
+    // virtual void Stop() override;
 
     bool RequestVoteRPC(
         int,const type::RequestVoteArgs&,type::RequestVoteReply&) override;

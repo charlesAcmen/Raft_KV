@@ -12,8 +12,8 @@ public:
         const std::vector<rpc::type::PeerInfo>&);
     ~KVTransportUnix() override;
 
-    virtual void Start() override;
-    virtual void Stop() override;
+    // virtual void Start() override;
+    // virtual void Stop() override;
 
     bool GetRPC(int,
         const type::GetArgs&,

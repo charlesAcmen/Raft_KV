@@ -10,7 +10,7 @@ namespace kv{
  * It inherits from rpc::ITransport, which provides Start/Stop lifecycle
  * control for the transport.
  */
-class IKVTransport: public rpc::ITransport{
+class IKVTransport : public virtual rpc::ITransport{
 public:
     virtual ~IKVTransport() = default;
     virtual bool GetRPC(int,

@@ -10,12 +10,19 @@
 #include <functional>   //for encode and decode functions
 #include <spdlog/spdlog.h>
 namespace rpc{
-class TransportBase{
+class ITransport{
+public:
+    virtual ~ITransport() = default;
+
+    virtual void Start() = 0;
+    virtual void Stop() = 0;
+};//class ITransport
+class TransportBase : public virtual ITransport {
 public:
     virtual ~TransportBase() = default;
     //not virtual to avoid vtable ambiguity in multiple inheritance
-    void Start();
-    void Stop();
+    void Start() override;
+    void Stop() override;
 protected:
     TransportBase(
         const type::PeerInfo& self,
@@ -62,11 +69,4 @@ protected:
 
     std::atomic<bool> running_{false};
 };//class TransportBase
-class ITransport{
-public:
-    virtual ~ITransport() = default;
-
-    virtual void Start() = 0;
-    virtual void Stop() = 0;
-};//class ITransport
 }//namespace rpc

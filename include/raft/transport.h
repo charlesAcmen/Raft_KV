@@ -6,7 +6,7 @@ namespace raft {
 // Transport abstraction used by Raft to send RPCs to peers. 
 // Keeping this abstract decouples Raft state-machine logic 
 // from the underlying RPC mechanism.
-class IRaftTransport: public rpc::ITransport {
+class IRaftTransport :public virtual rpc::ITransport{
 public:
     virtual ~IRaftTransport() = default;
 
