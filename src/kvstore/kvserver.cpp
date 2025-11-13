@@ -31,7 +31,7 @@ void KVServer::Start() {
         spdlog::warn("[KVServer] {} killed",me_);
         return; //already started
     }
-        // Register RPC handlers that accept a serialized payload and return a serialized reply.
+    // Register RPC handlers that accept a serialized payload and return a serialized reply.
     // The lambdas: decode -> call local handler function -> encode reply.
     transport_->RegisterGetHandler(
         [this](const std::string& payload) -> std::string {
@@ -79,6 +79,11 @@ bool KVServer::Killed() const {
     std::lock_guard<std::mutex> lk(mu_);
     return dead_.load() != 0;
 }
+bool KVServer::IsReady() const {
+    std::lock_guard<std::mutex> lk(mu_);
+    return rf_->IsLeader();
+}
+
 bool KVServer::isSnapShotEnabled() const{
     std::lock_guard<std::mutex> lk(mu_);
     return isSnapShotEnabledLocked();

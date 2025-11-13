@@ -59,7 +59,10 @@ bool Raft::SubmitCommand(const std::string& command){
     broadcastAppendEntries();
     return true;
 }
-
+bool Raft::IsLeader() const{
+    std::lock_guard<std::mutex> lock(mu_);
+    return role_.load() == type::Role::Leader;
+}
 void Raft::GetState(int32_t& currentTerm, bool& isLeader) const {
     std::lock_guard<std::mutex> lock(mu_);
     currentTerm = currentTerm_;

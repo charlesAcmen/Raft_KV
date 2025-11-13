@@ -58,10 +58,12 @@ KVCluster::~KVCluster() {
 void KVCluster::WaitForServerLeader(int maxAttempts) {
     for (int i = 0; i < maxAttempts; ++i) {
         for (const auto& svr : kvservers_) {
-            int32_t term;
-            bool isLeader;
-            svr->testGetRaftNode()->GetState(term, isLeader);
-            if (isLeader) {
+            // int32_t term;
+            // bool isLeader;
+            // svr->testGetRaftNode()->GetState(term, isLeader);
+            // if (isLeader) {
+            // if(svr->testGetRaftNode()->IsLeader()){
+            if(svr->IsReady()){
                 spdlog::info("[KVCluster] KV Server Leader elected");
                 return;
             }

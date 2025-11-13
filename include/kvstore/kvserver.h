@@ -19,6 +19,10 @@ public:
     void Stop();
     void Kill();
     bool Killed() const;
+    bool IsReady() const;
+
+
+
     bool isSnapShotEnabled() const;
 
     //---------- Testing utilities ----------
@@ -36,8 +40,8 @@ private:
     mutable std::mutex mu_;
     const int me_;                      // this peer's id (index into peers_)
     const std::vector<int> peers_;      // peer ids (including me_)
-    std::atomic<int32_t> dead_{1};  // set by Kill()，0：not killed
-    
+    std::atomic<int32_t> dead_{1};      // set by Kill()，0：not killed
+
     //key:clerk id,value:last applied requestId
     std::unordered_map<int, int> lastAppliedRequestId;  
     

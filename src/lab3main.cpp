@@ -198,6 +198,7 @@ int main(){
     cluster.StartAll();
 
     cluster.WaitForServerLeader(200);
+    // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     //--------------------RandomOperation--------------
     // std::shared_ptr<kv::Clerk> clerk = cluster.testGetClerk(0);    
     // std::string key = 

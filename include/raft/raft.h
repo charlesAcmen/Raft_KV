@@ -22,6 +22,7 @@ public:
     // Submit a command to this Raft node
     // Returns false if this node is not the leader
     bool SubmitCommand(const std::string& command);
+    bool IsLeader() const;
     void GetState(int32_t& currentTerm, bool& isLeader) const;
     // Start internal worker thread,transport,and timers.
     void Start();
